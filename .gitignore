@@ -1,7 +1,22 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 .next/
+out/
+dist/
+
+# Environment
 .env
 .env.local
-.vercel
-*.log
+.env.*.local
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Legal docs are in legal/.gitignore

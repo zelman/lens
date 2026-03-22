@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Inflection Briefing — Sample</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --red: #D93025;
+    --orange: #E8590C;
+    --black: #1a1a1a;
+    --dark: #2a2a2a;
+    --mid: #666;
+    --light: #999;
+    --border: #e0e0e0;
+    --bg: #ffffff;
+    --bg-alt: #fafafa;
+    --green: #2d8a4e;
+    --amber: #b8860b;
+    --score-bg: #f5f3f0;
+  }
+
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--black);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 48px 0 40px;
+    border-bottom: 3px solid var(--black);
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  .header-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--red);
+    padding: 5px 10px;
+    display: inline-block;
+  }
+  .header-date {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--light);
+    letter-spacing: 0.05em;
+  }
+  .header h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .header-sub {
+    font-size: 15px;
+    color: var(--mid);
+    max-width: 560px;
+  }
+
+  /* LENS SUMMARY */
+  .lens-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-alt);
+  }
+  .lens-item {
+    flex: 1;
+    padding: 16px 16px;
+    border-right: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .lens-item:last-child { border-right: none; }
+  .lens-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--light);
+    margin-bottom: 4px;
+  }
+  .lens-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--black);
+  }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-box {
+    padding: 24px 20px;
+    border-right: 1px solid var(--border);
+    text-align: center;
+  }
+  .stat-box:last-child { border-right: none; }
+  .stat-number {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--black);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-number.red { color: var(--red); }
+  .stat-number.green { color: var(--green); }
+  .stat-number.amber { color: var(--amber); }
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--light);
+  }
+
+  /* SECTION HEADERS */
+  .section-header {
+    padding: 32px 0 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 2px solid var(--black);
+    margin-bottom: 0;
+  }
+  .section-header h2 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .section-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--light);
+  }
+
+  /* COMPANY CARDS */
+  .company-card {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 0;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .company-card:hover {
+    background: var(--bg-alt);
+    margin: 0 -24px;
+    padding: 24px;
+  }
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .card-left { flex: 1; }
+  .company-name {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 2px;
+  }
+  .company-meta {
+    font-size: 12px;
+    color: var(--mid);
+  }
+  .company-meta span {
+    margin-right: 12px;
+  }
+
+  /* SCORE BADGE */
+  .score-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 72px;
+  }
+  .score-ring {
+    width: 56px;
+    height: 56px;
+    position: relative;
+  }
+  .score-ring svg {
+    transform: rotate(-90deg);
+  }
+  .score-ring-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .score-class {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .class-apply { color: var(--green); }
+  .class-watch { color: var(--amber); }
+
+  /* REASON CODES */
+  .reason-codes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .reason-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    background: var(--score-bg);
+    color: var(--dark);
+  }
+  .reason-tag.positive { 
+    background: #e8f5e9; 
+    color: var(--green); 
+  }
+  .reason-tag.caution { 
+    background: #fff8e1; 
+    color: var(--amber); 
+  }
+
+  /* SCORE BARS */
+  .score-bars {
+    display: none;
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .score-bars.open { display: block; }
+  .score-bar-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 12px;
+  }
+  .score-bar-label {
+    font-size: 11px;
+    color: var(--mid);
+    width: 130px;
+    flex-shrink: 0;
+  }
+  .score-bar-track {
+    flex: 1;
+    height: 6px;
+    background: #eee;
+    position: relative;
+  }
+  .score-bar-fill {
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    transition: width 0.4s ease;
+  }
+  .score-bar-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--dark);
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* BRIEFING TEXT */
+  .briefing-text {
+    font-size: 14px;
+    color: var(--dark);
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+
+  /* OUTREACH */
+  .outreach-box {
+    display: none;
+    background: var(--bg-alt);
+    border-left: 3px solid var(--red);
+    padding: 16px 20px;
+    margin-top: 12px;
+  }
+  .outreach-box.open { display: block; }
+  .outreach-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 8px;
+  }
+  .outreach-text {
+    font-size: 13px;
+    color: var(--dark);
+    line-height: 1.6;
+  }
+
+  /* EXPAND BUTTON */
+  .expand-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--red);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 0;
+    margin-top: 4px;
+  }
+  .expand-btn:hover { text-decoration: underline; }
+
+  /* TRAJECTORY TABLE */
+  .trajectory-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+  .trajectory-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--light);
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 2px solid var(--black);
+  }
+  .trajectory-table td {
+    font-size: 13px;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .trajectory-table tr:hover { background: var(--bg-alt); }
+  .delta-up { color: var(--green); font-weight: 600; }
+  .delta-down { color: var(--red); font-weight: 600; }
+  .delta-flat { color: var(--light); }
+
+  /* FOOTER */
+  .footer {
+    padding: 40px 0;
+    border-top: 3px solid var(--black);
+    margin-top: 48px;
+  }
+  .footer-text {
+    font-size: 12px;
+    color: var(--light);
+    line-height: 1.7;
+  }
+  .footer-cta {
+    display: inline-block;
+    margin-top: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--red);
+    padding: 12px 24px;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .footer-cta:hover { background: var(--orange); }
+
+  /* SAMPLE BANNER */
+  .sample-banner {
+    background: var(--red);
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  /* METHODOLOGY LINK */
+  .methodology-toggle {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--light);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .methodology-toggle:hover {
+    border-color: var(--black);
+    color: var(--black);
+  }
+
+  .methodology-panel {
+    display: none;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin: 16px 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--dark);
+  }
+  .methodology-panel.open { display: block; }
+  .methodology-panel h3 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    color: var(--black);
+  }
+
+  /* MOBILE */
+  @media (max-width: 640px) {
+    .header h1 { font-size: 28px; }
+    .lens-bar { flex-wrap: wrap; }
+    .lens-item { flex: 1 1 50%; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .stat-box:nth-child(2) { border-right: none; }
+    .company-card:hover { margin: 0; padding: 24px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sample-banner">
+  Sample Briefing — This is what your weekly delivery looks like
+</div>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="header-badge">Weekly Inflection Briefing</div>
+      </div>
+      <div class="header-date">Week of March 17, 2026</div>
+    </div>
+    <h1>7 companies scored.<br>3 worth your time.</h1>
+    <p class="header-sub">Scored against your lens document — not keywords. Every company evaluated for inflection signals: do they need this hire, are they at the right stage, and is the role a build.</p>
+  </div>
+
+  <!-- YOUR LENS SUMMARY -->
+  <div class="lens-bar">
+    <div class="lens-item">
+      <div class="lens-label">Target Role</div>
+      <div class="lens-value">VP/Head of CS</div>
+    </div>
+    <div class="lens-item">
+      <div class="lens-label">Stage</div>
+      <div class="lens-value">Series A–B</div>
+    </div>
+    <div class="lens-item">
+      <div class="lens-label">Type</div>
+      <div class="lens-value">Builder (0→1)</div>
+    </div>
+    <div class="lens-item">
+      <div class="lens-label">Sectors</div>
+      <div class="lens-value">Healthcare, Enterprise</div>
+    </div>
+    <div class="lens-item">
+      <div class="lens-label">Floor</div>
+      <div class="lens-value">$125K+</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-number">147</div>
+      <div class="stat-label">Scanned</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">7</div>
+      <div class="stat-label">Passed gates</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number green">3</div>
+      <div class="stat-label">Apply</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number amber">4</div>
+      <div class="stat-label">Watch</div>
+    </div>
+  </div>
+
+  <!-- METHODOLOGY -->
+  <div style="padding: 16px 0; text-align: right;">
+    <button class="methodology-toggle" onclick="toggleMethodology()">How scoring works ↓</button>
+  </div>
+  <div class="methodology-panel" id="methodology">
+    <h3>Scoring Framework (100 pts + domain modifier)</h3>
+    <p style="margin-bottom:12px;">Each company is scored across five independent dimensions. An adjusted score includes a domain distance modifier that rewards sector alignment (healthcare SaaS +5) and penalizes mismatches (IT ops -8). Companies must pass hard gates before scoring: no PE-backed, no 200+ employees, no Series D+, no public companies, no non-software businesses.</p>
+    <p><strong>CS Hire Readiness (0–25):</strong> Does this company need this hire now?<br>
+    <strong>Stage & Size Fit (0–25):</strong> Right inflection point for a builder?<br>
+    <strong>Role Mandate (0–20):</strong> Builder (0→1) vs. Maintainer?<br>
+    <strong>Sector & Mission (0–15):</strong> Healthcare? Mission-driven?<br>
+    <strong>Outreach Feasibility (0–15):</strong> Warm paths? Network access?</p>
+  </div>
+
+  <!-- APPLY SECTION -->
+  <div class="section-header">
+    <h2>Apply — Worth pursuing</h2>
+    <span class="section-count">3 companies</span>
+  </div>
+
+  <!-- COMPANY 1: LeanData -->
+  <div class="company-card" onclick="toggleCard('c1')">
+    <div class="card-top">
+      <div class="card-left">
+        <div class="company-name">LeanData</div>
+        <div class="company-meta">
+          <span>Revenue Operations</span>
+          <span>Series C · $85M raised</span>
+          <span>~180 employees</span>
+          <span>Sunnyvale, CA</span>
+        </div>
+      </div>
+      <div class="score-badge">
+        <div class="score-ring">
+          <svg width="56" height="56" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#eee" stroke-width="4"/>
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#2d8a4e" stroke-width="4" stroke-dasharray="150.8" stroke-dashoffset="30.16" stroke-linecap="round"/>
+          </svg>
+          <span class="score-ring-value" style="color:#2d8a4e">78</span>
+        </div>
+        <span class="score-class class-apply">Apply</span>
+      </div>
+    </div>
+    <div class="reason-codes">
+      <span class="reason-tag positive">New CCO hired</span>
+      <span class="reason-tag positive">Warm intro via Niels</span>
+      <span class="reason-tag positive">Enterprise motion scaling</span>
+      <span class="reason-tag caution">Near size ceiling</span>
+    </div>
+    <p class="briefing-text">LeanData just hired Dave Ginsburg as CCO, signaling a post-sales leadership buildout. With ~180 employees they're near the top of your size range, but the new CCO will need to build a CS org that matches their enterprise RevOps motion. Warm paths through Niels and Matt Stager make this your highest-feasibility target this week.</p>
+    <button class="expand-btn" id="c1-btn">Show score breakdown + outreach angle ↓</button>
+    <div class="score-bars" id="c1-scores">
+      <div class="score-bar-row">
+        <span class="score-bar-label">CS Hire Readiness</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:88%;background:var(--green)"></div></div>
+        <span class="score-bar-num">22/25</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Stage & Size Fit</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:64%;background:var(--amber)"></div></div>
+        <span class="score-bar-num">16/25</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Role Mandate</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:75%;background:var(--green)"></div></div>
+        <span class="score-bar-num">15/20</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Sector & Mission</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:67%;background:var(--amber)"></div></div>
+        <span class="score-bar-num">10/15</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Outreach Feasibility</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:100%;background:var(--green)"></div></div>
+        <span class="score-bar-num">15/15</span>
+      </div>
+    </div>
+    <div class="outreach-box" id="c1-outreach">
+      <div class="outreach-label">Suggested Outreach Angle</div>
+      <div class="outreach-text">
+        Lead with the enterprise CS buildout narrative. Dave Ginsburg was brought in to scale post-sales — he'll need someone who's built CS orgs from scratch in enterprise SaaS. Your Bigtincan story (1→25 person team, $130M platform, 1,500 accounts) maps directly. Ask Niels for a warm intro framed around "someone who's done the exact build Dave is about to do."
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPANY 2: Browserbase -->
+  <div class="company-card" onclick="toggleCard('c2')">
+    <div class="card-top">
+      <div class="card-left">
+        <div class="company-name">Browserbase</div>
+        <div class="company-meta">
+          <span>Developer Tools</span>
+          <span>Series A · $25M raised</span>
+          <span>~35 employees</span>
+          <span>San Francisco, CA</span>
+        </div>
+      </div>
+      <div class="score-badge">
+        <div class="score-ring">
+          <svg width="56" height="56" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#eee" stroke-width="4"/>
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#2d8a4e" stroke-width="4" stroke-dasharray="150.8" stroke-dashoffset="37.7" stroke-linecap="round"/>
+          </svg>
+          <span class="score-ring-value" style="color:#2d8a4e">73</span>
+        </div>
+        <span class="score-class class-apply">Apply</span>
+      </div>
+    </div>
+    <div class="reason-codes">
+      <span class="reason-tag positive">Series A sweet spot</span>
+      <span class="reason-tag positive">No CS leader yet</span>
+      <span class="reason-tag positive">Enterprise motion emerging</span>
+      <span class="reason-tag caution">Dev tools (domain distance +2)</span>
+    </div>
+    <p class="briefing-text">Browserbase provides headless browser infrastructure for AI agents — a developer tool that's moving toward enterprise contracts as AI agent adoption scales. At 35 people with $25M Series A, they're at the exact inflection where founder-led support breaks down. No CS leadership in place. This is a textbook 0→1 build.</p>
+    <button class="expand-btn" id="c2-btn">Show score breakdown + outreach angle ↓</button>
+    <div class="score-bars" id="c2-scores">
+      <div class="score-bar-row">
+        <span class="score-bar-label">CS Hire Readiness</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:80%;background:var(--green)"></div></div>
+        <span class="score-bar-num">20/25</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Stage & Size Fit</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:92%;background:var(--green)"></div></div>
+        <span class="score-bar-num">23/25</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Role Mandate</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:90%;background:var(--green)"></div></div>
+        <span class="score-bar-num">18/20</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Sector & Mission</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:53%;background:var(--amber)"></div></div>
+        <span class="score-bar-num">8/15</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Outreach Feasibility</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:27%;background:var(--red)"></div></div>
+        <span class="score-bar-num">4/15</span>
+      </div>
+    </div>
+    <div class="outreach-box" id="c2-outreach">
+      <div class="outreach-label">Suggested Outreach Angle</div>
+      <div class="outreach-text">
+        Cold outreach — no warm path identified. Best angle: founder-direct via LinkedIn. Frame around the transition from developer community support to enterprise customer success. Your experience building support for a technical platform (Bigtincan's enterprise content management) maps to their challenge. Look for their VP Sales or CRO as the hiring signal — when that role fills, CS leadership follows within 60 days.
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPANY 3: First Street -->
+  <div class="company-card" onclick="toggleCard('c3')">
+    <div class="card-top">
+      <div class="card-left">
+        <div class="company-name">First Street</div>
+        <div class="company-meta">
+          <span>Climate Risk / Enterprise SaaS</span>
+          <span>Series A · $28M raised</span>
+          <span>~50 employees</span>
+          <span>Brooklyn, NY</span>
+        </div>
+      </div>
+      <div class="score-badge">
+        <div class="score-ring">
+          <svg width="56" height="56" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#eee" stroke-width="4"/>
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#2d8a4e" stroke-width="4" stroke-dasharray="150.8" stroke-dashoffset="42.2" stroke-linecap="round"/>
+          </svg>
+          <span class="score-ring-value" style="color:#2d8a4e">68</span>
+        </div>
+        <span class="score-class class-apply">Apply</span>
+      </div>
+    </div>
+    <div class="reason-codes">
+      <span class="reason-tag positive">Mission-driven</span>
+      <span class="reason-tag positive">Enterprise clients onboarding</span>
+      <span class="reason-tag positive">0→1 CS opportunity</span>
+      <span class="reason-tag caution">No warm path</span>
+    </div>
+    <p class="briefing-text">First Street builds climate risk data products for insurance, real estate, and government — a mission-driven B2B SaaS company selling into complex regulated verticals. At ~50 people post-Series A, they're onboarding enterprise clients and likely running founder-led customer relationships that need a dedicated CS function. The regulated-industry complexity matches your healthcare background well.</p>
+    <button class="expand-btn" id="c3-btn">Show score breakdown + outreach angle ↓</button>
+    <div class="score-bars" id="c3-scores">
+      <div class="score-bar-row">
+        <span class="score-bar-label">CS Hire Readiness</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:72%;background:var(--green)"></div></div>
+        <span class="score-bar-num">18/25</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Stage & Size Fit</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:84%;background:var(--green)"></div></div>
+        <span class="score-bar-num">21/25</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Role Mandate</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:70%;background:var(--green)"></div></div>
+        <span class="score-bar-num">14/20</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Sector & Mission</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:73%;background:var(--green)"></div></div>
+        <span class="score-bar-num">11/15</span>
+      </div>
+      <div class="score-bar-row">
+        <span class="score-bar-label">Outreach Feasibility</span>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:27%;background:var(--red)"></div></div>
+        <span class="score-bar-num">4/15</span>
+      </div>
+    </div>
+    <div class="outreach-box" id="c3-outreach">
+      <div class="outreach-label">Suggested Outreach Angle</div>
+      <div class="outreach-text">
+        No warm intro — pursue via LinkedIn to Head of Product or COO. Frame around regulated-industry complexity: "I've built CS for platforms where getting implementation wrong has consequences, not just churn." The healthcare-to-climate-risk transfer is strong: both involve enterprise clients with compliance requirements, multi-stakeholder onboarding, and data sensitivity.
+      </div>
+    </div>
+  </div>
+
+  <!-- WATCH SECTION -->
+  <div class="section-header">
+    <h2>Watch — Monitor for changes</h2>
+    <span class="section-count">4 companies</span>
+  </div>
+
+  <!-- Trajectory Table for Watch companies -->
+  <table class="trajectory-table">
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th>Score</th>
+        <th>Δ vs Last Week</th>
+        <th>Why Watch</th>
+        <th>Trigger to Re-score</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Paxton AI</strong><br><span style="font-size:11px;color:var(--mid)">Legal AI · Series A · ~30 emp</span></td>
+        <td><span style="font-weight:700;color:var(--amber)">56</span></td>
+        <td><span class="delta-up">+4 ↑</span></td>
+        <td style="font-size:12px">Enterprise motion emerging but no clear CS gap yet. Strong mission fit.</td>
+        <td style="font-size:12px">VP Sales hire or enterprise pricing page</td>
+      </tr>
+      <tr>
+        <td><strong>Summize</strong><br><span style="font-size:11px;color:var(--mid)">Contract Intelligence · Series A · ~45 emp</span></td>
+        <td><span style="font-weight:700;color:var(--amber)">52</span></td>
+        <td><span class="delta-flat">— flat</span></td>
+        <td style="font-size:12px">UK-based but US expansion underway. Chris Picarde (former Bigtincan) is CRO.</td>
+        <td style="font-size:12px">US office announcement or CS role posted</td>
+      </tr>
+      <tr>
+        <td><strong>EnFi</strong><br><span style="font-size:11px;color:var(--mid)">Banking SaaS · Series A · ~40 emp</span></td>
+        <td><span style="font-weight:700;color:var(--amber)">48</span></td>
+        <td><span class="delta-up">+2 ↑</span></td>
+        <td style="font-size:12px">Regulated fintech, enterprise clients. CS org unclear. Sector distance neutral.</td>
+        <td style="font-size:12px">Customer logo announcement or headcount spike</td>
+      </tr>
+      <tr>
+        <td><strong>Baselayer</strong><br><span style="font-size:11px;color:var(--mid)">Construction Tech · Seed · ~20 emp</span></td>
+        <td><span style="font-weight:700;color:var(--amber)">44</span></td>
+        <td><span class="delta-down">-3 ↓</span></td>
+        <td style="font-size:12px">Too early. Strong builder signal but no post-sales motion yet.</td>
+        <td style="font-size:12px">Series A announcement</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SIGNALS THIS WEEK -->
+  <div class="section-header">
+    <h2>Signals detected this week</h2>
+    <span class="section-count">across all monitored companies</span>
+  </div>
+
+  <div style="padding: 20px 0;">
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:13px;line-height:1.8;">
+      <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--red);padding-top:3px;">MAR 18</span>
+      <span><strong>LeanData</strong> — Dave Ginsburg starts as CCO. LinkedIn announcement confirmed. <em>Score impact: +8 on CS Hire Readiness.</em></span>
+      
+      <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--red);padding-top:3px;">MAR 17</span>
+      <span><strong>Paxton AI</strong> — New SOC 2 badge on website. Enterprise compliance motion accelerating. <em>Score impact: +4 on CS Hire Readiness.</em></span>
+      
+      <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--red);padding-top:3px;">MAR 15</span>
+      <span><strong>Browserbase</strong> — Published enterprise pricing tier. SSO + dedicated support mentioned. <em>Score impact: +3 on CS Hire Readiness.</em></span>
+      
+      <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--red);padding-top:3px;">MAR 14</span>
+      <span><strong>Baselayer</strong> — Key engineer departed per LinkedIn. Seed stage + attrition = risk. <em>Score impact: -3 overall.</em></span>
+    </div>
+  </div>
+
+  <!-- DISQUALIFIED THIS WEEK -->
+  <div class="section-header">
+    <h2>Disqualified this week</h2>
+    <span class="section-count">filtered out before scoring</span>
+  </div>
+  <div style="padding: 16px 0; font-size: 13px; color: var(--mid); line-height: 2;">
+    <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--light);margin-right:8px;">GATE</span> Roblox — Public company<br>
+    <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--light);margin-right:8px;">GATE</span> Athena Security — Physical security, not software-first<br>
+    <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--light);margin-right:8px;">GATE</span> Cerebras — Series F, 500+ employees<br>
+    <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--light);margin-right:8px;">GATE</span> Flock Safety — PE-backed<br>
+    <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--light);margin-right:8px;">GATE</span> 11 others — various auto-disqualifiers
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p class="footer-text">
+      This briefing was generated by scoring 147 companies from VC portfolio scrapes, job board monitors, and funding alert feeds against a personal lens document produced through guided discovery. The lens encodes role type preferences, stage fit, sector alignment, builder vs. maintainer orientation, mission values, and network proximity — not keywords.
+    </p>
+    <p class="footer-text" style="margin-top:12px;">
+      Scoring runs weekly. Signals are monitored continuously. You receive what matters. Nothing else.
+    </p>
+    <a href="#" class="footer-cta">Build your lens — start free →</a>
+  </div>
+
+</div>
+
+<script>
+function toggleCard(id) {
+  const scores = document.getElementById(id + '-scores');
+  const outreach = document.getElementById(id + '-outreach');
+  const btn = document.getElementById(id + '-btn');
+  const isOpen = scores.classList.contains('open');
+  
+  scores.classList.toggle('open');
+  outreach.classList.toggle('open');
+  btn.textContent = isOpen 
+    ? 'Show score breakdown + outreach angle ↓' 
+    : 'Hide details ↑';
+}
+
+function toggleMethodology() {
+  const panel = document.getElementById('methodology');
+  panel.classList.toggle('open');
+}
+</script>
+
+</body>
+</html>
