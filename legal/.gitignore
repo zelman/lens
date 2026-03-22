@@ -1,0 +1,3 @@
+# NEVER commit legal documents to public git
+*
+!.gitignore
