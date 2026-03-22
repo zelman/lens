@@ -34,6 +34,7 @@ All notable changes to deployed apps and schemas are documented here.
 | Bidirectional Lens | v1.0 | `specs/bidirectional-lens-system-v1.0.md` |
 | Feedback Loop Spec | v1.0 | `specs/feedback-loop-spec-v1.0.md` |
 | Sources Template | v1.0 | `specs/sources-template.yaml` |
+| Scoring Config | v2.0 | `config/scoring-config.yaml` |
 
 ---
 

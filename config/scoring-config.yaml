@@ -1,0 +1,295 @@
+# Tide Pool Scoring Configuration v2
+# Supports two scoring modes:
+#   1. Pipeline mode (additive) — current n8n architecture, backward-compatible
+#   2. Product mode (weighted) — slider-friendly, used by JSX scorer and future product
+#
+# Both modes use the same gates, signals, and investor lookup.
+# The difference is HOW scores are calculated, not WHAT signals matter.
+
+version: "2.0"
+last_updated: "2026-03-20"
+
+# ============================================================
+# SCORING MODES
+# ============================================================
+
+modes:
+  pipeline:
+    description: "Additive scoring. Fixed point values. Used by n8n workflows."
+    scale: "0-100 base + additive bonuses/penalties. Scores can exceed 100."
+    thresholds:
+      strong_fit: 80
+      good_fit: 60
+      marginal: 40
+      skip: 0
+    min_score: 45
+
+  product:
+    description: "Weighted composite. Each dimension 0-100, multiplied by user weight. Slider-friendly."
+    scale: "0-100 composite. Cannot exceed 100."
+    thresholds:
+      strong_fit: 80
+      good_fit: 60
+      marginal: 40
+      skip: 0
+    min_score: 45
+
+# ============================================================
+# HARD GATES (shared across both modes, pre-scoring)
+# ============================================================
+
+gates:
+  investor_type: [PE, "Growth Equity"]
+  company_status: [Acquired, "Shut Down", Merged, Defunct]
+  company_type: ["Fortune 500", "Fortune 500 Subsidiary", Public]
+  funding_stage: ["Series D", "Series E", Growth]
+  # User-specific gates (employee min/max, sectors, domains) come from lens YAML
+
+# ============================================================
+# SIGNAL LIBRARY
+# ============================================================
+# Signals are the atomic unit. Both modes use the same signals.
+# In pipeline mode, signals trigger fixed bonuses/penalties.
+# In product mode, signals raise/lower dimension scores.
+
+signals:
+
+  # --- Builder / Maintainer ---
+  builder_positive:
+    keywords: ["build from scratch", "first hire", "founding team", "greenfield",
+               "define playbook", "no playbook", "player-coach", "hypergrowth",
+               "build", "create", "launch", "ground up", "scale", "0 to 1"]
+    pipeline_bonus: 40
+    product_dimensions: ["role_fit"]
+    product_weight: high  # raises dimension score significantly
+    note: "Highest-weighted positive signal in both modes"
+
+  builder_negative:
+    keywords: ["book of business", "portfolio of accounts", "established processes",
+               "proven playbook", "existing team of", "maintain existing"]
+    pipeline_penalty: 0  # not a hard penalty, just noted
+    product_dimensions: ["role_fit"]
+    product_weight: negative_moderate
+
+  nrr_first_language:
+    keywords: [NRR, "Net Revenue Retention", "Gross Retention", GRR, "Renewal forecasting"]
+    location: "first 2 bullets of JD"
+    pipeline_penalty: -15
+    product_dimensions: ["role_fit"]
+    product_weight: negative_strong
+    note: "Build mandate is gone. Someone already built it."
+
+  # --- Company Stage ---
+  series_a:
+    pipeline_bonus: 50
+    product_dimensions: ["company_stage"]
+    product_weight: high
+
+  series_b:
+    pipeline_bonus: 30
+    product_dimensions: ["company_stage"]
+    product_weight: moderate
+
+  small_company:
+    condition: "0-50 employees"
+    pipeline_bonus: 50
+    product_dimensions: ["company_stage"]
+    product_weight: high
+
+  young_company:
+    condition: "Founded <3 years ago"
+    pipeline_bonus: 10
+    product_dimensions: ["company_stage"]
+    product_weight: slight
+
+  vc_backed:
+    condition: "VC investors (not PE)"
+    pipeline_bonus: 10
+    product_dimensions: ["company_stage"]
+    product_weight: slight
+
+  # --- Title & Role ---
+  leadership_title:
+    condition: "Head of, Director, VP in title"
+    pipeline_bonus: 15
+    product_dimensions: ["role_fit"]
+    product_weight: moderate
+
+  non_leadership_title:
+    condition: "Support title without Director/VP/Head"
+    pipeline_penalty: -5
+    product_dimensions: ["role_fit"]
+    product_weight: negative_slight
+
+  # --- Sector ---
+  healthcare_b2b:
+    pipeline_bonus: 15
+    product_dimensions: ["mission"]
+    product_weight: high
+
+  bcorp:
+    pipeline_bonus: 10
+    product_dimensions: ["mission"]
+    product_weight: moderate
+
+  # --- Compensation ---
+  meets_comp_target:
+    condition: "comp >= lens.compensation_target"
+    pipeline_bonus: 10
+    product_dimensions: ["work_style"]
+    product_weight: slight
+
+  below_comp_target:
+    condition: "comp < lens.compensation_target"
+    pipeline_penalty: -10
+    product_dimensions: ["work_style"]
+    product_weight: negative_moderate
+
+  # --- Data Quality ---
+  insufficient_jd:
+    condition: "Title only, no description"
+    pipeline_penalty: -10
+    product_dimensions: []  # reduces confidence, not a dimension
+    product_effect: "lower confidence score, flag in data_gaps"
+
+  large_company_penalty:
+    condition: ">200 employees"
+    pipeline_penalty: -5
+    product_dimensions: ["company_stage"]
+    product_weight: negative_slight
+
+  high_funding_penalty:
+    condition: "$100M-$500M total funding"
+    pipeline_penalty: -10
+    product_dimensions: ["company_stage"]
+    product_weight: negative_moderate
+
+  series_c_penalty:
+    condition: "Series C stage"
+    pipeline_penalty: -5
+    product_dimensions: ["company_stage"]
+    product_weight: negative_slight
+
+  very_large_penalty:
+    condition: "500-999 employees"
+    pipeline_penalty: -15
+    product_dimensions: ["company_stage"]
+    product_weight: negative_strong
+
+# ============================================================
+# PIPELINE MODE: DIMENSION TIERS (for backward compatibility)
+# ============================================================
+
+pipeline_dimensions:
+  company_stage_fit:
+    max: 50
+    tiers:
+      - { range: "Pre-A to Series A (0-50)", points: 50 }
+      - { range: "Series B (51-300)", points: 30 }
+      - { range: "Series C (301-500)", points: 10 }
+      - { range: "500-999", points: 5 }
+
+  role_type:
+    max: 30
+    tiers:
+      - { range: "First hire / build from scratch", points: 30 }
+      - { range: "Build and scale (team <5)", points: 25 }
+      - { range: "Scale operations (team 6-15)", points: 15 }
+      - { range: "Optimize and grow (team 16+)", points: 5 }
+      - { range: "Inheriting 25+ person team", points: 0 }
+
+  mission_alignment:
+    max: 20
+    sector_bonus_cap: 10
+    bcorp_bonus: 10
+    generic_mission: 5
+
+# ============================================================
+# PRODUCT MODE: DIMENSION DEFINITIONS
+# ============================================================
+# Each dimension scored 0-100 by the LLM based on signals detected.
+# User controls the WEIGHT (via sliders). Signals inform the SCORE.
+# Composite = sum of (score × weight / 100). Always 0-100.
+
+product_dimensions:
+  company_stage:
+    description: "Right inflection point? Stage, size, funding, age, investors."
+    default_weight: 25
+    score_drivers: [series_a, series_b, small_company, young_company, vc_backed,
+                    large_company_penalty, high_funding_penalty, series_c_penalty]
+
+  role_fit:
+    description: "Builder vs maintainer spectrum. Scope. Title flexibility. Team size."
+    default_weight: 25
+    score_drivers: [builder_positive, builder_negative, nrr_first_language,
+                    leadership_title, non_leadership_title]
+
+  mission:
+    description: "Sector alignment, social impact, purpose. Does this matter to the person?"
+    default_weight: 20
+    score_drivers: [healthcare_b2b, bcorp]
+    note: "User's lens.sectors determines which sectors are positive signals"
+
+  culture:
+    description: "Values alignment, autonomy, communication style, authenticity signals."
+    default_weight: 15
+    score_drivers: []
+    note: "Scored from JD language, Glassdoor signals, company values. No fixed signals — entirely lens-dependent."
+
+  work_style:
+    description: "Remote/hybrid, meeting load, async vs sync, compensation, location."
+    default_weight: 10
+    score_drivers: [meets_comp_target, below_comp_target]
+
+  energy:
+    description: "Would this fill or empty the pool? Mission-driven vs grind. Growth vs maintenance."
+    default_weight: 5
+    score_drivers: []
+    note: "Scored from lens energy signals (fills/empties) mapped against opportunity context."
+
+# ============================================================
+# CUSTOMER PERSONA GATE (shared across both modes)
+# ============================================================
+
+customer_persona:
+  business_user: { action: proceed }
+  developer: { action: auto_pass_unless_enterprise_exception }
+  mixed: { action: proceed }
+  enterprise_exception:
+    min_employees: 50
+    min_signals: 2
+    signals:
+      - "Fortune 500/1000 customers"
+      - "Enterprise sales team"
+      - "SSO, SAML, multi-tenant"
+      - "Self-hosted, on-premise"
+      - "ACV, ARR, contract value"
+      - "Procurement, vendor management"
+
+# ============================================================
+# DATA VALIDATION (shared)
+# ============================================================
+
+data_validation:
+  - { stage: Seed, funding_min: 20000000, flag: "Verify: Seed with >$20M" }
+  - { stage: ["Series C", "Series D"], employee_max: 10, flag: "Verify: Late stage <10 employees" }
+  - { stage: "Series D", funding_max: 20000000, flag: "Verify: Series D <$20M" }
+
+stalled_company:
+  founded_years_ago_min: 10
+  employee_count_max: 200
+
+# ============================================================
+# INVESTOR LOOKUP (shared)
+# ============================================================
+
+investor_lookup:
+  vc: [a16z, Sequoia, Accel, Greylock, "First Round", NEA, Lightspeed,
+       Bessemer, "Battery Ventures", "Foundation Capital", "Index Ventures",
+       Benchmark, Accomplice, "Underscore VC"]
+  pe: ["Nordic Capital", "TA Associates", "Vista Equity", KKR, Blackstone,
+       TPG, Carlyle, "Bain Capital", "Silver Lake", "Thoma Bravo",
+       "Francisco Partners", "Vector Capital", "Ares Management",
+       "Apollo Global", "Warburg Pincus", "Golden Gate Capital",
+       "Insight Partners"]
+  growth_equity_evaluate: ["Summit Partners", "General Atlantic", TCV]
