@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lens Project — Schema Comparison</title>
+  <meta name="description" content="Same opportunity, same lens, two scoring models" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #fff; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const LENS_URL =
+  "https://raw.githubusercontent.com/zelman/tidepool/refs/heads/main/tide-pool-agent-lens.md";
+
+// Schema A: Eric's battle-tested personal schema (from agent lens v2.14)
+const SCHEMA_A = {
+  id: "personal",
+  label: "Personal (v2.14)",
+  description: "Battle-tested across 750 executions/day. Hard gates in YAML, additive bonuses/penalties.",
+  dimensions: [
+    { key: "company_stage_fit", label: "Company Stage & Fit", max: 50 },
+    { key: "role_type", label: "Role Type", max: 30 },
+    { key: "mission_alignment", label: "Mission Alignment", max: 20 },
+  ],
+  thresholds: { apply: 70, manual_review: 45, watch: 30, pass: 0 },
+  scoring_note: "100 base + additive bonuses/penalties (builder +40, Series A +50, healthcare +15, etc.)",
+};
+
+// Schema B: Product schema (from lens-form.jsx / TAM analysis)
+const SCHEMA_B = {
+  id: "product",
+  label: "Product (6-dim)",
+  description: "Weighted composite. More dimensional, untested at scale. Designed for any user's lens.",
+  dimensions: [
+    { key: "mission", label: "Mission", defaultWeight: 25 },
+    { key: "role_fit", label: "Role Fit", defaultWeight: 20 },
+    { key: "culture", label: "Culture", defaultWeight: 18 },
+    { key: "skill", label: "Skill Match", defaultWeight: 17 },
+    { key: "work_style", label: "Work Style", defaultWeight: 12 },
+    { key: "energy", label: "Energy", defaultWeight: 8 },
+  ],
+  thresholds: { apply: 75, manual_review: 55, watch: 35, pass: 0 },
+  scoring_note: "Each dimension scored 0-100, then weighted. Composite = sum of (score × weight/100).",
+};
+
+function buildPersonalPrompt(lens) {
+  return `You are a job opportunity scoring engine. You receive a candidate's full lens document and evaluate opportunities against it. Score ruthlessly and honestly — the goal is signal, not encouragement.
+
+## SCORING PROCESS
+
+1. Parse the lens document's YAML frontmatter for disqualifiers, penalties, bonuses, and thresholds.
+2. Apply hard gates first (YAML disqualify section). If any gate triggers, return disqualified=true.
+3. Apply Customer Persona Gate if present. Classify end-user persona and check enterprise exceptions.
+4. Apply Pre-CS Inflection check per the lens's minimum employee threshold.
+5. Score using the lens's framework: Company Stage & Fit (50 max), Role Type (30 max), Mission Alignment (20 max).
+6. Apply bonuses and penalties as specific point values from the lens YAML.
+7. Classify using the lens's thresholds: APPLY 70+, MANUAL_REVIEW 45-69, WATCH 30-44, PASS <30.
+
+## RULES
+- Use scoring weights, thresholds, bonuses, penalties FROM THE LENS. Do not invent your own.
+- Builder vs. Maintainer is a spectrum, not a binary.
+- IC roles acceptable at early-stage per lens title flexibility guidance. Apply IC penalties scaled by company size.
+- If data insufficient, note it in data_gaps. Don't guess.
+
+## CANDIDATE LENS DOCUMENT
+
+${lens}
+
+## OUTPUT — respond with ONLY valid JSON, no markdown, no backticks:
+
+{
+  "disqualified": false,
+  "disqualify_reason": null,
+  "classification": "APPLY",
+  "total_score": 72,
+  "scores": {
+    "company_stage_fit": { "score": 40, "max": 50, "rationale": "..." },
+    "role_type": { "score": 22, "max": 30, "rationale": "..." },
+    "mission_alignment": { "score": 10, "max": 20, "rationale": "..." }
+  },
+  "bonuses_applied": [{ "rule": "...", "points": 40 }],
+  "penalties_applied": [{ "rule": "...", "points": -10 }],
+  "adjusted_score": 77,
+  "builder_or_maintainer": "Builder",
+  "builder_signals": [],
+  "maintainer_signals": [],
+  "customer_persona": "business_user",
+  "briefing": "2-3 sentences",
+  "red_flags": [],
+  "strengths": [],
+  "data_gaps": []
+}`;
+}
+
+function buildProductPrompt(lens, weights) {
+  const weightStr = weights.map(w => `- ${w.label}: ${w.weight}% weight`).join("\n");
+  return `You are a job opportunity scoring engine using a weighted multi-dimensional model. You receive a candidate's lens document and evaluate opportunities against it. Score ruthlessly and honestly.
+
+## SCORING PROCESS
+
+1. Parse the lens document for disqualifiers. If any hard gate triggers, return disqualified=true.
+2. Score each dimension independently on a 0-100 scale based on signals in the lens and opportunity.
+3. Apply weights to compute composite score: sum of (dimension_score × weight / 100).
+4. Classify: APPLY 75+, MANUAL_REVIEW 55-74, WATCH 35-54, PASS <35.
+
+## DIMENSIONS AND WEIGHTS
+
+${weightStr}
+
+## DIMENSION DEFINITIONS
+
+- **Mission**: How well does this company's purpose, sector, and impact align with what the lens says matters?
+- **Role Fit**: Builder vs maintainer spectrum. Stage fit. Title/scope match. Is this the right inflection point?
+- **Culture**: Values alignment, autonomy level, communication style match. Use any culture signals in the lens.
+- **Skill Match**: Does the candidate's background transfer? Technical requirements fit? Domain relevance?
+- **Work Style**: Remote/hybrid/onsite. Meeting load. Async vs sync. Travel. Schedule flexibility.
+- **Energy**: Would this role fill or drain the candidate? Use the lens's energy signals, tide pool framework, and personal context.
+
+## RULES
+- Score each dimension 0-100 independently, then weight.
+- Use lens disqualifiers for hard gates (same as personal schema).
+- Builder/Maintainer is a spectrum. IC roles are fine at early stage per lens guidance.
+- If data insufficient for a dimension, score conservatively and note in data_gaps.
+
+## CANDIDATE LENS DOCUMENT
+
+${lens}
+
+## OUTPUT — respond with ONLY valid JSON, no markdown, no backticks:
+
+{
+  "disqualified": false,
+  "disqualify_reason": null,
+  "classification": "APPLY",
+  "composite_score": 72,
+  "dimensions": {
+    "mission": { "score": 85, "weight": 25, "weighted": 21.25, "rationale": "...", "signals": ["..."] },
+    "role_fit": { "score": 70, "weight": 20, "weighted": 14.0, "rationale": "...", "signals": ["..."] },
+    "culture": { "score": 60, "weight": 18, "weighted": 10.8, "rationale": "...", "signals": ["..."] },
+    "skill": { "score": 80, "weight": 17, "weighted": 13.6, "rationale": "...", "signals": ["..."] },
+    "work_style": { "score": 75, "weight": 12, "weighted": 9.0, "rationale": "...", "signals": ["..."] },
+    "energy": { "score": 65, "weight": 8, "weighted": 5.2, "rationale": "...", "signals": ["..."] }
+  },
+  "builder_or_maintainer": "Builder",
+  "builder_signals": [],
+  "maintainer_signals": [],
+  "customer_persona": "business_user",
+  "briefing": "2-3 sentences",
+  "red_flags": [],
+  "strengths": [],
+  "tensions": [{ "dimension": "culture", "note": "..." }],
+  "data_gaps": []
+}`;
+}
+
+function WeightSlider({ label, value, onChange, dimKey }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+      <div style={{ width: 90, fontSize: 12, color: "#1A1A1A" }}>{label}</div>
+      <input
+        type="range" min={0} max={50} value={value}
+        onChange={(e) => onChange(dimKey, parseInt(e.target.value))}
+        style={{ flex: 1, accentColor: "#D93025" }}
+      />
+      <div style={{ width: 36, fontSize: 12, fontFamily: "monospace", color: "#666", textAlign: "right" }}>
+        {value}%
+      </div>
+    </div>
+  );
+}
+
+function PersonalResult({ result }) {
+  if (!result) return null;
+  if (result.disqualified) {
+    return (
+      <div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "#D93025" }}>DQ</div>
+        <div style={{ fontSize: 12, color: "#D93025", marginTop: 4 }}>{result.disqualify_reason}</div>
+      </div>
+    );
+  }
+  const adj = result.adjusted_score ?? result.total_score;
+  const cls = result.classification;
+  const color = cls === "APPLY" ? "#1A1A1A" : cls === "MANUAL_REVIEW" ? "#E8590C" : cls === "WATCH" ? "#666" : "#D93025";
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+        <div style={{ fontSize: 36, fontWeight: 700, color, lineHeight: 1 }}>{adj}</div>
+        <div style={{ fontSize: 12, letterSpacing: "0.12em", color, textTransform: "uppercase", fontWeight: 700 }}>
+          {cls === "MANUAL_REVIEW" ? "Manual Review" : cls}
+        </div>
+      </div>
+      {result.scores && Object.entries(result.scores).map(([k, v]) => (
+        <div key={k} style={{ marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#666", marginBottom: 3 }}>
+            <span>{v.rationale ? k.replace(/_/g, " ") : k}</span>
+            <span style={{ fontFamily: "monospace" }}>{v.score}/{v.max}</span>
+          </div>
+          <div style={{ height: 2, background: "#EEEEEE" }}>
+            <div style={{ height: 2, background: "#1A1A1A", width: `${(v.score / v.max) * 100}%`, transition: "width 0.5s" }} />
+          </div>
+          {v.rationale && <div style={{ fontSize: 11, color: "#999", marginTop: 3, lineHeight: 1.5 }}>{v.rationale}</div>}
+        </div>
+      ))}
+      {result.bonuses_applied?.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          {result.bonuses_applied.map((b, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#1A1A1A", marginBottom: 2 }}>
+              <span>{b.rule}</span><span style={{ fontFamily: "monospace", fontWeight: 600 }}>+{b.points}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {result.penalties_applied?.length > 0 && (
+        <div style={{ marginTop: 4 }}>
+          {result.penalties_applied.map((p, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#D93025", marginBottom: 2 }}>
+              <span>{p.rule}</span><span style={{ fontFamily: "monospace", fontWeight: 600 }}>{p.points}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {result.briefing && <div style={{ fontSize: 12, color: "#444", lineHeight: 1.7, marginTop: 12, borderTop: "1px solid #EEEEEE", paddingTop: 12 }}>{result.briefing}</div>}
+      {result.data_gaps?.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          {result.data_gaps.map((g, i) => <div key={i} style={{ fontSize: 11, color: "#E8590C", lineHeight: 1.5 }}>{g}</div>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductResult({ result }) {
+  if (!result) return null;
+  if (result.disqualified) {
+    return (
+      <div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "#D93025" }}>DQ</div>
+        <div style={{ fontSize: 12, color: "#D93025", marginTop: 4 }}>{result.disqualify_reason}</div>
+      </div>
+    );
+  }
+  const score = Math.round(result.composite_score);
+  const cls = result.classification;
+  const color = cls === "APPLY" ? "#1A1A1A" : cls === "MANUAL_REVIEW" ? "#E8590C" : cls === "WATCH" ? "#666" : "#D93025";
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+        <div style={{ fontSize: 36, fontWeight: 700, color, lineHeight: 1 }}>{score}</div>
+        <div style={{ fontSize: 12, letterSpacing: "0.12em", color, textTransform: "uppercase", fontWeight: 700 }}>
+          {cls === "MANUAL_REVIEW" ? "Manual Review" : cls}
+        </div>
+      </div>
+      {result.dimensions && Object.entries(result.dimensions).map(([k, v]) => (
+        <div key={k} style={{ marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#666", marginBottom: 3 }}>
+            <span>{k.replace(/_/g, " ")}</span>
+            <span style={{ fontFamily: "monospace" }}>{v.score}/100 × {v.weight}% = {typeof v.weighted === "number" ? v.weighted.toFixed(1) : "—"}</span>
+          </div>
+          <div style={{ height: 2, background: "#EEEEEE" }}>
+            <div style={{ height: 2, background: "#1A1A1A", width: `${v.score}%`, transition: "width 0.5s" }} />
+          </div>
+          {v.rationale && <div style={{ fontSize: 11, color: "#999", marginTop: 3, lineHeight: 1.5 }}>{v.rationale}</div>}
+          {v.signals?.length > 0 && (
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
+              {v.signals.map((s, i) => (
+                <span key={i} style={{ fontSize: 10, color: "#666", padding: "1px 6px", border: "1px solid #EEEEEE" }}>{s}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+      {result.tensions?.length > 0 && (
+        <div style={{ marginTop: 12, borderTop: "1px solid #EEEEEE", paddingTop: 10 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.12em", color: "#E8590C", textTransform: "uppercase", marginBottom: 6 }}>Tensions</div>
+          {result.tensions.map((t, i) => (
+            <div key={i} style={{ fontSize: 11, color: "#E8590C", lineHeight: 1.5, paddingLeft: 10, borderLeft: "2px solid #E8590C", marginBottom: 4 }}>
+              <strong>{t.dimension}:</strong> {t.note}
+            </div>
+          ))}
+        </div>
+      )}
+      {result.briefing && <div style={{ fontSize: 12, color: "#444", lineHeight: 1.7, marginTop: 12, borderTop: "1px solid #EEEEEE", paddingTop: 12 }}>{result.briefing}</div>}
+      {result.data_gaps?.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          {result.data_gaps.map((g, i) => <div key={i} style={{ fontSize: 11, color: "#E8590C", lineHeight: 1.5 }}>{g}</div>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LensScorerCompare() {
+  const [lens, setLens] = useState("");
+  const [lensStatus, setLensStatus] = useState("loading");
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [personalResult, setPersonalResult] = useState(null);
+  const [productResult, setProductResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [weights, setWeights] = useState(
+    SCHEMA_B.dimensions.map(d => ({ key: d.key, label: d.label, weight: d.defaultWeight }))
+  );
+  const [showWeights, setShowWeights] = useState(false);
+  const textareaRef = useRef(null);
+
+  const fetchLens = async () => {
+    setLensStatus("loading");
+    try {
+      const res = await fetch(LENS_URL);
+      if (!res.ok) throw new Error("fetch failed");
+      const text = await res.text();
+      if (text && text.length > 500) { setLens(text); setLensStatus("loaded"); }
+      else throw new Error("too short");
+    } catch { setLensStatus("error"); }
+  };
+
+  useEffect(() => { fetchLens(); }, []);
+  useEffect(() => {
+    if (textareaRef.current && lensStatus === "loaded") textareaRef.current.focus();
+  }, [lensStatus]);
+
+  const totalWeight = weights.reduce((s, w) => s + w.weight, 0);
+
+  const updateWeight = (key, val) => {
+    setWeights(prev => prev.map(w => w.key === key ? { ...w, weight: val } : w));
+  };
+
+  const scoreOpportunity = async () => {
+    if (!input.trim() || !lens.trim()) return;
+    setLoading(true);
+    setError(null);
+    setPersonalResult(null);
+    setProductResult(null);
+
+    const personalPrompt = buildPersonalPrompt(lens);
+    const productPrompt = buildProductPrompt(lens, weights);
+
+    try {
+      const [pRes, prRes] = await Promise.all([
+        fetch("/api/score", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 2000,
+            system: personalPrompt,
+            messages: [{ role: "user", content: `Score this opportunity:\n\n${input.trim()}` }],
+          }),
+        }),
+        fetch("/api/score", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 2000,
+            system: productPrompt,
+            messages: [{ role: "user", content: `Score this opportunity:\n\n${input.trim()}` }],
+          }),
+        }),
+      ]);
+
+      const parse = async (res) => {
+        const data = await res.json();
+        const text = data.content?.filter(b => b.type === "text").map(b => b.text).join("");
+        if (!text) throw new Error("Empty response");
+        return JSON.parse(text.replace(/```json|```/g, "").trim());
+      };
+
+      const [pData, prData] = await Promise.all([parse(pRes), parse(prRes)]);
+      setPersonalResult(pData);
+      setProductResult(prData);
+    } catch (err) {
+      setError(err.message || "Scoring failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const reset = () => {
+    setPersonalResult(null);
+    setProductResult(null);
+    setError(null);
+    setInput("");
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  };
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#FFFFFF", color: "#1A1A1A",
+      fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      padding: "48px 24px",
+    }}>
+      <div style={{ maxWidth: 960, margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.15em", color: "#999", textTransform: "uppercase", marginBottom: 8 }}>
+            Tide Pool
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
+            Schema Comparison
+          </h1>
+          <div style={{ fontSize: 14, color: "#666", marginTop: 8, lineHeight: 1.6 }}>
+            Same opportunity, same lens, two scoring models. Find where they agree, where they diverge, and why.
+          </div>
+          <div style={{ height: 2, background: "#1A1A1A", marginTop: 20 }} />
+        </div>
+
+        {/* Lens status */}
+        {lensStatus === "loading" && <div style={{ fontSize: 12, color: "#999", marginBottom: 20 }}>Fetching lens from GitHub...</div>}
+        {lensStatus === "error" && (
+          <div style={{ fontSize: 12, color: "#D93025", marginBottom: 20, padding: "12px 16px", border: "1px solid #D93025", background: "#FFF5F5" }}>
+            Could not fetch lens. <span onClick={fetchLens} style={{ textDecoration: "underline", cursor: "pointer" }}>Retry</span>
+          </div>
+        )}
+        {lensStatus === "loaded" && (
+          <div style={{ fontSize: 12, color: "#666", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ display: "inline-block", width: 6, height: 6, background: "#1A1A1A" }} />
+            Lens v{lens.match(/version:\s*"?([^"\n]+)"?/)?.[1] || "?"} loaded · {Math.round(lens.length / 1024)}KB
+          </div>
+        )}
+
+        {/* Weight tuning */}
+        {lensStatus === "loaded" && !personalResult && (
+          <div style={{ marginBottom: 24 }}>
+            <button
+              onClick={() => setShowWeights(!showWeights)}
+              style={{
+                fontSize: 11, color: "#999", background: "none", border: "none",
+                cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "inherit", marginBottom: 12,
+              }}
+            >
+              {showWeights ? "Hide product schema weights" : "Tune product schema weights"}
+            </button>
+            {showWeights && (
+              <div style={{ padding: "16px 20px", border: "1px solid #EEEEEE", marginTop: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "#999", textTransform: "uppercase" }}>Product Schema Weights</div>
+                  <div style={{ fontSize: 11, fontFamily: "monospace", color: totalWeight === 100 ? "#1A1A1A" : "#D93025" }}>
+                    Total: {totalWeight}%{totalWeight !== 100 ? " (should be 100)" : ""}
+                  </div>
+                </div>
+                {weights.map(w => (
+                  <WeightSlider key={w.key} label={w.label} value={w.weight} onChange={updateWeight} dimKey={w.key} />
+                ))}
+                <button
+                  onClick={() => setWeights(SCHEMA_B.dimensions.map(d => ({ key: d.key, label: d.label, weight: d.defaultWeight })))}
+                  style={{ fontSize: 11, color: "#999", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "inherit", marginTop: 4 }}
+                >
+                  Reset to defaults
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Input */}
+        {lensStatus === "loaded" && !personalResult && (
+          <div>
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Paste job listing, company description, or job URL content here..."
+              rows={10}
+              style={{
+                width: "100%", background: "#FFFFFF", border: "1px solid #CCCCCC",
+                padding: "14px 16px", color: "#1A1A1A", fontSize: 14,
+                fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+                lineHeight: 1.7, resize: "vertical", outline: "none", boxSizing: "border-box",
+              }}
+              onFocus={(e) => (e.target.style.borderColor = "#1A1A1A")}
+              onBlur={(e) => (e.target.style.borderColor = "#CCCCCC")}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
+              <button
+                onClick={scoreOpportunity}
+                disabled={loading || !input.trim()}
+                style={{
+                  padding: "12px 28px",
+                  background: loading || !input.trim() ? "#EEEEEE" : "#D93025",
+                  border: "none",
+                  color: loading || !input.trim() ? "#999" : "#FFFFFF",
+                  fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase",
+                  cursor: loading || !input.trim() ? "default" : "pointer",
+                  fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+                }}
+              >
+                {loading ? "Running both schemas..." : "Score with both schemas"}
+              </button>
+              <span style={{ fontSize: 12, color: "#999" }}>
+                {input.length > 0 ? `${input.length.toLocaleString()} chars` : ""}
+              </span>
+            </div>
+
+            {loading && (
+              <div style={{ marginTop: 24, display: "flex", gap: 6, justifyContent: "center" }}>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={i} style={{ width: 3, height: 18, background: "#D93025", animation: `bar 0.9s ease-in-out ${i * 0.1}s infinite alternate` }} />
+                ))}
+              </div>
+            )}
+
+            {error && (
+              <div style={{ marginTop: 16, padding: "12px 16px", background: "#FFF5F5", border: "1px solid #D93025", fontSize: 13, color: "#D93025" }}>
+                {error}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Results — side by side */}
+        {(personalResult || productResult) && (
+          <div>
+            <div style={{
+              display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32,
+            }}>
+              {/* Column A: Personal */}
+              <div>
+                <div style={{ fontSize: 11, letterSpacing: "0.15em", color: "#999", textTransform: "uppercase", marginBottom: 6 }}>
+                  {SCHEMA_A.label}
+                </div>
+                <div style={{ fontSize: 11, color: "#CCC", marginBottom: 16 }}>
+                  {SCHEMA_A.scoring_note}
+                </div>
+                <PersonalResult result={personalResult} />
+              </div>
+
+              {/* Column B: Product */}
+              <div>
+                <div style={{ fontSize: 11, letterSpacing: "0.15em", color: "#999", textTransform: "uppercase", marginBottom: 6 }}>
+                  {SCHEMA_B.label}
+                </div>
+                <div style={{ fontSize: 11, color: "#CCC", marginBottom: 16 }}>
+                  Weights: {weights.map(w => `${w.label} ${w.weight}%`).join(", ")}
+                </div>
+                <ProductResult result={productResult} />
+              </div>
+            </div>
+
+            {/* Divergence summary */}
+            {personalResult && productResult && !personalResult.disqualified && !productResult.disqualified && (
+              <div style={{ marginTop: 32, paddingTop: 24, borderTop: "2px solid #1A1A1A" }}>
+                <div style={{ fontSize: 11, letterSpacing: "0.15em", color: "#999", textTransform: "uppercase", marginBottom: 12 }}>
+                  Divergence
+                </div>
+                <div style={{ display: "flex", gap: 32, fontSize: 14 }}>
+                  <div>
+                    <span style={{ color: "#999" }}>Personal: </span>
+                    <span style={{ fontWeight: 700 }}>{personalResult.adjusted_score ?? personalResult.total_score}</span>
+                    <span style={{ color: "#999", marginLeft: 6 }}>{personalResult.classification}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: "#999" }}>Product: </span>
+                    <span style={{ fontWeight: 700 }}>{Math.round(productResult.composite_score)}</span>
+                    <span style={{ color: "#999", marginLeft: 6 }}>{productResult.classification}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: "#999" }}>Delta: </span>
+                    <span style={{
+                      fontWeight: 700,
+                      color: Math.abs((personalResult.adjusted_score ?? personalResult.total_score) - Math.round(productResult.composite_score)) > 15 ? "#D93025" : "#1A1A1A"
+                    }}>
+                      {((personalResult.adjusted_score ?? personalResult.total_score) - Math.round(productResult.composite_score)) > 0 ? "+" : ""}
+                      {(personalResult.adjusted_score ?? personalResult.total_score) - Math.round(productResult.composite_score)} pts
+                    </span>
+                  </div>
+                </div>
+                {personalResult.classification !== productResult.classification && (
+                  <div style={{ fontSize: 12, color: "#D93025", marginTop: 8 }}>
+                    Classification disagreement: schemas would route this opportunity differently.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: 12, paddingTop: 24 }}>
+              <button onClick={reset} style={{
+                padding: "12px 28px", background: "#D93025", border: "none", color: "#FFFFFF",
+                fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase",
+                cursor: "pointer", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+              }}>
+                Score another
+              </button>
+              <button onClick={() => navigator.clipboard.writeText(JSON.stringify({ personal: personalResult, product: productResult, weights }, null, 2))} style={{
+                padding: "12px 28px", background: "#FFFFFF", border: "1px solid #CCCCCC", color: "#666",
+                fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase",
+                cursor: "pointer", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+              }}>
+                Copy both JSON
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes bar { 0% { opacity: 0.15 } 100% { opacity: 1 } }
+        textarea::placeholder { color: #CCCCCC }
+        input[type="range"] { height: 2px; }
+        ::-webkit-scrollbar { width: 3px }
+        ::-webkit-scrollbar-track { background: transparent }
+        ::-webkit-scrollbar-thumb { background: #EEEEEE }
+      `}</style>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<LensScorerCompare />);
+  </script>
+</body>
+</html>
