@@ -20,3 +20,4 @@ Thumbs.db
 .idea/
 
 # Legal docs are in legal/.gitignore
+*.DS_Store
