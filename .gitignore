@@ -21,3 +21,5 @@ Thumbs.db
 
 # Legal docs are in legal/.gitignore
 *.DS_Store
+.vercel
+.vercel
