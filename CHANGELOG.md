@@ -30,7 +30,10 @@ All notable changes to deployed apps and schemas are documented here.
 |--------|---------|----------|
 | Lens Spec | v1.0 | `specs/LENS-SPEC.md` |
 | Candidate Lens | v1.0 | `specs/candidate-lens-v1.md` |
-| Scoring Config | v1.0 | `config/scoring-config.yaml` |
+| Role Lens Schema | v1.0 | `specs/role-lens-schema-v1.md` |
+| Bidirectional Lens | v1.0 | `specs/bidirectional-lens-system-v1.0.md` |
+| Feedback Loop Spec | v1.0 | `specs/feedback-loop-spec-v1.0.md` |
+| Sources Template | v1.0 | `specs/sources-template.yaml` |
 
 ---
 
