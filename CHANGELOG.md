@@ -1,0 +1,42 @@
+# Lens Project Changelog
+
+All notable changes to deployed apps and schemas are documented here.
+
+## [2026-03-22] Initial Release
+
+### lens-app v1.0.0
+- **URL**: https://lens-app-five.vercel.app/
+- Four-phase intake form: intro, file uploads, job status, 8-section guided conversation
+- Auto-save progress with session recovery
+- Claude API integration for conversational intake
+- Sample briefing page at `/weekly-inflection-briefing-sample.html`
+
+### lens-feedback v1.1.0
+- **URL**: https://lens-feedback.vercel.app
+- Feedback form for user testing
+- Submits to Airtable (Lens Feedback table)
+- Fields: Name, Better Than Resume, Would Share, Surfaced New Insights, Most/Weakest Section, What's Missing, Feels Like You (1-10), Pricing Reaction
+
+### role-lens-scorer v1.3.0
+- **URL**: https://role-lens-scorer.vercel.app
+- AI scoring API using Claude
+- Evaluates role fit against user lens
+
+---
+
+## Schema Versions
+
+| Schema | Version | Location |
+|--------|---------|----------|
+| Lens Spec | v1.0 | `specs/LENS-SPEC.md` |
+| Candidate Lens | v1.0 | `specs/candidate-lens-v1.md` |
+| Scoring Config | v1.0 | `config/scoring-config.yaml` |
+
+---
+
+## Release Process
+
+When deploying changes:
+1. Update this file with the date and changes
+2. Increment version numbers as appropriate
+3. Commit changelog with the deployment
