@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lens Feedback</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #fff; color: #1A1A1A; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 48px 32px; min-height: 100vh; }
+  .badge { font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: #999; margin-bottom: 8px; }
+  h1 { font-size: 24px; font-weight: 400; margin-bottom: 8px; }
+  .rule { height: 2px; background: #1A1A1A; margin-bottom: 24px; }
+  .desc { font-size: 13px; color: #888; line-height: 1.7; margin-bottom: 32px; }
+  .q { margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid #eee; }
+  .q:last-of-type { border-bottom: none; }
+  .q-num { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: #D93025; margin-bottom: 6px; }
+  .q-label { font-size: 14px; font-weight: 500; line-height: 1.5; margin-bottom: 12px; }
+  .opts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .opt { padding: 8px 18px; border: 1.5px solid #eee; background: #fff; font-size: 12px; font-family: inherit; color: #666; cursor: pointer; transition: all 0.15s; }
+  .opt:hover { border-color: #ccc; }
+  .opt.selected { border-color: #D93025; color: #D93025; background: #FDF2F2; }
+  textarea, input[type="text"] {
+    width: 100%; border: 1px solid #ddd; padding: 12px 14px; font-size: 13px;
+    font-family: inherit; color: #1A1A1A; outline: none; resize: vertical; line-height: 1.6;
+    border-radius: 0;
+  }
+  textarea:focus, input[type="text"]:focus { border-color: #D93025; }
+  textarea { min-height: 80px; }
+  .scale-row { display: flex; gap: 4px; }
+  .scale-btn { width: 36px; height: 36px; border: 1.5px solid #eee; background: #fff; font-size: 13px;
+    font-family: 'Courier New', monospace; color: #666; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; transition: all 0.15s; }
+  .scale-btn:hover { border-color: #ccc; }
+  .scale-btn.selected { border-color: #D93025; color: #D93025; background: #FDF2F2; font-weight: 700; }
+  .scale-labels { display: flex; justify-content: space-between; margin-top: 4px; }
+  .scale-labels span { font-size: 10px; color: #bbb; }
+  .q8-text { font-size: 12px; color: #888; line-height: 1.7; margin-bottom: 12px; padding: 12px 16px; background: #f5f5f5; border-left: 2px solid #D93025; }
+  .submit-row { margin-top: 32px; display: flex; align-items: center; gap: 16px; }
+  .submit-btn { padding: 14px 36px; background: #f5f5f5; border: 1.5px solid #eee; font-size: 13px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: #bbb; cursor: default;
+    font-family: inherit; transition: all 0.15s; }
+  .submit-btn.active { background: #fff; border-color: #D93025; color: #D93025; cursor: pointer; }
+  .submit-btn.active:hover { background: #FDF2F2; }
+  .error { font-size: 12px; color: #D93025; display: none; }
+  .error.visible { display: block; }
+  .thanks { display: none; text-align: center; padding: 80px 0; }
+  .thanks h2 { font-size: 24px; font-weight: 400; margin-bottom: 12px; }
+  .thanks p { font-size: 14px; color: #888; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="form-view">
+    <div class="badge">The Lens Project</div>
+    <h1>Feedback</h1>
+    <div class="rule"></div>
+    <p class="desc">You just completed a lens discovery. These 8 questions help us understand what worked, what didn't, and whether the output is worth sharing.</p>
+
+    <!-- Q1 -->
+    <div class="q">
+      <div class="q-num">Question 1</div>
+      <div class="q-label">Does this lens document represent you better than your resume?</div>
+      <div class="opts" data-field="betterThanResume">
+        <button class="opt" data-val="Yes">Yes</button>
+        <button class="opt" data-val="No">No</button>
+        <button class="opt" data-val="Partially">Partially</button>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="q">
+      <div class="q-num">Question 2</div>
+      <div class="q-label">Would you share this lens document with a recruiter or hiring manager?</div>
+      <div class="opts" data-field="wouldShare">
+        <button class="opt" data-val="Yes">Yes</button>
+        <button class="opt" data-val="No">No</button>
+        <button class="opt" data-val="With edits">With edits</button>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="q">
+      <div class="q-num">Question 3</div>
+      <div class="q-label">Did the discovery process surface insights you hadn't articulated before?</div>
+      <div class="opts" data-field="surfacedInsights">
+        <button class="opt" data-val="Yes">Yes</button>
+        <button class="opt" data-val="No">No</button>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="q">
+      <div class="q-num">Question 4</div>
+      <div class="q-label">Which section of the lens felt most valuable?</div>
+      <textarea data-field="mostValuable" placeholder="e.g. Values, Disqualifiers, Energy..."></textarea>
+    </div>
+
+    <!-- Q5 -->
+    <div class="q">
+      <div class="q-num">Question 5</div>
+      <div class="q-label">Which section felt weakest or least accurate?</div>
+      <textarea data-field="weakest" placeholder="What didn't land?"></textarea>
+    </div>
+
+    <!-- Q6 -->
+    <div class="q">
+      <div class="q-num">Question 6</div>
+      <div class="q-label">What's missing?</div>
+      <textarea data-field="missing" placeholder="Anything the lens should have captured but didn't?"></textarea>
+    </div>
+
+    <!-- Q7 -->
+    <div class="q">
+      <div class="q-num">Question 7</div>
+      <div class="q-label">On a scale of 1-10, how much does this lens feel like you?</div>
+      <div class="scale-row" data-field="feelsLikeYou"></div>
+      <div class="scale-labels"><span>Not at all</span><span>Exactly me</span></div>
+    </div>
+
+    <!-- Q8 -->
+    <div class="q">
+      <div class="q-num">Question 8</div>
+      <div class="q-label">Pricing reaction</div>
+      <div class="q8-text">The discovery process you just completed could be offered for free. The paid product ($50/month) would use your lens to deliver daily personalized briefings — matched opportunities, curated sources, and alerts. Does that pricing feel right? What would need to be true?</div>
+      <textarea data-field="pricingReaction" placeholder="Your honest reaction..."></textarea>
+    </div>
+
+    <!-- Name (optional) -->
+    <div class="q">
+      <div class="q-num">Optional</div>
+      <div class="q-label">Your name</div>
+      <input type="text" data-field="name" placeholder="Anonymous is fine" />
+    </div>
+
+    <div class="submit-row">
+      <button class="submit-btn" id="submit-btn">Submit feedback</button>
+      <span class="error" id="error-msg">Something went wrong. Please try again.</span>
+    </div>
+  </div>
+
+  <div class="thanks" id="thanks-view">
+    <h2>Thank you.</h2>
+    <p>Your feedback helps shape what this becomes.<br>We'll be in touch if you left your name.</p>
+  </div>
+</div>
+
+<script>
+  const state = {};
+  let answeredCount = 0;
+
+  // Option buttons
+  document.querySelectorAll('.opts').forEach(group => {
+    const field = group.dataset.field;
+    group.querySelectorAll('.opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.opt').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        const prev = state[field];
+        state[field] = btn.dataset.val;
+        if (!prev) answeredCount++;
+        updateSubmit();
+      });
+    });
+  });
+
+  // Scale buttons (Q7)
+  const scaleRow = document.querySelector('.scale-row');
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'scale-btn';
+    btn.textContent = i;
+    btn.addEventListener('click', () => {
+      scaleRow.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      const prev = state.feelsLikeYou;
+      state.feelsLikeYou = i;
+      if (!prev) answeredCount++;
+      updateSubmit();
+    });
+    scaleRow.appendChild(btn);
+  }
+
+  // Textareas and inputs
+  document.querySelectorAll('textarea, input[type="text"]').forEach(el => {
+    const field = el.dataset.field;
+    el.addEventListener('input', () => {
+      const prev = state[field];
+      state[field] = el.value;
+      if (!prev && el.value) answeredCount++;
+      else if (prev && !el.value) answeredCount--;
+      updateSubmit();
+    });
+  });
+
+  function updateSubmit() {
+    const btn = document.getElementById('submit-btn');
+    if (answeredCount > 0) {
+      btn.classList.add('active');
+      btn.style.cursor = 'pointer';
+    } else {
+      btn.classList.remove('active');
+      btn.style.cursor = 'default';
+    }
+  }
+
+  // Submit
+  document.getElementById('submit-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('submit-btn');
+    const errEl = document.getElementById('error-msg');
+    if (!btn.classList.contains('active')) return;
+
+    errEl.classList.remove('visible');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    btn.classList.remove('active');
+
+    // Gather all fields
+    const payload = {
+      name: state.name || null,
+      betterThanResume: state.betterThanResume || null,
+      wouldShare: state.wouldShare || null,
+      surfacedInsights: state.surfacedInsights || null,
+      mostValuable: state.mostValuable || null,
+      weakest: state.weakest || null,
+      missing: state.missing || null,
+      feelsLikeYou: state.feelsLikeYou ? parseInt(state.feelsLikeYou) : null,
+      pricingReaction: state.pricingReaction || null,
+    };
+
+    try {
+      const res = await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('Submit failed');
+
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('thanks-view').style.display = 'block';
+    } catch (err) {
+      errEl.classList.add('visible');
+      btn.disabled = false;
+      btn.textContent = 'Submit feedback';
+      btn.classList.add('active');
+    }
+  });
+</script>
+</body>
+</html>
