@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     'Most Valuable Section': mostValuable || null,
     'Weakest Section': weakest || null,
     'Whats Missing': missing || null,
-    'Feels Like You': feelsLikeYou != null ? Number(feelsLikeYou) : null,
+    'Feels Like You (1-10)': feelsLikeYou != null ? Number(feelsLikeYou) : null,
     'Pricing Reaction': pricingReaction || null,
     'Submitted At': new Date().toISOString(),
   };
