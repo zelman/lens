@@ -1,0 +1,39 @@
+# Source Configuration Template
+# Assembled from lens sectors + role targets during intake.
+# Users can add/remove sources after generation.
+
+user: ""
+lens: ""
+
+# Job board alerts (populated from lens.target_roles)
+job_alerts:
+  - source: LinkedIn
+    frequency: daily
+    keywords: []  # populated from lens.target_roles
+  - source: Indeed
+    frequency: daily
+    keywords: []
+  # Additional boards added based on lens.sectors:
+  # Healthcare -> Work at a Startup (healthcare filter), Rock Health jobs
+  # Enterprise SaaS -> First Round Jobs, Wellfound
+  # Climate/Impact -> Climate Base, B Work (B Corp jobs)
+
+# VC portfolios (populated from lens.sectors)
+vc_portfolios: []
+  # Template logic:
+  # If sectors.strong includes "Healthcare" -> add healthcare-focused VCs
+  # If sectors.strong includes "Enterprise AI" -> add AI-focused VCs
+  # If sectors.positive includes "Climate" -> add impact VCs
+  # Always include general enterprise SaaS VCs as baseline
+
+# Enrichment (same for all users)
+enrichment:
+  - { source: "Brave Search", purpose: "Company context, news, team info" }
+  - { source: Crunchbase, purpose: "Funding, investors, employee count" }
+  - { source: LinkedIn, purpose: "Team size verification" }
+
+# Delivery
+delivery:
+  method: email  # email | airtable | webhook
+  frequency: daily
+  time: "8:00 AM ET"

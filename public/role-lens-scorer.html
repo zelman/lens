@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Role Lens Scorer v1.3</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #fff; color: #1A1A1A; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 48px 24px; }
+  .header { margin-bottom: 40px; border-bottom: 2px solid #1A1A1A; padding-bottom: 20px; }
+  .header .sub { font-size: 10px; letter-spacing: 0.25em; color: #999; text-transform: uppercase; margin-bottom: 6px; }
+  .header h1 { font-size: 28px; font-weight: 700; line-height: 1.2; }
+  .header .desc { font-size: 13px; color: #666; margin-top: 8px; line-height: 1.6; }
+  .mode-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .tag { font-size: 10px; padding: 3px 8px; border: 1px solid #ddd; background: #fafafa; letter-spacing: 0.03em; display: inline-block; }
+  .tag-mode { border-color: #1A1A1A; background: #fff; color: #1A1A1A; }
+  .tag-match { color: #1a7a2e; border-color: #c8e6c9; background: #f1f8f1; }
+  .tag-tension { color: #D93025; border-color: #f8d0cd; background: #fef5f4; }
+  .tag-flag { color: #b35c00; border-color: #ffe0b2; background: #fff8f0; }
+  .sliders { margin-bottom: 32px; padding: 24px 24px 0; border: 1px solid #eee; background: #fcfcfc; }
+  .slider-group { margin-bottom: 24px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .slider-label { font-size: 11px; letter-spacing: 0.12em; color: #999; text-transform: uppercase; }
+  .slider-value { font-size: 12px; font-weight: 600; color: #1A1A1A; }
+  .slider-track { position: relative; height: 36px; display: flex; align-items: center; }
+  .slider-bg { position: absolute; left: 0; right: 0; height: 2px; background: #eee; }
+  .slider-fill { position: absolute; left: 0; height: 2px; background: #D93025; transition: width 0.2s; }
+  .slider-dot { position: absolute; transform: translateX(-50%); border-radius: 50%; cursor: pointer; transition: all 0.2s; z-index: 2; }
+  .slider-dot.active { width: 16px; height: 16px; background: #D93025; border: 2px solid #1A1A1A; }
+  .slider-dot.inactive { width: 10px; height: 10px; background: #ddd; border: 2px solid transparent; }
+  .slider-dot.filled { background: #D93025; }
+  .slider-stop-label { position: absolute; transform: translateX(-50%); top: 26px; font-size: 9px; cursor: pointer; letter-spacing: 0.04em; transition: color 0.15s; white-space: nowrap; }
+  .slider-desc { font-size: 11px; color: #999; margin-top: 20px; line-height: 1.5; }
+  .toggle-btn { padding: 8px 16px; background: transparent; border: 1px solid #ddd; color: #666; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; }
+  .toggle-arrow { font-size: 14px; display: inline-block; transition: transform 0.15s; }
+  .section-label { font-size: 11px; letter-spacing: 0.15em; color: #999; text-transform: uppercase; margin-bottom: 8px; }
+  textarea { width: 100%; background: #fafafa; border: 1px solid #ddd; padding: 14px 16px; color: #1A1A1A; font-size: 13px; font-family: inherit; line-height: 1.7; resize: vertical; outline: none; }
+  textarea:focus { border-color: #D93025; }
+  textarea.mono { font-size: 12px; font-family: monospace; color: #333; }
+  textarea.mono:focus { border-color: #999; }
+  .btn { padding: 10px 24px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; border: none; font-family: inherit; transition: all 0.15s; }
+  .btn-primary { background: #D93025; color: #fff; font-weight: 600; }
+  .btn-primary:disabled { background: #eee; color: #aaa; cursor: default; }
+  .btn-outline { background: transparent; border: 1px solid #D93025; color: #D93025; }
+  .btn-ghost { background: transparent; border: 1px solid #ddd; color: #999; }
+  .char-count { font-size: 11px; color: #bbb; }
+  .loading { display: flex; gap: 4px; margin-top: 24px; justify-content: center; }
+  .loading-bar { width: 3px; height: 18px; background: #D93025; animation: pulse 0.8s ease-in-out infinite alternate; }
+  @keyframes pulse { 0% { opacity: 0.15 } 100% { opacity: 0.9 } }
+  .error { margin-top: 16px; padding: 12px 16px; background: #fef5f4; border: 1px solid #f8d0cd; font-size: 12px; color: #D93025; }
+  .result-banner { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; padding-bottom: 24px; border-bottom: 2px solid #1A1A1A; }
+  .result-score { font-size: 48px; font-weight: 300; font-family: monospace; line-height: 1; }
+  .result-class { font-size: 14px; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 700; }
+  .result-action { font-size: 11px; color: #999; margin-top: 2px; }
+  .gate-flags { margin-bottom: 24px; padding: 12px 16px; background: #fff8f0; border: 1px solid #ffe0b2; }
+  .gate-flags-title { font-size: 10px; letter-spacing: 0.15em; color: #b35c00; text-transform: uppercase; margin-bottom: 8px; font-weight: 600; }
+  .gate-flag { font-size: 12px; color: #996600; line-height: 1.6; margin-bottom: 4px; }
+  .briefing { font-size: 14px; color: #444; line-height: 1.8; margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid #eee; }
+  .section-title { font-size: 10px; letter-spacing: 0.2em; color: #999; text-transform: uppercase; margin-bottom: 14px; }
+  .score-row { margin-bottom: 20px; }
+  .score-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .score-label { font-size: 12px; color: #1A1A1A; letter-spacing: 0.03em; font-weight: 500; }
+  .score-num { font-size: 13px; color: #1A1A1A; font-family: monospace; font-weight: 600; }
+  .score-conf { font-size: 10px; font-family: monospace; margin-right: 8px; }
+  .score-bar-bg { height: 3px; background: #eee; overflow: hidden; }
+  .score-bar-fill { height: 100%; transition: width 0.8s ease; }
+  .score-rationale { font-size: 11px; color: #666; line-height: 1.6; margin-top: 6px; }
+  .signal-item { margin-bottom: 14px; padding-left: 12px; }
+  .signal-match { border-left: 2px solid #1a7a2e; }
+  .signal-tension { border-left: 2px solid #D93025; }
+  .signal-line { font-size: 12px; color: #333; line-height: 1.6; }
+  .signal-line b { font-weight: 600; }
+  .signal-question { font-size: 12px; color: #E8590C; line-height: 1.6; margin-top: 6px; font-style: italic; }
+  .gap-item { font-size: 12px; color: #666; line-height: 1.7; margin-bottom: 8px; padding-left: 12px; border-left: 2px solid #eee; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+  .section-block { margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid #eee; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="sub">Lens Project — Bidirectional Scoring — v1.3</div>
+    <h1>Role Lens Scorer</h1>
+    <div class="desc">Evaluate a candidate against the role lens across 6 identity dimensions. Adjust gate tolerance and analysis depth to control the evaluation.</div>
+    <div class="mode-row">
+      <span style="font-size:11px;color:#999">R→C</span>
+      <span class="tag tag-mode" id="mode-tag">Balanced Evaluation</span>
+      <span style="font-size:10px;color:#bbb" id="mode-desc">Default — good for most evaluations</span>
+    </div>
+  </div>
+
+  <!-- INPUT PHASE -->
+  <div id="input-phase">
+    <div class="sliders">
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Gate Tolerance</span>
+          <span class="slider-value" id="gate-value">Moderate</span>
+        </div>
+        <div class="slider-track" id="gate-track"></div>
+        <div class="slider-desc" id="gate-desc">DQ on clear matches. Score close-but-not-exact with a flag.</div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Analysis Depth</span>
+          <span class="slider-value" id="depth-value">Standard</span>
+        </div>
+        <div class="slider-track" id="depth-track"></div>
+        <div class="slider-desc" id="depth-desc">Scores + briefing + signal matches and tensions.</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px">
+      <button class="toggle-btn" onclick="toggleRoleLens()">
+        <span class="toggle-arrow" id="rl-arrow">▸</span> <span id="rl-toggle-text">Edit</span> Role Lens Context
+      </button>
+      <div id="role-lens-editor" class="hidden" style="margin-top:12px">
+        <div style="font-size:11px;color:#999;margin-bottom:6px">Pre-loaded with LeanData example. Edit or replace.</div>
+        <textarea id="role-lens" class="mono" rows="16"></textarea>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div class="section-label">Candidate Profile</div>
+      <textarea id="candidate" rows="14" placeholder="Paste candidate information here:&#10;&#10;— Resume text&#10;— LinkedIn profile&#10;— Lens document&#10;— Recruiter notes"></textarea>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <button class="btn btn-primary" id="score-btn" onclick="runScore()" disabled>Score — Balanced Evaluation</button>
+      <span class="char-count" id="char-count"></span>
+    </div>
+
+    <div class="loading hidden" id="loading">
+      <div class="loading-bar" style="animation-delay:0s"></div>
+      <div class="loading-bar" style="animation-delay:0.1s"></div>
+      <div class="loading-bar" style="animation-delay:0.2s"></div>
+      <div class="loading-bar" style="animation-delay:0.3s"></div>
+      <div class="loading-bar" style="animation-delay:0.4s"></div>
+    </div>
+    <div class="error hidden" id="error"></div>
+  </div>
+
+  <!-- RESULTS PHASE -->
+  <div id="result-phase" class="hidden"></div>
+</div>
+
+<script>
+const VERSION = "1.3";
+
+const DEFAULT_ROLE_LENS = `Role: Head of Customer Success
+Company: LeanData (Series B, ~150 employees, ~$100M funding)
+Hiring Manager: Dave Ginsburg, CCO (new hire)
+Role Type: Hybrid/Rebuilder — existing team of ~8, new leadership direction
+Urgency: Medium — CCO building his team within 60 days
+
+WHO THRIVES HERE:
+- Comfortable earning trust from existing team while changing how they work
+- Understands revenue operations deeply enough to speak the customer's language
+- Comfortable being CCO's right hand while building independent authority
+- Data-driven but not dashboard-obsessed — can tell the story behind the numbers
+
+WHO DOESN'T:
+- Needs to build from absolute zero — there's an existing team and customers
+- Cannot work within someone else's strategic framework initially
+- Avoids executive communication — this role reports to CCO and presents to board
+
+VALUES (REAL TALK):
+- Revenue accountability is real — CS owns NRR
+- Cross-functional collaboration with Sales and Product is expected, not optional
+- New CCO is bringing a vision but it's unproven — you're helping build it
+
+ANTI-VALUES:
+- CS as cost center
+- Finger-pointing between Sales and CS
+- Empire building
+- Process for process's sake
+
+WORK STYLE:
+- Slack + Zoom, enterprise cadences
+- 3-4 hours/day meetings currently, goal to reduce to 2
+- Fast decisions (24hr) — new CCO wants speed
+- High autonomy once trust established (30-60 days)
+- Fully remote but SF team grabs lunch weekly — no remote disadvantage
+
+ENERGY OF THIS ROLE:
+Fills: Transforming CS from reactive to strategic revenue partner; building the executive story; developing existing team's skills
+Drains: Political navigation during leadership transition; enterprise deal complexity; inherited angry customers
+
+DISQUALIFIERS:
+- No experience with enterprise SaaS CS at scale
+- Cannot manage a team while also being strategic
+- No revenue accountability experience (renewals, expansion)
+- Only startup experience — no process discipline
+- Views support as cost center, not growth engine
+
+COMPENSATION: $150K-$185K + 0.15-0.25% equity`;
+
+const GATE_LEVELS = [
+  { key: "lenient", label: "Lenient", desc: "Score everyone. Flag near-misses but don't disqualify." },
+  { key: "moderate", label: "Moderate", desc: "DQ on clear matches. Score close-but-not-exact with a flag." },
+  { key: "strict", label: "Strict", desc: "Hard DQ on any disqualifier match, even borderline." },
+];
+const DEPTH_LEVELS = [
+  { key: "quick", label: "Quick Screen", desc: "Scores + classification + 2-line briefing." },
+  { key: "standard", label: "Standard", desc: "Scores + briefing + signal matches and tensions." },
+  { key: "full", label: "Full Signal", desc: "Everything: signals, interview questions, confidence gaps, actions." },
+];
+const MODE_NAMES = {
+  "lenient-quick":"Pipeline Build","lenient-standard":"Open Consideration","lenient-full":"Open Discovery",
+  "moderate-quick":"Standard Screen","moderate-standard":"Balanced Evaluation","moderate-full":"Deep Evaluation",
+  "strict-quick":"Targeted Screen","strict-standard":"Precision Filter","strict-full":"Final Evaluation",
+};
+const MODE_DESCS = {
+  "lenient-quick":"Cast a wide net, fast triage","lenient-standard":"Broad pool, moderate depth","lenient-full":"Broad consideration, full analysis",
+  "moderate-quick":"Balanced gating, fast pass","moderate-standard":"Default — good for most evaluations","moderate-full":"Balanced gating, maximum signal extraction",
+  "strict-quick":"Narrow pool, fast yes/no","strict-standard":"Tight criteria, clear reasoning","strict-full":"Tight criteria, full signal report",
+};
+const CATS = [
+  { key:"builder_orientation", label:"Builder Orientation", max:25 },
+  { key:"relational_fit", label:"Relational Fit", max:22 },
+  { key:"domain_fluency", label:"Domain Fluency", max:18 },
+  { key:"values_alignment", label:"Values Alignment", max:15 },
+  { key:"work_style_compatibility", label:"Work Style Compat.", max:12 },
+  { key:"energy_match", label:"Energy Match", max:8 },
+];
+
+let gate = "moderate", depth = "standard";
+
+function modeKey() { return gate + "-" + depth; }
+function updateMode() {
+  const mk = modeKey();
+  document.getElementById("mode-tag").textContent = MODE_NAMES[mk] || "Custom";
+  document.getElementById("mode-desc").textContent = MODE_DESCS[mk] || "";
+  document.getElementById("score-btn").textContent = "Score — " + (MODE_NAMES[mk] || "Custom");
+}
+
+function buildSlider(trackId, levels, current, onChange) {
+  const track = document.getElementById(trackId);
+  track.innerHTML = '';
+  const bg = document.createElement("div"); bg.className = "slider-bg"; track.appendChild(bg);
+  const fill = document.createElement("div"); fill.className = "slider-fill";
+  const idx = levels.findIndex(l => l.key === current);
+  fill.style.width = (idx / (levels.length - 1) * 100) + "%";
+  track.appendChild(fill);
+  levels.forEach((l, i) => {
+    const dot = document.createElement("div");
+    dot.className = "slider-dot " + (i === idx ? "active" : (i < idx ? "inactive filled" : "inactive"));
+    dot.style.left = (i / (levels.length - 1) * 100) + "%";
+    dot.onclick = () => onChange(l.key);
+    track.appendChild(dot);
+    const lbl = document.createElement("div");
+    lbl.className = "slider-stop-label";
+    lbl.style.left = (i / (levels.length - 1) * 100) + "%";
+    lbl.style.color = i === idx ? "#1A1A1A" : "#bbb";
+    lbl.style.fontWeight = i === idx ? "600" : "400";
+    lbl.textContent = l.label;
+    lbl.onclick = () => onChange(l.key);
+    track.appendChild(lbl);
+  });
+}
+
+function setGate(g) {
+  gate = g;
+  const lvl = GATE_LEVELS.find(l => l.key === g);
+  document.getElementById("gate-value").textContent = lvl.label;
+  document.getElementById("gate-desc").textContent = lvl.desc;
+  buildSlider("gate-track", GATE_LEVELS, gate, setGate);
+  updateMode();
+}
+function setDepth(d) {
+  depth = d;
+  const lvl = DEPTH_LEVELS.find(l => l.key === d);
+  document.getElementById("depth-value").textContent = lvl.label;
+  document.getElementById("depth-desc").textContent = lvl.desc;
+  buildSlider("depth-track", DEPTH_LEVELS, depth, setDepth);
+  updateMode();
+}
+
+function toggleRoleLens() {
+  const ed = document.getElementById("role-lens-editor");
+  const arrow = document.getElementById("rl-arrow");
+  const txt = document.getElementById("rl-toggle-text");
+  if (ed.classList.contains("hidden")) { ed.classList.remove("hidden"); arrow.style.transform = "rotate(90deg)"; txt.textContent = "Hide"; }
+  else { ed.classList.add("hidden"); arrow.style.transform = "none"; txt.textContent = "Edit"; }
+}
+
+function buildSystemPrompt() {
+  const gateMap = {
+    lenient: "LENIENT: Only DQ on absolute mismatches. For borderline, score but add gate_flags.",
+    moderate: "MODERATE: DQ on clear matches. Borderline: score but add gate_flags.",
+    strict: "STRICT: DQ on ANY match including borderline. gate_flags: [].",
+  };
+  const depthMap = {
+    quick: "QUICK: 1-sentence rationale. 2-sentence briefing. signal_matches,signal_tensions,confidence_gaps: [].",
+    standard: "STANDARD: 1-2 sentence rationale. 3-sentence briefing. Top 3 signal_matches and signal_tensions with interview_question. confidence_gaps: [].",
+    full: "FULL: Rationale with confidence(0-1). 4-sentence briefing. All signal_matches/tensions with interview questions. confidence_gaps for conf<0.6.",
+  };
+  return `Role Lens candidate scorer. Score from COMPANY perspective. Ruthless and honest.
+GATE: ${gateMap[gate]}
+DEPTH: ${depthMap[depth]}
+DIMS(100pts): builder_orientation(0-25) relational_fit(0-22) domain_fluency(0-18) values_alignment(0-15) work_style_compatibility(0-12) energy_match(0-8)
+THRESHOLDS: 80+=STRONG FIT, 60-79=GOOD FIT, 40-59=MARGINAL, <40=POOR FIT
+CRITICAL: Keep rationales to 1-2 sentences. Compact JSON only.
+JSON: {"disqualified":bool,"disqualify_reason":str|null,"gate_flags":[str],"classification":str,"total_score":int,"scores":{"builder_orientation":{"score":int,"max":25,"confidence":float,"rationale":str},...},"briefing":str,"signal_matches":[{"candidate_signal":str,"role_signal":str,"dimension":str,"strength":str}],"signal_tensions":[{"candidate_signal":str,"role_signal":str,"dimension":str,"severity":str,"interview_question":str}],"confidence_gaps":[str],"recommended_action":str}`;
+}
+
+function classColor(c) {
+  if (c === "STRONG FIT") return "#1a7a2e";
+  if (c === "GOOD FIT") return "#b35c00";
+  if (c === "MARGINAL") return "#996600";
+  return "#D93025";
+}
+function barColor(pct) {
+  if (pct >= 70) return "#1a7a2e";
+  if (pct >= 40) return "#b35c00";
+  return "#D93025";
+}
+
+async function runScore() {
+  const candidateInput = document.getElementById("candidate").value.trim();
+  const roleLens = document.getElementById("role-lens").value.trim();
+  if (!candidateInput || !roleLens) return;
+
+  document.getElementById("loading").classList.remove("hidden");
+  document.getElementById("error").classList.add("hidden");
+  document.getElementById("score-btn").disabled = true;
+
+  try {
+    const system = buildSystemPrompt();
+    const userMessage = `## ROLE LENS\n\n${roleLens}\n\n---\n\n## CANDIDATE\n\n${candidateInput}\n\n---\n\nScore this candidate. ONLY valid JSON.`;
+
+    const resp = await fetch("/api/score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ system, userMessage }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "API error " + resp.status);
+    if (data.error) throw new Error(data.error.message || data.error);
+
+    const text = data.content?.filter(b => b.type === "text").map(b => b.text).join("");
+    if (!text) throw new Error("Empty response");
+    if (data.stop_reason === "max_tokens") throw new Error("Response truncated. Try Quick Screen.");
+
+    const clean = text.replace(/```json|```/g, "").trim();
+    let result;
+    try { result = JSON.parse(clean); } catch(e) { throw new Error("JSON parse failed: " + clean.substring(0, 150)); }
+
+    renderResults(result);
+  } catch (err) {
+    document.getElementById("error").textContent = err.message;
+    document.getElementById("error").classList.remove("hidden");
+  } finally {
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("score-btn").disabled = false;
+  }
+}
+
+function renderResults(r) {
+  const showSignals = depth === "standard" || depth === "full";
+  const showConf = depth === "full";
+  const showGaps = depth === "full";
+  const mk = modeKey();
+
+  let html = '';
+
+  // Mode tags
+  html += `<div style="margin-bottom:16px"><span class="tag tag-mode">${MODE_NAMES[mk]}</span> <span class="tag">Gate: ${gate}</span> <span class="tag">Depth: ${depth}</span></div>`;
+
+  // Banner
+  if (r.disqualified) {
+    html += `<div class="result-banner"><div><div style="font-size:28px;font-weight:700;color:#D93025">DISQUALIFIED</div><div style="font-size:13px;color:#D93025;margin-top:6px">${r.disqualify_reason || ''}</div></div></div>`;
+  } else {
+    html += `<div class="result-banner"><div class="result-score" style="color:${classColor(r.classification)}">${r.total_score}</div><div><div class="result-class" style="color:${classColor(r.classification)}">${r.classification}</div>${r.recommended_action ? `<div class="result-action">→ ${r.recommended_action}</div>` : ''}</div></div>`;
+  }
+
+  // Gate flags
+  if (r.gate_flags?.length > 0) {
+    html += `<div class="gate-flags"><div class="gate-flags-title">Gate Flags — Near-Misses</div>`;
+    r.gate_flags.forEach(f => { html += `<div class="gate-flag">⚠ ${esc(f)}</div>`; });
+    html += `</div>`;
+  }
+
+  // Briefing
+  if (r.briefing) html += `<div class="briefing">${esc(r.briefing)}</div>`;
+
+  // Scores
+  if (!r.disqualified && r.scores) {
+    html += `<div class="section-block"><div class="section-title">Dimension Scores</div>`;
+    CATS.forEach(cat => {
+      const s = r.scores[cat.key];
+      if (!s) return;
+      const pct = Math.round((s.score / cat.max) * 100);
+      html += `<div class="score-row"><div class="score-header"><span class="score-label">${cat.label}</span><div>`;
+      if (showConf && s.confidence !== undefined) {
+        html += `<span class="score-conf" style="color:${s.confidence < 0.6 ? '#D93025' : '#999'}">${Math.round(s.confidence*100)}% conf</span>`;
+      }
+      html += `<span class="score-num">${s.score}/${cat.max}</span></div></div>`;
+      html += `<div class="score-bar-bg"><div class="score-bar-fill" style="width:${pct}%;background:${barColor(pct)}"></div></div>`;
+      if (s.rationale) html += `<div class="score-rationale">${esc(s.rationale)}</div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Signal matches
+  if (showSignals && r.signal_matches?.length > 0) {
+    html += `<div class="section-block"><div class="section-title">Alignment Signals</div>`;
+    r.signal_matches.forEach(m => {
+      html += `<div class="signal-item signal-match"><div style="margin-bottom:4px"><span class="tag tag-match">${esc(m.dimension)}</span> <span class="tag tag-match">${esc(m.strength)}</span></div>`;
+      html += `<div class="signal-line"><b>Candidate:</b> ${esc(m.candidate_signal)}</div>`;
+      html += `<div class="signal-line"><b>Role needs:</b> ${esc(m.role_signal)}</div></div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Signal tensions
+  if (showSignals && r.signal_tensions?.length > 0) {
+    html += `<div class="section-block"><div class="section-title">Tension Signals</div>`;
+    r.signal_tensions.forEach(t => {
+      html += `<div class="signal-item signal-tension"><div style="margin-bottom:4px"><span class="tag tag-tension">${esc(t.dimension)}</span> <span class="tag tag-tension">${esc(t.severity)}</span></div>`;
+      html += `<div class="signal-line"><b>Candidate:</b> ${esc(t.candidate_signal)}</div>`;
+      html += `<div class="signal-line"><b>Role needs:</b> ${esc(t.role_signal)}</div>`;
+      if (t.interview_question) html += `<div class="signal-question">Ask: "${esc(t.interview_question)}"</div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Confidence gaps
+  if (showGaps && r.confidence_gaps?.length > 0) {
+    html += `<div class="section-block"><div class="section-title">Confidence Gaps</div>`;
+    r.confidence_gaps.forEach(g => { html += `<div class="gap-item">${esc(g)}</div>`; });
+    html += `</div>`;
+  }
+
+  // Actions
+  html += `<div class="actions"><button class="btn btn-outline" onclick="resetScorer()">Score another</button>`;
+  html += `<button class="btn btn-ghost" onclick="copyJSON()">Copy JSON</button>`;
+  html += `<button class="btn btn-ghost" onclick="copyReport()">Copy Report</button></div>`;
+
+  document.getElementById("result-phase").innerHTML = html;
+  document.getElementById("input-phase").classList.add("hidden");
+  document.getElementById("result-phase").classList.remove("hidden");
+
+  window._lastResult = r;
+}
+
+function esc(s) { if (!s) return ''; const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+function resetScorer() {
+  document.getElementById("candidate").value = "";
+  document.getElementById("char-count").textContent = "";
+  document.getElementById("result-phase").classList.add("hidden");
+  document.getElementById("input-phase").classList.remove("hidden");
+  document.getElementById("score-btn").disabled = true;
+}
+
+function copyJSON() {
+  if (window._lastResult) navigator.clipboard.writeText(JSON.stringify(window._lastResult, null, 2));
+}
+
+function copyReport() {
+  const r = window._lastResult;
+  if (!r) return;
+  const mk = modeKey();
+  const lines = [
+    "ROLE LENS MATCH REPORT", "=".repeat(50),
+    "Classification: " + r.classification, "Score: " + r.total_score + "/100",
+    "Mode: " + MODE_NAMES[mk] + " (Gate: " + gate + ", Depth: " + depth + ")",
+    "Scorer: v" + VERSION,
+    r.recommended_action ? "Action: " + r.recommended_action : null,
+    "", "BRIEFING:", r.briefing,
+  ].filter(x => x !== null);
+  if (r.gate_flags?.length) { lines.push("", "GATE FLAGS:"); r.gate_flags.forEach(f => lines.push("  * " + f)); }
+  lines.push("", "DIMENSION SCORES:");
+  CATS.forEach(c => { const s = r.scores?.[c.key]; if (s) lines.push("  " + c.label + ": " + s.score + "/" + c.max + (s.confidence ? " (" + Math.round(s.confidence*100) + "% conf)" : "") + " — " + s.rationale); });
+  if (r.signal_matches?.length) { lines.push("", "ALIGNMENT:"); r.signal_matches.forEach(m => lines.push("  [" + m.dimension + "] " + m.candidate_signal + " <> " + m.role_signal)); }
+  if (r.signal_tensions?.length) { lines.push("", "TENSIONS:"); r.signal_tensions.forEach(t => { lines.push("  [" + t.dimension + "] " + t.candidate_signal + " vs " + t.role_signal); if (t.interview_question) lines.push('    Ask: "' + t.interview_question + '"'); }); }
+  if (r.confidence_gaps?.length) { lines.push("", "CONFIDENCE GAPS:"); r.confidence_gaps.forEach(g => lines.push("  — " + g)); }
+  navigator.clipboard.writeText(lines.join("\n"));
+}
+
+// Init
+document.getElementById("role-lens").value = DEFAULT_ROLE_LENS;
+document.getElementById("candidate").addEventListener("input", function() {
+  const len = this.value.length;
+  document.getElementById("char-count").textContent = len > 0 ? len.toLocaleString() + " chars" : "";
+  document.getElementById("score-btn").disabled = len === 0;
+});
+buildSlider("gate-track", GATE_LEVELS, gate, setGate);
+buildSlider("depth-track", DEPTH_LEVELS, depth, setDepth);
+updateMode();
+</script>
+</body>
+</html>

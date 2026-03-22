@@ -1,2 +1,0 @@
-# lens
-Lens Project
