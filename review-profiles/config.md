@@ -5,7 +5,7 @@ Configuration files define scoring parameters, deployment routing, guardrails fo
 
 ## Architecture
 - **scoring-config.yaml** (repo root): Dual-mode config defining signal library for both pipeline mode (n8n, additive) and product mode (JSX, weighted composite). Shared signals, gates, investor lookup. User's `scoring.yaml` declares mode.
-- **guardrails.yaml** (planned, `lens/config/` or similar): Will externalize hardcoded system prompts from JSX components. Schema designed but file not yet created. Pre-work steps safe to execute; JSX refactor deferred until current testers complete sessions.
+- **guardrails.yaml** (planned, `config/` or similar): Will externalize hardcoded system prompts from JSX components. Schema designed but file not yet created. Pre-work steps safe to execute; JSX refactor deferred until current testers complete sessions.
 - **vercel.json**: Routing config for Vercel deployments. Root set to `/lens-project`.
 - **Lens document schema:** YAML frontmatter + markdown body. 6 scoring dimensions with weights. Instant disqualifiers as array. Score thresholds defined.
 - **Three-file user architecture** (in `zelman/tidepool`): `users/` directory with `lens.md`, `scoring.yaml`, `sources.yaml` per user.

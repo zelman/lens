@@ -4,8 +4,8 @@
 The Lens Project is an AI-powered career identity discovery and job-fit platform. Users complete a guided discovery process (8 sections, AI-facilitated or coach-facilitated) that produces a "lens document" — a portable markdown file with YAML frontmatter. This document governs automated job opportunity scoring via signal matching (not keyword matching). The product has a free tier (lens generation), paid tier ($50/mo briefings), coach channel (B2B2C), and planned enterprise tier (bidirectional matching).
 
 ## Architecture
-- **Repo:** `github.com/zelman/tidepool` — contains agent lens monolith (root), product code (`lens/`), user files (`users/`), scoring config (root)
-- **Product directory:** `lens/` — `src/` (JSX scorers), `app/` (Next.js intake), `schemas/` (LENS-SPEC, templates), `docs/` (enhancements, scoring engine), `deliverables/` (decks, reports), `public/` (static assets)
+- **Repo:** `github.com/zelman/lens` — product code, scoring config, schemas, scorers, docs, deliverables
+- **Directory structure:** `src/` (JSX scorers), `app/` (Next.js intake), `schemas/` (LENS-SPEC, templates), `docs/` (enhancements, scoring engine), `deliverables/` (decks, reports), `public/` (static assets)
 - **User files:** `users/{name}/` — `lens.md`, `scoring.yaml`, `sources.yaml` per user
 - **Related repos:** `zelman/job_search` (n8n pipeline execution code), `zelman/work` (resume/career materials)
 - **Deployment:** Vercel auto-deploys from `main` branch. Active URLs: `lens-red-two.vercel.app`, `lens-feedback.vercel.app`

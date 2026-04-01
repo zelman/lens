@@ -32,16 +32,16 @@ The script reads filename + first 500 characters of content. Pattern priority (f
 
 ```bash
 # Auto-detect (should pick "scoring")
-node code-review.mjs ./lens/src/lens-scorer.jsx --model sonnet --log
+node code-review.mjs ./src/lens-scorer.jsx --model sonnet --log
 
 # Auto-detect (should pick "form")
-node code-review.mjs ./lens/src/lens-intake.jsx --model sonnet --log
+node code-review.mjs ./src/lens-intake.jsx --model sonnet --log
 
 # Manual override when auto-detect is wrong
-node code-review.mjs ./lens/schemas/LENS-SPEC.md --profile general --model sonnet --log
+node code-review.mjs ./schemas/LENS-SPEC.md --profile general --model sonnet --log
 
 # Force Opus for complex scoring logic changes
-node code-review.mjs ./lens/src/lens-scorer.jsx --model opus --log
+node code-review.mjs ./src/lens-scorer.jsx --model opus --log
 ```
 
 ## "Always Review These" (for skill doc)

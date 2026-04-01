@@ -1,7 +1,7 @@
 # Review Context: Form (Intake & Discovery)
 
 ## What This Code Does
-The intake form is the product's primary user-facing surface. It guides users through context upload (resume, LinkedIn, assessments), status selection, and an 8-section AI-powered discovery conversation that produces a lens document (markdown + YAML frontmatter). Two versions exist: `lens/src/lens-intake.jsx` (~680 lines, newer, Swiss Style, 4-phase flow with persistence) and `lens/src/lens-form.jsx` (~800 lines, original, dark theme, 6-phase flow with live Claude API).
+The intake form is the product's primary user-facing surface. It guides users through context upload (resume, LinkedIn, assessments), status selection, and an 8-section AI-powered discovery conversation that produces a lens document (markdown + YAML frontmatter). Two versions exist: `src/lens-intake.jsx` (~680 lines, newer, Swiss Style, 4-phase flow with persistence) and `src/lens-form.jsx` (~800 lines, original, dark theme, 6-phase flow with live Claude API).
 
 ## Architecture
 - **lens-intake.jsx:** Intro → Context Upload → Status → Discovery (placeholder). Session persistence via localStorage (phase + status + file metadata). Files need re-upload on return (binary can't serialize). Swiss Style design.
