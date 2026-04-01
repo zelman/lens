@@ -32,24 +32,24 @@ The script reads filename + first 500 characters of content. Pattern priority (f
 
 ```bash
 # Auto-detect (should pick "scoring")
-node code-review.mjs ./src/lens-scorer.jsx --model sonnet --log
+node code-review.mjs ./components/lens-scorer.jsx --model sonnet --log
 
 # Auto-detect (should pick "form")
-node code-review.mjs ./src/lens-intake.jsx --model sonnet --log
+node code-review.mjs ./components/lens-intake.jsx --model sonnet --log
 
 # Manual override when auto-detect is wrong
 node code-review.mjs ./schemas/LENS-SPEC.md --profile general --model sonnet --log
 
 # Force Opus for complex scoring logic changes
-node code-review.mjs ./src/lens-scorer.jsx --model opus --log
+node code-review.mjs ./components/lens-scorer.jsx --model opus --log
 ```
 
 ## "Always Review These" (for skill doc)
 
 These files should trigger code review on any change:
-- `lens/src/lens-scorer.jsx` — core scoring logic with hardcoded system prompt
-- `lens/src/lens-intake.jsx` — primary user-facing surface (when wired)
-- `lens/src/lens-form.jsx` — reference discovery implementation
+- `components/lens-scorer.jsx` — core scoring logic with hardcoded system prompt
+- `components/lens-intake.jsx` — primary user-facing surface (when wired)
+- `components/lens-form.jsx` — reference discovery implementation
 - `scoring-config.yaml` — shared signal library, dual-mode scoring config
 - `users/*/scoring.yaml` — user scoring parameters
 - `tide-pool-agent-lens.md` — monolith (n8n backward compat)

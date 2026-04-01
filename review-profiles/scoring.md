@@ -4,8 +4,8 @@
 Scoring components evaluate job opportunities against a user's lens document. Two directions exist: **C→R** (candidate scores companies, `lens-scorer.jsx`) and **R→C** (company scores candidates, Role Lens Scorer). Both use Claude API to produce structured JSON scores across weighted dimensions. The scoring system is the product's core differentiator — signal matching, not keyword matching.
 
 ## Architecture
-- **lens/src/lens-scorer.jsx:** Single-file React component. System prompt hardcoded as `SYSTEM_PROMPT` const (~96 lines). User pastes job listing text → Claude API call → JSON response parsed → visual score breakdown rendered.
-- **Role Lens Scorer (R→C):** Built separately (`src/`). Gate Tolerance + Analysis Depth sliders produce 9 named evaluation modes. Scores candidates against a company's role lens.
+- **components/lens-scorer.jsx:** Single-file React component. System prompt hardcoded as `SYSTEM_PROMPT` const (~96 lines). User pastes job listing text → Claude API call → JSON response parsed → visual score breakdown rendered.
+- **Role Lens Scorer (R→C):** Built separately (`components/`). Gate Tolerance + Analysis Depth sliders produce 9 named evaluation modes. Scores candidates against a company's role lens.
 - **scoring-config.yaml** (repo root): Dual-mode signal library. Pipeline mode = additive bonuses, product mode = weighted composite. Same signals, different math. User's `scoring.yaml` declares mode.
 - **Agent Lens v2.15** (`tide-pool-agent-lens.md` at repo root): Eric's personal lens document, the monolith. n8n reads this via raw GitHub URL. March 20 gate changes: employee max 200→350, min 15→10; quota-carrying CSM removed from role gates; penalties flattened (-5 to -10 range); bonuses restored (builder +40, Series A +50, healthcare +15). Thresholds: STRONG FIT 80+, GOOD FIT 60-79, MARGINAL 40-59, SKIP <40.
 

@@ -5,7 +5,7 @@ The Lens Project is an AI-powered career identity discovery and job-fit platform
 
 ## Architecture
 - **Repo:** `github.com/zelman/lens` — product code, scoring config, schemas, scorers, docs, deliverables
-- **Directory structure:** `src/` (JSX scorers), `app/` (Next.js intake), `schemas/` (LENS-SPEC, templates), `docs/` (enhancements, scoring engine), `deliverables/` (decks, reports), `public/` (static assets)
+- **Directory structure:** `components/` (JSX scorers), `app/` (Next.js intake), `schemas/` (LENS-SPEC, templates), `docs/` (enhancements, scoring engine), `deliverables/` (decks, reports), `public/` (static assets)
 - **User files:** `users/{name}/` — `lens.md`, `scoring.yaml`, `sources.yaml` per user
 - **Related repos:** `zelman/job_search` (n8n pipeline execution code), `zelman/work` (resume/career materials)
 - **Deployment:** Vercel auto-deploys from `main` branch. Active URLs: `lens-red-two.vercel.app`, `lens-feedback.vercel.app`

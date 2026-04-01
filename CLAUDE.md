@@ -8,7 +8,7 @@ Eric's personal agent lens monolith and user files live in a **separate repo**: 
 
 ## Architecture
 
-- **`src/`** — JSX scorers and standalone components
+- **`components/`** — JSX scorers and standalone components
 - **`app/`** — Next.js intake application (pages, components, API routes)
 - **`schemas/`** — Lens document spec, candidate lens format, source templates
 - **`docs/`** — Enhancement tracking, scoring engine architecture, enhancements backlog
@@ -45,8 +45,8 @@ JSX scorer and intake components call the Claude API directly (client-side, no p
 | File | Purpose | Who Edits |
 |---|---|---|
 | `scoring-config.yaml` | Shared signal library, dual-mode scoring | Platform (not users) |
-| `src/lens-scorer.jsx` | Swiss Style scorer, fetches lens at runtime | Claude AI / Claude Code |
-| `src/lens-scorer-compare.jsx` | Dual-schema comparison with weight sliders | Claude AI / Claude Code |
+| `components/lens-scorer.jsx` | Swiss Style scorer, fetches lens at runtime | Claude AI / Claude Code |
+| `components/lens-scorer-compare.jsx` | Dual-schema comparison with weight sliders | Claude AI / Claude Code |
 | `schemas/LENS-SPEC.md` | Formal schema spec (the real product spec) | Claude Code |
 | `schemas/candidate-lens-v1.md` | Product lens format with 6-dim schema | Claude Code |
 | `schemas/sources-template.yaml` | Template for source config generation | Claude Code |
@@ -119,7 +119,7 @@ Claude AI (claude.ai) creates JSX components, scoring configs, markdown docs, an
 
 | File type | Repo path |
 |---|---|
-| JSX scorers, components | `src/` |
+| JSX scorers, components | `components/` |
 | Next.js app components | `app/components/` |
 | Next.js API routes | `app/api/` |
 | Schema specs, templates | `schemas/` |
@@ -150,7 +150,7 @@ Active deployments: `lens-red-two.vercel.app`, `lens-feedback.vercel.app`
 
 **Example:**
 ```
-Move ~/Downloads/lens-scorer.jsx to src/lens-scorer.jsx and commit with message "Swiss Style scorer with runtime lens fetch"
+Move ~/Downloads/lens-scorer.jsx to components/lens-scorer.jsx and commit with message "Swiss Style scorer with runtime lens fetch"
 ```
 
 Claude Code should use the file placement table above to suggest the correct destination if Eric doesn't specify one.
@@ -161,18 +161,18 @@ This repo includes a profile-based code review system. Run reviews from the repo
 
 ```bash
 # Auto-detects profile from filename + content
-node code-review.mjs src/lens-scorer.jsx --model sonnet --log
+node code-review.mjs components/lens-scorer.jsx --model sonnet --log
 
 # Manual profile override
 node code-review.mjs schemas/LENS-SPEC.md --profile general --model sonnet --log
 
 # Use Opus for complex changes (scoring logic, system prompts, gate parameters)
-node code-review.mjs src/lens-scorer.jsx --model opus --log
+node code-review.mjs components/lens-scorer.jsx --model opus --log
 ```
 
 **Profiles** (in `review-profiles/`): `form`, `scoring`, `coach`, `config`, `general` (fallback). Each injects ~600-800 tokens of project context into the review call.
 
-**Always review on change:** `src/lens-scorer.jsx`, `src/lens-intake.jsx`, `src/lens-form.jsx`, `scoring-config.yaml`
+**Always review on change:** `components/lens-scorer.jsx`, `components/lens-intake.jsx`, `components/lens-form.jsx`, `scoring-config.yaml`
 
 **Use Opus when:** System prompt changes, lens document schema changes, auto-disqualifier logic changes, coach persona integration changes.
 
