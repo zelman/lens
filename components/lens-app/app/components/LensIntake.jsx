@@ -418,10 +418,81 @@ function IntroPhase({ onContinue }) {
   );
 }
 
-function UploadPhase({ files, onAdd, onRemove, onContinue, onBack }) {
+function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, savedFileContext, previousFiles }) {
+  const [showUploadUI, setShowUploadUI] = useState(false);
   const totalFiles = Object.values(files).reduce((sum, arr) => sum + arr.length, 0);
   const fileSummary = CATEGORIES.filter(c => files[c.id].length > 0)
     .map(c => `${c.label} (${files[c.id].length})`).join(", ");
+
+  // Check if we have saved file context from a previous session
+  const hasSavedContext = savedFileContext && Object.keys(savedFileContext).length > 0;
+  const savedFileNames = hasSavedContext
+    ? Object.keys(savedFileContext).map(key => key.split(':')[1])
+    : [];
+
+  // If returning user with saved context and no new uploads, show simplified view
+  if (hasSavedContext && totalFiles === 0 && !showUploadUI) {
+    return (
+      <div style={containerStyle}>
+        <div style={{ marginBottom: "32px" }}>
+          <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
+                  Materials
+                </div>
+                <h1 style={{ fontFamily: FONT, fontSize: "26px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
+                  Your previous files are still loaded
+                </h1>
+              </div>
+              <button onClick={onBack} style={{
+                background: "none", border: "none", color: GRY, fontFamily: FONT,
+                fontSize: "12px", cursor: "pointer", padding: "4px 0", marginTop: "6px",
+              }}>
+                &larr; Back
+              </button>
+            </div>
+          </div>
+          <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, maxWidth: "500px", margin: 0 }}>
+            The AI has context from your previously uploaded files. You can continue with what you have or add new materials.
+          </p>
+        </div>
+
+        <div style={{ padding: "16px 18px", border: `1px solid ${RULE}`, marginBottom: "28px", background: "#fafafa" }}>
+          <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "8px" }}>
+            Loaded from previous session
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {savedFileNames.map((name, i) => (
+              <span key={i} style={{
+                padding: "4px 10px", background: "#fff", border: `1px solid ${RULE}`,
+                fontSize: "12px", color: BLK,
+              }}>
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <button onClick={onContinue} style={{
+            width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
+            letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
+            border: `1.5px solid ${RED}`, cursor: "pointer", borderRadius: 0,
+          }}>
+            Continue to discovery
+          </button>
+          <button onClick={() => setShowUploadUI(true)} style={{
+            width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 500,
+            letterSpacing: "0.08em", textTransform: "uppercase", background: "#fff", color: GRY,
+            border: `1.5px solid #ddd`, cursor: "pointer", borderRadius: 0,
+          }}>
+            Add new materials
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={containerStyle}>
@@ -450,6 +521,15 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack }) {
         </p>
       </div>
 
+      {/* Show saved files notice if returning user is adding more */}
+      {hasSavedContext && (
+        <div style={{ padding: "12px 16px", background: "#fafafa", border: `1px solid ${RULE}`, marginBottom: "20px" }}>
+          <div style={{ fontSize: "12px", color: GRY }}>
+            <strong style={{ color: BLK }}>Previous files still loaded:</strong> {savedFileNames.join(", ")}
+          </div>
+        </div>
+      )}
+
       <div style={{ height: "1px", background: RULE, marginBottom: "28px" }} />
 
       {/* Upload slots */}
@@ -470,15 +550,15 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack }) {
           letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
           border: `1.5px solid ${RED}`, cursor: "pointer", transition: "all 0.15s ease", borderRadius: 0,
         }}>
-          {totalFiles > 0 ? "Continue" : "Skip — start from scratch"}
+          {totalFiles > 0 || hasSavedContext ? "Continue" : "Skip — start from scratch"}
         </button>
-        {totalFiles === 0 ? (
+        {totalFiles === 0 && !hasSavedContext ? (
           <p style={{ fontSize: "11px", color: LT, textAlign: "center", marginTop: "10px" }}>
             You can always come back and add materials later.
           </p>
         ) : (
           <p style={{ fontSize: "11px", color: LT, textAlign: "center", marginTop: "10px" }}>
-            If you close the tab, you'll need to re-add your files when you return. Everything else is saved automatically.
+            {hasSavedContext ? "New files will be added to your existing context." : "If you close the tab, you'll need to re-add your files when you return. Everything else is saved automatically."}
           </p>
         )}
       </div>
@@ -571,6 +651,7 @@ function DiscoveryPhase({
   existingLens,
   onReentryComplete,
   onSelectAnotherSection,
+  onSaveAndExit,
 }) {
   const [subPhase, setSubPhase] = useState(savedDiscoveryState?.subPhase || "preview");
   const [currentSection, setCurrentSection] = useState(savedDiscoveryState?.currentSection || 0);
@@ -1035,19 +1116,31 @@ No preamble — start with the narrative, then the signals.`,
   // ── Active conversation ──
   return (
     <div style={{ ...containerStyle, display: "flex", flexDirection: "column", minHeight: "calc(100vh - 60px)" }}>
-      {/* Section header */}
+      {/* Section header with Save and exit */}
       <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+          <div style={{ flex: 1 }}>
             <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
-              {sec.number} — {sec.label}
+              {reentryMode ? `Updating: ${sec.label}` : `${sec.number} — ${sec.label}`}
             </div>
             <h2 style={{ fontFamily: FONT, fontSize: "20px", fontWeight: 700, color: BLK, margin: 0 }}>
-              Discovery
+              {reentryMode ? "Section Update" : "Discovery"}
             </h2>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.06em", marginBottom: "4px" }}>
+          <button
+            onClick={onSaveAndExit}
+            style={{
+              background: "none", border: "none", color: GRY, fontFamily: FONT,
+              fontSize: "11px", cursor: "pointer", padding: "4px 0",
+              letterSpacing: "0.04em", whiteSpace: "nowrap",
+            }}
+          >
+            Save and exit
+          </button>
+        </div>
+        {!reentryMode && (
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "8px" }}>
+            <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.06em" }}>
               {currentSection + 1} / {SECTIONS.length}
             </div>
             <div style={{ width: "80px", height: "2px", background: RULE }}>
@@ -1058,7 +1151,7 @@ No preamble — start with the narrative, then the signals.`,
               }} />
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Messages */}
@@ -1182,10 +1275,55 @@ No preamble — start with the narrative, then the signals.`,
 }
 
 // ════════════════════════════════════════
+// Confirmation Modal
+// ════════════════════════════════════════
+
+function ConfirmationModal({ title, message, confirmLabel, cancelLabel, onConfirm, onCancel, destructive }) {
+  return (
+    <div style={{
+      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+      background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 1000, padding: "20px",
+    }}>
+      <div style={{
+        background: "#fff", maxWidth: "400px", width: "100%", padding: "32px",
+        border: `2px solid ${BLK}`,
+      }}>
+        <h2 style={{ fontFamily: FONT, fontSize: "20px", fontWeight: 700, color: BLK, margin: "0 0 16px" }}>
+          {title}
+        </h2>
+        <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.7, margin: "0 0 28px" }}>
+          {message}
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <button onClick={onConfirm} style={{
+            width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
+            letterSpacing: "0.1em", textTransform: "uppercase",
+            background: destructive ? RED : BLK, color: "#fff",
+            border: `1.5px solid ${destructive ? RED : BLK}`, cursor: "pointer", borderRadius: 0,
+          }}>
+            {confirmLabel}
+          </button>
+          <button onClick={onCancel} style={{
+            width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 500,
+            letterSpacing: "0.08em", textTransform: "uppercase", background: "#fff", color: GRY,
+            border: `1.5px solid #ddd`, cursor: "pointer", borderRadius: 0,
+          }}>
+            {cancelLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════
 // Session Recovery UI
 // ════════════════════════════════════════
 
 function SessionRecoveryPrompt({ savedSession, onContinue, onStartFresh }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const lastUpdated = savedSession?.lastUpdated
     ? new Date(savedSession.lastUpdated).toLocaleString()
     : "Unknown";
@@ -1198,149 +1336,296 @@ function SessionRecoveryPrompt({ savedSession, onContinue, onStartFresh }) {
   const inDiscovery = savedSession?.phase === "discovery" && savedSession?.discoveryState?.subPhase === "conversation";
 
   return (
-    <div style={containerStyle}>
-      <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "32px" }}>
-        <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
-          Welcome Back
+    <>
+      {showConfirm && (
+        <ConfirmationModal
+          title="Start fresh?"
+          message="This will erase your session, including all conversation history and any lens document you've created. This cannot be undone."
+          confirmLabel="Yes, start fresh"
+          cancelLabel="Keep my session"
+          onConfirm={onStartFresh}
+          onCancel={() => setShowConfirm(false)}
+          destructive
+        />
+      )}
+      <div style={containerStyle}>
+        <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "32px" }}>
+          <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
+            Welcome Back
+          </div>
+          <h1 style={{ fontFamily: FONT, fontSize: "28px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
+            Resume your session?
+          </h1>
         </div>
-        <h1 style={{ fontFamily: FONT, fontSize: "28px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
-          Resume your session?
-        </h1>
-      </div>
 
-      <div style={{ marginBottom: "28px" }}>
-        <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.75, margin: "0 0 16px", maxWidth: "500px" }}>
-          We found a previous session from <strong>{lastUpdated}</strong>.
+        <div style={{ marginBottom: "28px" }}>
+          <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.75, margin: "0 0 16px", maxWidth: "500px" }}>
+            We found a previous session from <strong>{lastUpdated}</strong>.
+          </p>
+
+          {hasLens && (
+            <div style={{ padding: "14px 18px", border: `1px solid ${RULE}`, marginBottom: "16px", background: "#fafafa" }}>
+              <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "4px" }}>
+                Completed lens document
+              </div>
+              <div style={{ fontSize: "14px", color: BLK, fontWeight: 500 }}>
+                Ready to download or refine
+              </div>
+            </div>
+          )}
+
+          {inDiscovery && !hasLens && (
+            <div style={{ padding: "14px 18px", border: `1px solid ${RULE}`, marginBottom: "16px", background: "#fafafa" }}>
+              <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "4px" }}>
+                In progress
+              </div>
+              <div style={{ fontSize: "14px", color: BLK, fontWeight: 500 }}>
+                Discovery section: {sectionLabel}
+              </div>
+              <div style={{ fontSize: "12px", color: GRY, marginTop: "4px" }}>
+                {savedSession.discoveryState?.messages?.length || 0} messages in conversation
+              </div>
+            </div>
+          )}
+
+          {!inDiscovery && !hasLens && (
+            <div style={{ padding: "14px 18px", border: `1px solid ${RULE}`, marginBottom: "16px", background: "#fafafa" }}>
+              <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "4px" }}>
+                Status
+              </div>
+              <div style={{ fontSize: "14px", color: BLK, fontWeight: 500 }}>
+                {savedSession.phase === "upload" && "Ready to upload materials"}
+                {savedSession.phase === "status" && "Selecting employment status"}
+                {savedSession.phase === "discovery" && "Ready to begin discovery"}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ height: "1px", background: RULE, marginBottom: "28px" }} />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <button onClick={onContinue} style={{
+            width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
+            letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
+            border: `1.5px solid ${RED}`, cursor: "pointer", borderRadius: 0,
+          }}>
+            {hasLens ? "View my lens" : "Continue where I left off"}
+          </button>
+          <button onClick={() => setShowConfirm(true)} style={{
+            width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 500,
+            letterSpacing: "0.08em", textTransform: "uppercase", background: "#fff", color: GRY,
+            border: `1.5px solid #ddd`, cursor: "pointer", borderRadius: 0,
+          }}>
+            Start fresh
+          </button>
+        </div>
+
+        <p style={{ fontSize: "11px", color: LT, textAlign: "center", marginTop: "16px", lineHeight: 1.6 }}>
+          Starting fresh will clear your previous progress and conversation history.
         </p>
-
-        {hasLens && (
-          <div style={{ padding: "14px 18px", border: `1px solid ${RULE}`, marginBottom: "16px", background: "#fafafa" }}>
-            <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "4px" }}>
-              Completed lens document
-            </div>
-            <div style={{ fontSize: "14px", color: BLK, fontWeight: 500 }}>
-              Ready to download or refine
-            </div>
-          </div>
-        )}
-
-        {inDiscovery && !hasLens && (
-          <div style={{ padding: "14px 18px", border: `1px solid ${RULE}`, marginBottom: "16px", background: "#fafafa" }}>
-            <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "4px" }}>
-              In progress
-            </div>
-            <div style={{ fontSize: "14px", color: BLK, fontWeight: 500 }}>
-              Discovery section: {sectionLabel}
-            </div>
-            <div style={{ fontSize: "12px", color: GRY, marginTop: "4px" }}>
-              {savedSession.discoveryState?.messages?.length || 0} messages in conversation
-            </div>
-          </div>
-        )}
-
-        {!inDiscovery && !hasLens && (
-          <div style={{ padding: "14px 18px", border: `1px solid ${RULE}`, marginBottom: "16px", background: "#fafafa" }}>
-            <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "4px" }}>
-              Status
-            </div>
-            <div style={{ fontSize: "14px", color: BLK, fontWeight: 500 }}>
-              {savedSession.phase === "upload" && "Ready to upload materials"}
-              {savedSession.phase === "status" && "Selecting employment status"}
-              {savedSession.phase === "discovery" && "Ready to begin discovery"}
-            </div>
-          </div>
-        )}
       </div>
-
-      <div style={{ height: "1px", background: RULE, marginBottom: "28px" }} />
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <button onClick={onContinue} style={{
-          width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
-          letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
-          border: `1.5px solid ${RED}`, cursor: "pointer", borderRadius: 0,
-        }}>
-          {hasLens ? "View my lens" : "Continue where I left off"}
-        </button>
-        <button onClick={onStartFresh} style={{
-          width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 500,
-          letterSpacing: "0.08em", textTransform: "uppercase", background: "#fff", color: GRY,
-          border: `1.5px solid #ddd`, cursor: "pointer", borderRadius: 0,
-        }}>
-          Start fresh
-        </button>
-      </div>
-
-      <p style={{ fontSize: "11px", color: LT, textAlign: "center", marginTop: "16px", lineHeight: 1.6 }}>
-        Starting fresh will clear your previous progress and conversation history.
-      </p>
-    </div>
+    </>
   );
 }
 
 // ════════════════════════════════════════
-// Section Re-entry Selector
+// Mode Selector (returning user with completed lens)
 // ════════════════════════════════════════
 
-function SectionReentrySelector({ existingLens, onSelectSection, onStartFresh, onBack }) {
+// Helper to extract section summary from lens document
+function extractSectionSummary(lensDoc, sectionLabel) {
+  if (!lensDoc) return null;
+  // Find the section heading and get the first sentence
+  const sectionRegex = new RegExp(`## ${sectionLabel}[\\s\\S]*?(?=## |$)`, 'i');
+  const match = lensDoc.match(sectionRegex);
+  if (match) {
+    // Get first non-empty line after the heading
+    const lines = match[0].split('\n').slice(1).filter(l => l.trim());
+    if (lines[0]) {
+      // Get first sentence, max 80 chars
+      const firstSentence = lines[0].split(/[.!?]/)[0];
+      return firstSentence.length > 80 ? firstSentence.slice(0, 77) + '...' : firstSentence;
+    }
+  }
+  return null;
+}
+
+function ModeSelector({ existingLens, onUpdateSection, onUploadMaterials, onStartFresh, onDownloadLens }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const MODE_OPTIONS = [
+    {
+      id: "update",
+      label: "Update a section",
+      description: "Refine a specific part of your lens through a focused conversation.",
+      action: onUpdateSection,
+      primary: true,
+    },
+    {
+      id: "upload",
+      label: "Upload new materials",
+      description: "Add new documents to enrich your lens with additional context.",
+      action: onUploadMaterials,
+      primary: false,
+    },
+    {
+      id: "download",
+      label: "Download my lens",
+      description: "Get your lens document as a markdown file.",
+      action: onDownloadLens,
+      primary: false,
+    },
+  ];
+
+  return (
+    <>
+      {showConfirm && (
+        <ConfirmationModal
+          title="Start completely over?"
+          message="This will erase your session, including your completed lens document and all conversation history. This cannot be undone."
+          confirmLabel="Yes, start over"
+          cancelLabel="Keep my lens"
+          onConfirm={onStartFresh}
+          onCancel={() => setShowConfirm(false)}
+          destructive
+        />
+      )}
+      <div style={containerStyle}>
+        <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "32px" }}>
+          <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
+            Your Lens
+          </div>
+          <h1 style={{ fontFamily: FONT, fontSize: "28px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
+            What would you like to do?
+          </h1>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "32px" }}>
+          {MODE_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              onClick={option.action}
+              style={{
+                padding: "20px", textAlign: "left",
+                background: option.primary ? "#fafafa" : "#fff",
+                border: option.primary ? `2px solid ${BLK}` : "1.5px solid #ddd",
+                cursor: "pointer", borderRadius: 0,
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={(e) => { if (!option.primary) e.currentTarget.style.borderColor = BLK; }}
+              onMouseLeave={(e) => { if (!option.primary) e.currentTarget.style.borderColor = "#ddd"; }}
+            >
+              <div style={{ fontSize: "15px", fontWeight: 600, color: BLK, fontFamily: FONT, marginBottom: "4px" }}>
+                {option.label}
+              </div>
+              <div style={{ fontSize: "13px", color: GRY, lineHeight: 1.5 }}>
+                {option.description}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div style={{ height: "1px", background: RULE, marginBottom: "20px" }} />
+
+        <button onClick={() => setShowConfirm(true)} style={{
+          width: "100%", padding: "12px", fontFamily: FONT, fontSize: "12px",
+          color: LT, background: "none", border: "none",
+          cursor: "pointer", borderRadius: 0, letterSpacing: "0.04em",
+        }}>
+          Start completely over
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ════════════════════════════════════════
+// Section Picker (with lens summaries)
+// ════════════════════════════════════════
+
+function SectionPicker({ existingLens, onSelectSection, onBack }) {
+  const [expandedSection, setExpandedSection] = useState(null);
+
   return (
     <div style={containerStyle}>
-      <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "28px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
-              Update Your Lens
-            </div>
-            <h1 style={{ fontFamily: FONT, fontSize: "26px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
-              Which section needs updating?
-            </h1>
+      <div style={{ marginBottom: "28px" }}>
+        <button onClick={onBack} style={{
+          background: "none", border: "none", color: GRY, fontFamily: FONT,
+          fontSize: "12px", cursor: "pointer", padding: "0", marginBottom: "16px",
+          display: "flex", alignItems: "center", gap: "4px",
+        }}>
+          &larr; Back to menu
+        </button>
+        <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px" }}>
+          <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
+            Update Your Lens
           </div>
-          <button onClick={onBack} style={{
-            background: "none", border: "none", color: GRY, fontFamily: FONT,
-            fontSize: "12px", cursor: "pointer", padding: "4px 0", marginTop: "6px",
-          }}>
-            &larr; Back
-          </button>
+          <h1 style={{ fontFamily: FONT, fontSize: "26px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
+            Which section needs updating?
+          </h1>
         </div>
       </div>
 
-      <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, marginBottom: "24px", maxWidth: "500px" }}>
-        Select a section to update. The AI will ask follow-up questions informed by your existing lens, then merge the new responses into your document.
-      </p>
-
       <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "28px" }}>
-        {SECTIONS.map((section, idx) => (
-          <button
-            key={section.id}
-            onClick={() => onSelectSection(idx)}
-            style={{
-              padding: "14px 18px", textAlign: "left",
-              background: "#fff", border: "1.5px solid #ddd",
-              cursor: "pointer", borderRadius: 0, display: "flex", alignItems: "center", gap: "12px",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = RED; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#ddd"; }}
-          >
-            <span style={{ fontSize: "12px", fontWeight: 600, color: ORANGE, fontVariantNumeric: "tabular-nums", minWidth: "20px" }}>
-              {section.number}
-            </span>
-            <span style={{ fontSize: "14px", fontWeight: 500, color: BLK, fontFamily: FONT }}>
-              {section.label}
-            </span>
-          </button>
-        ))}
+        {SECTIONS.map((section, idx) => {
+          const summary = extractSectionSummary(existingLens, section.label);
+          const isExpanded = expandedSection === idx;
+
+          return (
+            <div key={section.id}>
+              <button
+                onClick={() => setExpandedSection(isExpanded ? null : idx)}
+                style={{
+                  width: "100%", padding: "16px 18px", textAlign: "left",
+                  background: isExpanded ? "#fafafa" : "#fff",
+                  border: isExpanded ? `2px solid ${BLK}` : "1.5px solid #ddd",
+                  cursor: "pointer", borderRadius: 0,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: ORANGE, fontVariantNumeric: "tabular-nums", minWidth: "20px", paddingTop: "2px" }}>
+                    {section.number}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: BLK, fontFamily: FONT, marginBottom: summary ? "4px" : 0 }}>
+                      {section.label}
+                    </div>
+                    {summary && (
+                      <div style={{ fontSize: "12px", color: GRY, lineHeight: 1.5 }}>
+                        {summary}
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ fontSize: "14px", color: LT, transform: isExpanded ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}>
+                    ▼
+                  </span>
+                </div>
+              </button>
+
+              {isExpanded && (
+                <div style={{ padding: "16px 18px", background: "#fafafa", borderLeft: `2px solid ${BLK}`, borderRight: `2px solid ${BLK}`, borderBottom: `2px solid ${BLK}` }}>
+                  <p style={{ fontSize: "13px", color: "#444", lineHeight: 1.6, margin: "0 0 16px" }}>
+                    {section.prompt}
+                  </p>
+                  <button
+                    onClick={() => onSelectSection(idx)}
+                    style={{
+                      padding: "12px 24px", fontFamily: FONT, fontSize: "12px", fontWeight: 600,
+                      letterSpacing: "0.08em", textTransform: "uppercase",
+                      background: RED, color: "#fff", border: `1.5px solid ${RED}`,
+                      cursor: "pointer", borderRadius: 0,
+                    }}
+                  >
+                    Update this section
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
-
-      <div style={{ height: "1px", background: RULE, marginBottom: "20px" }} />
-
-      <button onClick={onStartFresh} style={{
-        width: "100%", padding: "12px", fontFamily: FONT, fontSize: "12px",
-        color: GRY, background: "none", border: "1px solid #ddd",
-        cursor: "pointer", borderRadius: 0, letterSpacing: "0.04em",
-      }}>
-        Start a completely new lens instead
-      </button>
     </div>
   );
 }
@@ -1425,7 +1710,10 @@ export default function LensIntake() {
   // Section re-entry state
   const [reentryMode, setReentryMode] = useState(false);
   const [reentrySection, setReentrySection] = useState(null);
-  const [showSectionSelector, setShowSectionSelector] = useState(false);
+  const [showModeSelector, setShowModeSelector] = useState(false);
+  const [showSectionPicker, setShowSectionPicker] = useState(false);
+  // Legacy alias for backward compatibility
+  const showSectionSelector = showModeSelector || showSectionPicker;
 
   // ── Load saved progress on mount ──
   useEffect(() => {
@@ -1513,10 +1801,13 @@ export default function LensIntake() {
   // ── Handle session recovery ──
   const handleContinueSession = () => {
     if (savedSession) {
-      // Check if user has a completed lens - offer section re-entry
+      // Check if user has a completed lens - show mode selector
       if (savedSession.lensOutput) {
         setLensOutput(savedSession.lensOutput);
-        setShowSectionSelector(true);
+        if (savedSession.status) setStatus(savedSession.status);
+        if (savedSession.fileMeta) setPreviousFiles(savedSession.fileMeta);
+        if (savedSession.fileContext) setFileContext(savedSession.fileContext);
+        setShowModeSelector(true);
         setShowRecoveryPrompt(false);
       } else {
         restoreSession(savedSession);
@@ -1528,11 +1819,36 @@ export default function LensIntake() {
     handleStartOver();
   };
 
+  // ── Mode selector handlers ──
+  const handleUpdateSectionMode = () => {
+    setShowModeSelector(false);
+    setShowSectionPicker(true);
+  };
+
+  const handleUploadMaterialsMode = () => {
+    setShowModeSelector(false);
+    setShowSectionPicker(false);
+    setPhase("upload");
+  };
+
+  const handleDownloadLens = () => {
+    if (lensOutput) {
+      const blob = new Blob([lensOutput], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "lens-document.md";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
   // ── Handle section re-entry selection ──
   const handleSelectSection = (sectionIdx) => {
     setReentryMode(true);
     setReentrySection(sectionIdx);
-    setShowSectionSelector(false);
+    setShowModeSelector(false);
+    setShowSectionPicker(false);
     // Restore other state but start fresh discovery for that section
     if (savedSession) {
       if (savedSession.status) setStatus(savedSession.status);
@@ -1548,7 +1864,7 @@ export default function LensIntake() {
     setReentryMode(false);
     setReentrySection(null);
     setDiscoveryState(prev => prev ? { ...prev, lensDoc: updatedLens } : { lensDoc: updatedLens });
-    // Show recovery prompt with the updated lens
+    // Show mode selector with the updated lens
     setSavedSession(prev => ({
       ...(prev || {}),
       version: STORAGE_VERSION,
@@ -1557,15 +1873,33 @@ export default function LensIntake() {
       phase: "discovery",
       discoveryState: { subPhase: "done", lensDoc: updatedLens },
     }));
-    setShowRecoveryPrompt(true);
+    setShowModeSelector(true);
   };
 
   // ── Handle selecting another section to update ──
   const handleSelectAnotherSection = () => {
     setReentryMode(false);
     setReentrySection(null);
-    setShowSectionSelector(true);
-    setPhase("intro"); // Will be overridden when section is selected
+    setShowSectionPicker(true);
+  };
+
+  // ── Handle save and exit from discovery ──
+  const handleSaveAndExit = () => {
+    // Session is auto-saved, just show mode selector if lens exists, else recovery prompt
+    if (lensOutput) {
+      setShowModeSelector(true);
+    } else {
+      setSavedSession(prev => ({
+        ...(prev || {}),
+        version: STORAGE_VERSION,
+        lastUpdated: new Date().toISOString(),
+        phase,
+        status,
+        discoveryState,
+      }));
+      setShowRecoveryPrompt(true);
+    }
+    setPhase("intro");
   };
 
   // ── Handle discovery state changes ──
@@ -1634,17 +1968,31 @@ export default function LensIntake() {
     );
   }
 
-  // Show section re-entry selector
-  if (showSectionSelector && lensOutput) {
+  // Show mode selector for returning users with completed lens
+  if (showModeSelector && lensOutput) {
     return (
       <div style={{ background: "#fff", minHeight: "100vh" }}>
-        <SectionReentrySelector
+        <ModeSelector
+          existingLens={lensOutput}
+          onUpdateSection={handleUpdateSectionMode}
+          onUploadMaterials={handleUploadMaterialsMode}
+          onStartFresh={handleStartOver}
+          onDownloadLens={handleDownloadLens}
+        />
+      </div>
+    );
+  }
+
+  // Show section picker
+  if (showSectionPicker && lensOutput) {
+    return (
+      <div style={{ background: "#fff", minHeight: "100vh" }}>
+        <SectionPicker
           existingLens={lensOutput}
           onSelectSection={handleSelectSection}
-          onStartFresh={handleStartOver}
           onBack={() => {
-            setShowSectionSelector(false);
-            setShowRecoveryPrompt(true);
+            setShowSectionPicker(false);
+            setShowModeSelector(true);
           }}
         />
       </div>
@@ -1710,8 +2058,15 @@ export default function LensIntake() {
       )}
 
       {phase === "upload" && (
-        <UploadPhase files={files} onAdd={handleAdd} onRemove={handleRemove}
-          onContinue={() => setPhase("status")} onBack={() => setPhase("intro")} />
+        <UploadPhase
+          files={files}
+          onAdd={handleAdd}
+          onRemove={handleRemove}
+          onContinue={() => setPhase("status")}
+          onBack={() => lensOutput ? setShowModeSelector(true) : setPhase("intro")}
+          savedFileContext={fileContext}
+          previousFiles={previousFiles}
+        />
       )}
 
       {phase === "status" && (
@@ -1733,6 +2088,7 @@ export default function LensIntake() {
           existingLens={lensOutput}
           onReentryComplete={handleReentryComplete}
           onSelectAnotherSection={handleSelectAnotherSection}
+          onSaveAndExit={handleSaveAndExit}
         />
       )}
 
