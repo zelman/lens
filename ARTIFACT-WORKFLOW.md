@@ -60,6 +60,7 @@ github.com/zelman/lens/
 │       ├── public/
 │       └── vercel.json
 ├── docs/
+│   ├── core-narrative.md
 │   ├── Lens_for_Beginners_v1.1.docx
 │   ├── lens-launch-plan-v2.0.docx
 │   ├── lens-investor-pitch-v5.3.pptx

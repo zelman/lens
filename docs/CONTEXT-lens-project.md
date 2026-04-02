@@ -98,6 +98,8 @@ Dimension cross-mapping between directions, hard gate logic in code (not prompt)
 
 ### Supporting Documents
 
+**Core Narrative** (`docs/core-narrative.md`, v1.1) — The single source for all product positioning. Every deck, one-pager, and audience document derives from this. Sections: The Problem, What Exists, What a Lens Is, The Feedback Loop, Signal Matching Over Keyword Matching, Bidirectional Scoring, Where It Stands, Audience Routing (job seekers, hiring leaders, coaches, investors, testers).
+
 **Lens for Beginners** (`docs/Lens_for_Beginners_v1.1.docx`) — Shareable explainer. Problem, what a lens is, comparison table (Resume/ATS vs Personality Tests vs Lens), 4-step how it works, bidirectional explanation, who it's for. Closing pull-quote about replacing resumes with a structured identity system.
 
 **Launch Plan** (`docs/lens-launch-plan-v2.0.docx`) — 4 phases with dates, deliverables (DONE markers for Phase 1), success metrics tables, risk mitigations.
