@@ -1,6 +1,6 @@
 # CONTEXT.md — Lens Project
 
-*Last updated: March 21, 2026*
+*Last updated: April 2, 2026*
 
 This is the living context file for the Lens Project — the product concept for AI-assisted career identity discovery and job matching. Update when things change.
 
@@ -29,7 +29,7 @@ The insight: generic AI coaching struggles with ROI. When coaching produces a fu
 ## Key People
 
 - **Nathan Fierley** — potential co-builder on the AI coaching concept. Testing the James Pratt coaching persona implementation. Reframed the product as bidirectional (role lens scores candidates on relational/cultural fit). A/B/C collaboration options outlined in his deck — decision pending.
-- **James Pratt** — Eric's career coach (Nov–Dec 2025). First contributing coach persona. Engaged and moving forward on AI coaching partnership. His coaching methodology (Be-Have-Do, Authentic Presence, Essence Statement, IAM Model) and session library are the basis for the first persona. SKILL.md exists in project knowledge.
+- **James Pratt** — Eric's career coach (Nov–Dec 2025). First contributing coach persona. Engaged and moving forward on AI coaching partnership. His coaching methodology (Be-Have-Do, Authentic Presence, Essence Statement, IAM Model) and session library are the basis for the first persona. Provided strategic product feedback 3/30/26 that challenges enterprise thesis and reinforces consumer-first direction. SKILL.md exists in project knowledge.
 - **Todd Gerspach** — Eric's previous career coach, extensive C-level network. Met recently. Expressed interest in contributing if the project formalizes as a business. Proposed freemium GTM model (free sample report as lead gen → paid coaching + extended reports as revenue layer).
 - **Ravi** — Advisory/conversational involvement.
 
@@ -53,24 +53,33 @@ Previously used dark background (#0a0a0a) with warm neutral / gold-brown (#a0806
 
 ## What's Been Built
 
-### Intake Form (`lens-intake.jsx`, ~680 lines)
-Full integrated intake flow with four phases and session persistence:
+### Intake Form (`LensIntake.jsx`, ~2200 lines)
+Full integrated intake flow with four phases, live Claude API discovery, and session persistence:
 
 **Phase 1 — Intro ("Build your lens")**
 Explains what a lens is, the three-step process, time estimates (25-45 min). Swiss Style design.
 
 **Phase 2 — Context Upload ("Give the AI a head start")**
-Five upload categories: resume, LinkedIn profile (with PDF instructions and scroll-for-recommendations tip), writing samples, assessments & frameworks, anything else.
+Five upload categories: resume, LinkedIn profile (with PDF instructions), writing samples, assessments & frameworks, anything else. Continue button as primary CTA; Skip demoted to secondary text link (per Brendan McCarthy feedback April 2).
 
 Key insight: LinkedIn recommendations the user *chooses to keep visible* are a lens signal — the curation tells you about self-concept.
 
 **Phase 3 — Status Selection**
 Employed / Actively Searching / In Transition — shapes AI tone and matching system routing.
 
-**Phase 4 — Discovery (placeholder)**
-Shows loaded context summary and previews 8 discovery sections. In production, this is where the Claude API conversation begins.
+**Phase 4 — Discovery (live)**
+8 discovery sections with live Claude API (Sonnet). Single-question guardrail in system prompt prevents question stacking. Section-complete detection triggers lens synthesis. Error handling with dismissible banner for API failures.
 
-**Persistence:** Phase, status, and file metadata saved to storage on every change. Files need re-upload on return.
+**Session Persistence (April 2026):**
+- localStorage with versioned schema (v1.0)
+- Conversation history, file context, lens output all persisted
+- Session recovery prompt on return (Continue / Start fresh)
+- 7-day session staleness warning
+- Storage quota handling with graceful degradation
+- Section re-entry for updating completed lenses
+
+**Guardrails (`config/guardrails.yaml`):**
+Discovery coach constraints documented in YAML. Currently embedded in SYSTEM_BASE; planned migration to runtime-fetched config.
 
 ### Original Intake Form (`lens-form.jsx`, ~800 lines)
 Earlier version with live Claude API integration (Sonnet). 6 phases: status → resume → intro → discovery → synthesis → done. 8 discovery sections with per-section system prompts. Still the reference for the discovery conversation implementation.
@@ -191,8 +200,14 @@ PAID TIER ($50/mo):
 COACH CHANNEL (B2B2C):
   Coach Partner → Facilitates deeper discovery + Methodology encoded as AI persona
 
-ENTERPRISE (Future):
+ENTERPRISE (Speculative — contingent on candidate-side traction):
   Role Lens (company-side) ↔ Candidate Lens = Bidirectional matching
+  Status: Early thesis, not validated. James Pratt (3/30/26) reports companies he
+  works with prioritize hiring volume over precision — they need more candidates,
+  not better filtering. Thesis requires validation from actual hiring leaders
+  (not coaches or AI inference) before investing in build.
+  Open question: Does the Role Lens solve a problem hiring leaders actually have,
+  or does it solve the problem we assume they have?
   Differentiated from: ATS (keyword matching), DISC/StrengthsFinder (static, no matching),
     360 Feedback (backward-looking), Jack & Jill (no depth)
 
@@ -210,7 +225,7 @@ BIDIRECTIONAL SCORING ENGINE (Specified March 21):
 1. **Validate (Now)** — Build intake form, test with Nathan + James, collect feedback via Airtable
 2. **Free Tool Launch** — Deploy intake form (Vercel / tide-pool.org), free lens generation, Todd's network + coach referrals, build email waitlist
 3. **Paid Product** — Connect lens to n8n pipeline, daily briefing emails, $50/mo Stripe subscription, passive monitoring as retention engine
-4. **Scale** — Onboard coaches 2-5, enterprise role lens, coach channel revenue (B2B2C), raise on data flywheel + coach network moat
+4. **Scale** — Onboard coaches 2-5, coach channel revenue (B2B2C), raise on data flywheel + coach network moat. Enterprise role lens is speculative (see Product Architecture) — not part of committed roadmap until validated with actual hiring leaders.
 
 ---
 
@@ -235,7 +250,7 @@ BIDIRECTIONAL SCORING ENGINE (Specified March 21):
 ## Key Learnings & Principles
 
 - **Signal matching over keyword matching** — the core thesis
-- **Lens works bidirectionally** — candidate lens scores companies; role lens scores candidates (Nathan's reframe, now fully specified)
+- **Lens works bidirectionally (speculative on the employer side)** — candidate lens scores companies (validated by personal use). Role lens scores candidates (Nathan's reframe, fully specified) — conceptually sound but untested with actual hiring leaders. James's 3/30 feedback suggests the buyer pain may not exist as assumed.
 - **Freemium as distribution, not revenue** — Todd's instinct; value is coach adoption and data flywheel
 - **Coaching ROI solved by the lens** — concrete, measurable outcome
 - **Coach channel as quality moat** — self-serve can't replicate coach-facilitated depth
@@ -245,6 +260,8 @@ BIDIRECTIONAL SCORING ENGINE (Specified March 21):
 - **Asymmetric scoring is the correct model** — candidate and company ask different questions, so dimensions and weights differ per direction
 - **Hard gates in code, not prompts** — learned from 74% false-positive rate in job search pipeline
 - **Feedback loop must surface drift, not silently correct** — "append, don't overwrite" applies to the learning system too
+- **Label speculative theses honestly** — Eric is new to this market. AI-generated product theses are useful for framing but dangerous as conviction. Any claim about what hiring leaders want must be tested with hiring leaders, not inferred from coaching conversations or competitive research. The enterprise bidirectional thesis is currently speculative; treat it that way in all external conversations.
+- **James Pratt feedback (3/30/26) shifts the product center of gravity** — consumer self-service for mid-career professionals is more validated than enterprise hiring precision. Coaches need demand generation, not workflow tools. VC scraper extension is niche but novel. Don't try to solve too many things.
 
 ---
 
@@ -260,21 +277,42 @@ BIDIRECTIONAL SCORING ENGINE (Specified March 21):
 
 ---
 
-## Current Status (March 21, 2026)
+## Current Status (April 2, 2026)
 
-**Phase:** Active build + IP protection.
+**Phase:** Active build + tester validation. Feature branch `feature/session-persistence` in testing.
 
-**What happened this session (March 21):**
+**What happened this session (April 2):**
+- Added single-question guardrail to discovery coach — prevents question stacking, keeps responses concise
+- Created `config/guardrails.yaml` documenting all coach constraints
+- Fixed Materials upload UI per Brendan McCarthy feedback — Continue as primary CTA, Skip as secondary, LinkedIn category added (5 total)
+- Added API error handling per Opus code review — try/catch on all API calls, dismissible error banner, loading state always cleared
+- Verified session persistence working across refresh with conversation history preserved
+
+**Feature branch commits (April 2):**
+- `e05b7de` — Add API error handling to discovery coach
+- `8ebf62a` — Fix Materials upload step UI per Brendan feedback
+- `22b11ea` — Add single-question guardrail to discovery coach
+- `98bf2d3` — Add session age check and storage quota warnings
+- `11b8503` — UI improvements per Brendan McCarthy tester feedback
+- `d2329a0` — Add session persistence and section re-entry features
+
+**Preview URL:** https://lens-app-git-feature-session-persistence-lens-project.vercel.app
+
+**Previous session (March 30):**
+- Received and logged James Pratt's strategic feedback on Lens product direction
+- Relabeled enterprise Lens for Hiring Leaders thesis as **speculative** — not validated with actual hiring leaders
+- James's five points: (1) don't solve too many things, (2) companies want hiring volume not precision, (3) mid-career consumer self-service is the real market, (4) VC scraping workflow is niche but novel, (5) coaches need client demand generation, not workflow efficiency
+- Product center of gravity shifting toward consumer-first, coach-as-demand-channel model
+
+**Previous session (March 21):**
 - Established IP protection framework (IP Summary document, Mutual NDA template)
 - Built full Bidirectional Lens System specification — role lens schema, matching algorithm, match report format, feedback loop, worked example (Eric × LeanData)
 - Built Role Lens Scorer (R→C direction) with Gate Tolerance + Analysis Depth sliders, 9 named modes, Swiss Style
 - Created comprehensive candidate test profile from coaching sessions and agent lens materials
-- Defined contributor IP boundaries for all four collaborators
-- Identified provisional patent path for bidirectional matching and focal length/aperture mechanisms
 
 **Nathan:** Testing James Pratt coaching persona implementation. A/B/C collaboration options still pending.
 
-**James Pratt:** Engaged on AI coaching partnership. First persona. NDA to be signed before next session.
+**James Pratt:** Engaged on AI coaching partnership. First persona. NDA pending. Provided strategic product feedback 3/30/26 — transcript pending. Key takeaway: enterprise hiring precision thesis is speculative; consumer mid-career self-service is more validated.
 
 **Todd:** Interested if project formalizes. Freemium GTM model being tested via Q8 in feedback form. NDA to be signed.
 
@@ -282,23 +320,24 @@ BIDIRECTIONAL SCORING ENGINE (Specified March 21):
 
 ## Open Questions
 
-- **Wiring discovery phase:** The intake form's Phase 4 is a placeholder. Need to integrate the Claude API conversation from `lens-form.jsx` into the new `lens-intake.jsx` flow.
-- **Vercel deployment:** Feedback form is ready to deploy. Intake form needs the same treatment.
+- **Enterprise thesis validation:** Is the Lens for Hiring Leaders solving a real problem? James says companies want volume, not precision. Need honest feedback from actual hiring leaders (not coaches or AI inference) before advancing.
+- **Merge feature branch:** `feature/session-persistence` has 6 commits ready for testing. Merge to main after tester validation complete.
+- **Guardrails extraction:** `config/guardrails.yaml` exists but prompts still hardcoded. Future: runtime-fetch config.
 - **Nathan's role:** A/B/C collaboration options still pending decision. NDA needed before any deeper engagement.
 - **Pipeline connection:** How does the lens document connect to a generalized scoring pipeline? Fork of v9 or new build?
-- **Repo:** No dedicated repo yet. Growing artifact set strongly suggests it's time.
 - **Port original lens-scorer.jsx to Swiss Style?** Currently dark theme, inconsistent with all other product artifacts.
 - **Prior art search:** Google Patents + USPTO search for bidirectional identity-signal matching to validate provisional patent path.
 - **NDA signing cadence:** All four collaborators need signed NDAs before next substantive demos.
 
 ---
 
-## File Inventory (all artifacts, current as of March 21)
+## File Inventory (all artifacts, current as of April 2)
 
 | File | Type | Description |
 |------|------|-------------|
-| `lens-intake.jsx` | React | Current intake form, 4 phases, Swiss Style |
-| `lens-form.jsx` | React | Original intake form, 8 discovery sections, Claude API |
+| `LensIntake.jsx` | React | Full intake form, 4 phases, live discovery, session persistence (~2200 lines) |
+| `guardrails.yaml` | Config | Discovery coach constraints (conversation style, pipeline utility) |
+| `lens-form.jsx` | React | Placeholder — original discovery code migrated to LensIntake.jsx |
 | `lens-scorer.jsx` | React | C→R scorer, dark theme, 5 dimensions |
 | `role-lens-scorer.jsx` | React | R→C scorer, Swiss Style, 6 dimensions, dual sliders, 9 modes |
 | `lens-feedback-form.jsx` | React | User testing feedback, Swiss Style, 8 questions |
