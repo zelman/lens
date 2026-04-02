@@ -1334,6 +1334,7 @@ function SessionRecoveryPrompt({ savedSession, onContinue, onStartFresh }) {
 
   const hasLens = !!savedSession?.lensOutput;
   const inDiscovery = savedSession?.phase === "discovery" && savedSession?.discoveryState?.subPhase === "conversation";
+  const isStale = savedSession?._isStale;
 
   return (
     <>
@@ -1357,6 +1358,16 @@ function SessionRecoveryPrompt({ savedSession, onContinue, onStartFresh }) {
             Resume your session?
           </h1>
         </div>
+
+        {/* Stale session warning */}
+        {isStale && (
+          <div style={{
+            padding: "14px 18px", background: "#fffaf5", border: `1px solid ${ORANGE}`,
+            marginBottom: "20px", fontSize: "13px", color: ORANGE, lineHeight: 1.6,
+          }}>
+            <strong>This session is over 7 days old.</strong> Your progress is still here, but you may want to start fresh if your situation has changed.
+          </div>
+        )}
 
         <div style={{ marginBottom: "28px" }}>
           <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.75, margin: "0 0 16px", maxWidth: "500px" }}>
@@ -1643,32 +1654,50 @@ function getStorageSize(data) {
   }
 }
 
+// Session age threshold (7 days in milliseconds)
+const SESSION_STALE_THRESHOLD = 7 * 24 * 60 * 60 * 1000;
+
+// Helper to check if session is stale (older than 7 days)
+function isSessionStale(session) {
+  if (!session?.lastUpdated) return false;
+  const lastUpdated = new Date(session.lastUpdated).getTime();
+  const now = Date.now();
+  return (now - lastUpdated) > SESSION_STALE_THRESHOLD;
+}
+
 // Helper to save session with quota handling
+// Returns: { success: boolean, trimmed: boolean, dropped: boolean }
 function saveSession(data) {
   try {
     const size = getStorageSize(data);
+    let trimmed = false;
+    let dropped = false;
+
     if (size > MAX_STORAGE_SIZE) {
       // Trim conversation history if too large
-      const trimmed = { ...data };
-      if (trimmed.discoveryState?.messages?.length > 10) {
-        trimmed.discoveryState = {
-          ...trimmed.discoveryState,
-          messages: trimmed.discoveryState.messages.slice(-10),
+      const trimmedData = { ...data };
+      if (trimmedData.discoveryState?.messages?.length > 10) {
+        trimmedData.discoveryState = {
+          ...trimmedData.discoveryState,
+          messages: trimmedData.discoveryState.messages.slice(-10),
         };
+        trimmed = true;
       }
       // If still too large, drop file context
-      if (getStorageSize(trimmed) > MAX_STORAGE_SIZE && trimmed.fileContext) {
-        trimmed.fileContext = null;
+      if (getStorageSize(trimmedData) > MAX_STORAGE_SIZE && trimmedData.fileContext) {
+        trimmedData.fileContext = null;
+        dropped = true;
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedData));
+      return { success: true, trimmed, dropped };
     } else {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      return { success: true, trimmed: false, dropped: false };
     }
-    return true;
   } catch (e) {
     // Quota exceeded or other error
     console.warn("Session save failed:", e);
-    return false;
+    return { success: false, trimmed: false, dropped: false };
   }
 }
 
@@ -1680,6 +1709,8 @@ function loadSession() {
       const data = JSON.parse(saved);
       // Validate version
       if (data.version === STORAGE_VERSION) {
+        // Add stale flag to session data
+        data._isStale = isSessionStale(data);
         return data;
       }
       // Version mismatch — could migrate here, for now just return null
@@ -1706,6 +1737,7 @@ export default function LensIntake() {
   const [discoveryState, setDiscoveryState] = useState(null);
   const [fileContext, setFileContext] = useState({});
   const [lensOutput, setLensOutput] = useState(null);
+  const [storageWarning, setStorageWarning] = useState(null); // "trimmed" | "dropped" | "failed" | null
 
   // Section re-entry state
   const [reentryMode, setReentryMode] = useState(false);
@@ -1774,7 +1806,16 @@ export default function LensIntake() {
       lensOutput,
     };
 
-    saveSession(sessionData);
+    const result = saveSession(sessionData);
+    if (!result.success) {
+      setStorageWarning("failed");
+    } else if (result.dropped) {
+      setStorageWarning("dropped");
+    } else if (result.trimmed) {
+      setStorageWarning("trimmed");
+    } else {
+      setStorageWarning(null);
+    }
   }, [phase, status, files, discoveryState, lensOutput, loaded, showRecoveryPrompt, fileContext]);
 
   // ── Clear saved progress ──
@@ -2032,6 +2073,34 @@ export default function LensIntake() {
                 Start over
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Storage warning banner */}
+      {storageWarning && (
+        <div style={{ maxWidth: "560px", margin: "0 auto", padding: "0 32px" }}>
+          <div style={{
+            margin: "12px 0 0", padding: "12px 16px",
+            background: storageWarning === "failed" ? "#fff5f5" : "#fffaf5",
+            border: `1px solid ${storageWarning === "failed" ? RED : ORANGE}`,
+            fontSize: "12px", color: storageWarning === "failed" ? RED : ORANGE, lineHeight: 1.6,
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+            <span>
+              {storageWarning === "failed" && "Unable to save your progress. Your browser storage may be full."}
+              {storageWarning === "dropped" && "Storage limit reached. File content was removed from the save, but your conversation is preserved."}
+              {storageWarning === "trimmed" && "Storage limit reached. Some older messages were trimmed from your saved session."}
+            </span>
+            <button
+              onClick={() => setStorageWarning(null)}
+              style={{
+                background: "none", border: "none", color: "inherit", cursor: "pointer",
+                fontSize: "16px", padding: "0 0 0 12px", fontFamily: FONT,
+              }}
+            >
+              &times;
+            </button>
           </div>
         </div>
       )}
