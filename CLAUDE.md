@@ -15,7 +15,8 @@ Eric's personal agent lens monolith and user files live in a **separate repo**: 
 - **`deliverables/`** — Pitch decks, reports
 - **`public/`** — Static assets
 - **`review-profiles/`** — Code review context files (5 profiles for automated review)
-- **`config/`** — Configuration files (guardrails.yaml planned)
+- **`config/`** — Configuration files (guardrails.yaml)
+- **`meetings/`** — Meeting notes and transcripts (tester feedback, partner calls)
 
 ## Scoring: Dual-Mode Architecture
 
