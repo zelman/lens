@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const STORAGE_KEY = "lens-intake-progress";
+const STORAGE_KEY = "lens-session";
+const STORAGE_VERSION = "1.0";
+
+// Maximum size for localStorage (~5MB limit, leave headroom)
+const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -552,24 +556,61 @@ function StatusPhase({ status, setStatus, onContinue, onBack }) {
   );
 }
 
-function DiscoveryPhase({ status, totalFiles, files, onBack, onStartOver }) {
-  const [subPhase, setSubPhase] = useState("preview"); // preview | conversation | synthesis | done
-  const [currentSection, setCurrentSection] = useState(0);
-  const [messages, setMessages] = useState([]);
-  const [sectionData, setSectionData] = useState({});
+function DiscoveryPhase({
+  status,
+  totalFiles,
+  files,
+  onBack,
+  onStartOver,
+  // Session persistence props
+  savedDiscoveryState,
+  onDiscoveryStateChange,
+  // Section re-entry props
+  reentryMode,
+  reentrySection,
+  existingLens,
+  onReentryComplete,
+  onSelectAnotherSection,
+}) {
+  const [subPhase, setSubPhase] = useState(savedDiscoveryState?.subPhase || "preview");
+  const [currentSection, setCurrentSection] = useState(savedDiscoveryState?.currentSection || 0);
+  const [messages, setMessages] = useState(savedDiscoveryState?.messages || []);
+  const [sectionData, setSectionData] = useState(savedDiscoveryState?.sectionData || {});
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [aiGreeting, setAiGreeting] = useState("");
-  const [greetingDone, setGreetingDone] = useState(false);
-  const [lensDoc, setLensDoc] = useState(null);
+  const [greetingDone, setGreetingDone] = useState(savedDiscoveryState?.greetingDone || false);
+  const [lensDoc, setLensDoc] = useState(savedDiscoveryState?.lensDoc || null);
   const [copyLabel, setCopyLabel] = useState("Copy markdown");
-  const [sectionComplete, setSectionComplete] = useState(false);
+  const [sectionComplete, setSectionComplete] = useState(savedDiscoveryState?.sectionComplete || false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Persist discovery state on changes
+  useEffect(() => {
+    if (onDiscoveryStateChange && subPhase !== "preview") {
+      onDiscoveryStateChange({
+        subPhase,
+        currentSection,
+        messages,
+        sectionData,
+        greetingDone,
+        sectionComplete,
+        lensDoc,
+      });
+    }
+  }, [subPhase, currentSection, messages, sectionData, greetingDone, sectionComplete, lensDoc, onDiscoveryStateChange]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  // Handle re-entry mode — start conversation for the specific section
+  useEffect(() => {
+    if (reentryMode && reentrySection !== null && subPhase === "preview") {
+      startSection(reentrySection);
+    }
+  }, [reentryMode, reentrySection]);
 
   // Build file context string from uploaded files
   const fileContext = (() => {
@@ -617,9 +658,16 @@ function DiscoveryPhase({ status, totalFiles, files, onBack, onStartOver }) {
       .map(([k, v]) => `${k}: ${v}`)
       .join("\n");
     const statusNote = `The user's current employment status is: ${status}.`;
-    const contextPrompt = prevContext
-      ? `${statusNote}\n\nPrior context from earlier sections:\n${prevContext}\n\nNow introduce the next section with this prompt to the user: "${sec.prompt}". Keep your opener to 2-3 sentences max.`
-      : `${statusNote}\n\nIntroduce this section with the following prompt: "${sec.prompt}". Keep your opener to 2-3 sentences max. Start warm but don't over-introduce yourself.`;
+
+    let contextPrompt;
+    if (reentryMode && existingLens) {
+      // Re-entry mode: provide existing lens context
+      contextPrompt = `${statusNote}\n\nThis user already has a completed lens document. They want to update the "${sec.label}" section specifically. Here is their existing lens:\n\n${existingLens}\n\nYour job is to help them refine or update just this section. Start by acknowledging you've reviewed their lens and ask a targeted question about what's changed or needs updating in their ${sec.label}. Keep your opener to 2-3 sentences max.`;
+    } else if (prevContext) {
+      contextPrompt = `${statusNote}\n\nPrior context from earlier sections:\n${prevContext}\n\nNow introduce the next section with this prompt to the user: "${sec.prompt}". Keep your opener to 2-3 sentences max.`;
+    } else {
+      contextPrompt = `${statusNote}\n\nIntroduce this section with the following prompt: "${sec.prompt}". Keep your opener to 2-3 sentences max. Start warm but don't over-introduce yourself.`;
+    }
 
     const greeting = await callClaude(
       [{ role: "user", content: contextPrompt }],
@@ -693,10 +741,39 @@ No preamble — start with the narrative, then the signals.`,
   }
 
   function advanceSection() {
-    if (currentSection < SECTIONS.length - 1) {
+    if (reentryMode && existingLens) {
+      // Re-entry mode: merge the updated section into existing lens
+      mergeUpdatedSection();
+    } else if (currentSection < SECTIONS.length - 1) {
       startSection(currentSection + 1);
     } else {
       generateLens();
+    }
+  }
+
+  async function mergeUpdatedSection() {
+    setSubPhase("synthesis");
+    setLoading(true);
+    const sec = SECTIONS[currentSection];
+    const updatedContent = sectionData[sec.label] || "";
+
+    const mergedDoc = await callClaude(
+      [
+        {
+          role: "user",
+          content: `Here is the user's existing lens document:\n\n${existingLens}\n\nThey have just updated the "${sec.label}" section. Here is the new content for that section:\n\n${updatedContent}\n\nMerge this updated section into the existing lens document. Keep everything else intact. Only update the ${sec.label} section (both narrative and any related YAML frontmatter signals). Return the complete updated lens document.`,
+        },
+      ],
+      "You are merging an updated section into an existing lens document. Preserve the document structure, YAML frontmatter format, and all other sections unchanged. Only update the specific section that was re-discovered."
+    );
+
+    setLensDoc(mergedDoc);
+    setLoading(false);
+    setSubPhase("done");
+
+    // Notify parent of completion
+    if (onReentryComplete) {
+      onReentryComplete(mergedDoc);
     }
   }
 
@@ -920,13 +997,37 @@ No preamble — start with the narrative, then the signals.`,
           </button>
         </div>
 
-        <button onClick={onStartOver} style={{
-          width: "100%", padding: "11px", fontFamily: FONT, fontSize: "12px",
-          color: GRY, background: "none", border: "none", cursor: "pointer",
-          letterSpacing: "0.04em",
-        }}>
-          Start over
-        </button>
+        {reentryMode ? (
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button onClick={() => {
+              onReentryComplete && onReentryComplete(lensDoc);
+            }} style={{
+              flex: 1, padding: "11px", fontFamily: FONT, fontSize: "12px",
+              color: GRY, background: "none", border: "1px solid #ddd", cursor: "pointer",
+              letterSpacing: "0.04em",
+            }}>
+              Done
+            </button>
+            <button onClick={() => {
+              onReentryComplete && onReentryComplete(lensDoc);
+              onSelectAnotherSection && onSelectAnotherSection();
+            }} style={{
+              flex: 1, padding: "11px", fontFamily: FONT, fontSize: "12px",
+              color: RED, background: "none", border: `1px solid ${RED}`, cursor: "pointer",
+              letterSpacing: "0.04em",
+            }}>
+              Update another section
+            </button>
+          </div>
+        ) : (
+          <button onClick={onStartOver} style={{
+            width: "100%", padding: "11px", fontFamily: FONT, fontSize: "12px",
+            color: GRY, background: "none", border: "none", cursor: "pointer",
+            letterSpacing: "0.04em",
+          }}>
+            Start over
+          </button>
+        )}
       </div>
     );
   }
@@ -1029,9 +1130,11 @@ No preamble — start with the narrative, then the signals.`,
               cursor: "pointer", borderRadius: 0, transition: "all 0.15s ease",
             }}
           >
-            {currentSection < SECTIONS.length - 1
-              ? `Continue to ${SECTIONS[currentSection + 1].label}`
-              : "Generate lens document"}
+            {reentryMode
+              ? "Update lens document"
+              : currentSection < SECTIONS.length - 1
+                ? `Continue to ${SECTIONS[currentSection + 1].label}`
+                : "Generate lens document"}
           </button>
         </div>
       )}
@@ -1079,8 +1182,229 @@ No preamble — start with the narrative, then the signals.`,
 }
 
 // ════════════════════════════════════════
+// Session Recovery UI
+// ════════════════════════════════════════
+
+function SessionRecoveryPrompt({ savedSession, onContinue, onStartFresh }) {
+  const lastUpdated = savedSession?.lastUpdated
+    ? new Date(savedSession.lastUpdated).toLocaleString()
+    : "Unknown";
+
+  const sectionLabel = savedSession?.discoveryState?.currentSection !== undefined
+    ? SECTIONS[savedSession.discoveryState.currentSection]?.label || "Unknown"
+    : null;
+
+  const hasLens = !!savedSession?.lensOutput;
+  const inDiscovery = savedSession?.phase === "discovery" && savedSession?.discoveryState?.subPhase === "conversation";
+
+  return (
+    <div style={containerStyle}>
+      <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "32px" }}>
+        <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
+          Welcome Back
+        </div>
+        <h1 style={{ fontFamily: FONT, fontSize: "28px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
+          Resume your session?
+        </h1>
+      </div>
+
+      <div style={{ marginBottom: "28px" }}>
+        <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.75, margin: "0 0 16px", maxWidth: "500px" }}>
+          We found a previous session from <strong>{lastUpdated}</strong>.
+        </p>
+
+        {hasLens && (
+          <div style={{ padding: "14px 18px", border: `1px solid ${RULE}`, marginBottom: "16px", background: "#fafafa" }}>
+            <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "4px" }}>
+              Completed lens document
+            </div>
+            <div style={{ fontSize: "14px", color: BLK, fontWeight: 500 }}>
+              Ready to download or refine
+            </div>
+          </div>
+        )}
+
+        {inDiscovery && !hasLens && (
+          <div style={{ padding: "14px 18px", border: `1px solid ${RULE}`, marginBottom: "16px", background: "#fafafa" }}>
+            <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "4px" }}>
+              In progress
+            </div>
+            <div style={{ fontSize: "14px", color: BLK, fontWeight: 500 }}>
+              Discovery section: {sectionLabel}
+            </div>
+            <div style={{ fontSize: "12px", color: GRY, marginTop: "4px" }}>
+              {savedSession.discoveryState?.messages?.length || 0} messages in conversation
+            </div>
+          </div>
+        )}
+
+        {!inDiscovery && !hasLens && (
+          <div style={{ padding: "14px 18px", border: `1px solid ${RULE}`, marginBottom: "16px", background: "#fafafa" }}>
+            <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "4px" }}>
+              Status
+            </div>
+            <div style={{ fontSize: "14px", color: BLK, fontWeight: 500 }}>
+              {savedSession.phase === "upload" && "Ready to upload materials"}
+              {savedSession.phase === "status" && "Selecting employment status"}
+              {savedSession.phase === "discovery" && "Ready to begin discovery"}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ height: "1px", background: RULE, marginBottom: "28px" }} />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <button onClick={onContinue} style={{
+          width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
+          letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
+          border: `1.5px solid ${RED}`, cursor: "pointer", borderRadius: 0,
+        }}>
+          {hasLens ? "View my lens" : "Continue where I left off"}
+        </button>
+        <button onClick={onStartFresh} style={{
+          width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 500,
+          letterSpacing: "0.08em", textTransform: "uppercase", background: "#fff", color: GRY,
+          border: `1.5px solid #ddd`, cursor: "pointer", borderRadius: 0,
+        }}>
+          Start fresh
+        </button>
+      </div>
+
+      <p style={{ fontSize: "11px", color: LT, textAlign: "center", marginTop: "16px", lineHeight: 1.6 }}>
+        Starting fresh will clear your previous progress and conversation history.
+      </p>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════
+// Section Re-entry Selector
+// ════════════════════════════════════════
+
+function SectionReentrySelector({ existingLens, onSelectSection, onStartFresh, onBack }) {
+  return (
+    <div style={containerStyle}>
+      <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "28px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
+              Update Your Lens
+            </div>
+            <h1 style={{ fontFamily: FONT, fontSize: "26px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
+              Which section needs updating?
+            </h1>
+          </div>
+          <button onClick={onBack} style={{
+            background: "none", border: "none", color: GRY, fontFamily: FONT,
+            fontSize: "12px", cursor: "pointer", padding: "4px 0", marginTop: "6px",
+          }}>
+            &larr; Back
+          </button>
+        </div>
+      </div>
+
+      <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, marginBottom: "24px", maxWidth: "500px" }}>
+        Select a section to update. The AI will ask follow-up questions informed by your existing lens, then merge the new responses into your document.
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "28px" }}>
+        {SECTIONS.map((section, idx) => (
+          <button
+            key={section.id}
+            onClick={() => onSelectSection(idx)}
+            style={{
+              padding: "14px 18px", textAlign: "left",
+              background: "#fff", border: "1.5px solid #ddd",
+              cursor: "pointer", borderRadius: 0, display: "flex", alignItems: "center", gap: "12px",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = RED; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#ddd"; }}
+          >
+            <span style={{ fontSize: "12px", fontWeight: 600, color: ORANGE, fontVariantNumeric: "tabular-nums", minWidth: "20px" }}>
+              {section.number}
+            </span>
+            <span style={{ fontSize: "14px", fontWeight: 500, color: BLK, fontFamily: FONT }}>
+              {section.label}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ height: "1px", background: RULE, marginBottom: "20px" }} />
+
+      <button onClick={onStartFresh} style={{
+        width: "100%", padding: "12px", fontFamily: FONT, fontSize: "12px",
+        color: GRY, background: "none", border: "1px solid #ddd",
+        cursor: "pointer", borderRadius: 0, letterSpacing: "0.04em",
+      }}>
+        Start a completely new lens instead
+      </button>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════
 // Main app
 // ════════════════════════════════════════
+
+// Helper to safely get storage size
+function getStorageSize(data) {
+  try {
+    return new Blob([JSON.stringify(data)]).size;
+  } catch {
+    return 0;
+  }
+}
+
+// Helper to save session with quota handling
+function saveSession(data) {
+  try {
+    const size = getStorageSize(data);
+    if (size > MAX_STORAGE_SIZE) {
+      // Trim conversation history if too large
+      const trimmed = { ...data };
+      if (trimmed.discoveryState?.messages?.length > 10) {
+        trimmed.discoveryState = {
+          ...trimmed.discoveryState,
+          messages: trimmed.discoveryState.messages.slice(-10),
+        };
+      }
+      // If still too large, drop file context
+      if (getStorageSize(trimmed) > MAX_STORAGE_SIZE && trimmed.fileContext) {
+        trimmed.fileContext = null;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+    return true;
+  } catch (e) {
+    // Quota exceeded or other error
+    console.warn("Session save failed:", e);
+    return false;
+  }
+}
+
+// Helper to load session
+function loadSession() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      // Validate version
+      if (data.version === STORAGE_VERSION) {
+        return data;
+      }
+      // Version mismatch — could migrate here, for now just return null
+      return null;
+    }
+  } catch (e) {
+    console.warn("Session load failed:", e);
+  }
+  return null;
+}
 
 export default function LensIntake() {
   const [phase, setPhase] = useState("intro");
@@ -1088,52 +1412,169 @@ export default function LensIntake() {
     resume: [], writing: [], assessments: [], other: [],
   });
   const [status, setStatus] = useState(null);
-  const [previousFiles, setPreviousFiles] = useState(null); // metadata from prior session
+  const [previousFiles, setPreviousFiles] = useState(null);
   const [loaded, setLoaded] = useState(false);
+
+  // New session persistence state
+  const [savedSession, setSavedSession] = useState(null);
+  const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
+  const [discoveryState, setDiscoveryState] = useState(null);
+  const [fileContext, setFileContext] = useState({});
+  const [lensOutput, setLensOutput] = useState(null);
+
+  // Section re-entry state
+  const [reentryMode, setReentryMode] = useState(false);
+  const [reentrySection, setReentrySection] = useState(null);
+  const [showSectionSelector, setShowSectionSelector] = useState(false);
 
   // ── Load saved progress on mount ──
   useEffect(() => {
-    (async () => {
-      try {
-        const saved = await window.storage.get(STORAGE_KEY);
-        if (saved && saved.value) {
-          const data = JSON.parse(saved.value);
-          if (data.phase) setPhase(data.phase);
-          if (data.status) setStatus(data.status);
-          if (data.fileMeta) setPreviousFiles(data.fileMeta);
-        }
-      } catch (e) {
-        // No saved state — fresh start
+    const session = loadSession();
+    if (session) {
+      setSavedSession(session);
+      // Show recovery prompt if there's meaningful progress
+      const hasProgress = session.phase !== "intro" ||
+        session.discoveryState?.messages?.length > 0 ||
+        session.lensOutput;
+      if (hasProgress) {
+        setShowRecoveryPrompt(true);
+      } else {
+        // Minimal progress, just restore silently
+        restoreSession(session);
       }
-      setLoaded(true);
-    })();
+    }
+    setLoaded(true);
   }, []);
+
+  // Restore session state
+  const restoreSession = (session) => {
+    if (session.phase) setPhase(session.phase);
+    if (session.status) setStatus(session.status);
+    if (session.fileMeta) setPreviousFiles(session.fileMeta);
+    if (session.fileContext) setFileContext(session.fileContext);
+    if (session.discoveryState) setDiscoveryState(session.discoveryState);
+    if (session.lensOutput) setLensOutput(session.lensOutput);
+    setShowRecoveryPrompt(false);
+  };
 
   // ── Save progress on every change ──
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || showRecoveryPrompt) return;
+
     const fileMeta = {};
+    const fileCtx = {};
     for (const [cat, arr] of Object.entries(files)) {
       if (arr.length > 0) {
         fileMeta[cat] = arr.map(f => ({ name: f.name, size: f.size }));
+        // Store extracted text content
+        for (const f of arr) {
+          if (f._textContent) {
+            fileCtx[`${cat}:${f.name}`] = f._textContent;
+          }
+        }
       }
     }
-    const data = { phase, status, fileMeta: Object.keys(fileMeta).length > 0 ? fileMeta : null };
-    try {
-      window.storage.set(STORAGE_KEY, JSON.stringify(data));
-    } catch (e) {
-      // Silent fail
-    }
-  }, [phase, status, files, loaded]);
+
+    const sessionData = {
+      version: STORAGE_VERSION,
+      lastUpdated: new Date().toISOString(),
+      phase,
+      status,
+      fileMeta: Object.keys(fileMeta).length > 0 ? fileMeta : null,
+      fileContext: Object.keys(fileCtx).length > 0 ? fileCtx : (Object.keys(fileContext).length > 0 ? fileContext : null),
+      discoveryState,
+      lensOutput,
+    };
+
+    saveSession(sessionData);
+  }, [phase, status, files, discoveryState, lensOutput, loaded, showRecoveryPrompt, fileContext]);
 
   // ── Clear saved progress ──
-  const handleStartOver = async () => {
+  const handleStartOver = () => {
     setPhase("intro");
     setFiles({ resume: [], writing: [], assessments: [], other: [] });
     setStatus(null);
     setPreviousFiles(null);
-    try { await window.storage.delete(STORAGE_KEY); } catch (e) {}
+    setDiscoveryState(null);
+    setFileContext({});
+    setLensOutput(null);
+    setReentryMode(false);
+    setReentrySection(null);
+    setShowSectionSelector(false);
+    setSavedSession(null);
+    setShowRecoveryPrompt(false);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      // Silent fail
+    }
   };
+
+  // ── Handle session recovery ──
+  const handleContinueSession = () => {
+    if (savedSession) {
+      // Check if user has a completed lens - offer section re-entry
+      if (savedSession.lensOutput) {
+        setLensOutput(savedSession.lensOutput);
+        setShowSectionSelector(true);
+        setShowRecoveryPrompt(false);
+      } else {
+        restoreSession(savedSession);
+      }
+    }
+  };
+
+  const handleStartFresh = () => {
+    handleStartOver();
+  };
+
+  // ── Handle section re-entry selection ──
+  const handleSelectSection = (sectionIdx) => {
+    setReentryMode(true);
+    setReentrySection(sectionIdx);
+    setShowSectionSelector(false);
+    // Restore other state but start fresh discovery for that section
+    if (savedSession) {
+      if (savedSession.status) setStatus(savedSession.status);
+      if (savedSession.fileMeta) setPreviousFiles(savedSession.fileMeta);
+      if (savedSession.fileContext) setFileContext(savedSession.fileContext);
+    }
+    setPhase("discovery");
+  };
+
+  // ── Handle re-entry completion ──
+  const handleReentryComplete = (updatedLens) => {
+    setLensOutput(updatedLens);
+    setReentryMode(false);
+    setReentrySection(null);
+    setDiscoveryState(prev => prev ? { ...prev, lensDoc: updatedLens } : { lensDoc: updatedLens });
+    // Show recovery prompt with the updated lens
+    setSavedSession(prev => ({
+      ...(prev || {}),
+      version: STORAGE_VERSION,
+      lastUpdated: new Date().toISOString(),
+      lensOutput: updatedLens,
+      phase: "discovery",
+      discoveryState: { subPhase: "done", lensDoc: updatedLens },
+    }));
+    setShowRecoveryPrompt(true);
+  };
+
+  // ── Handle selecting another section to update ──
+  const handleSelectAnotherSection = () => {
+    setReentryMode(false);
+    setReentrySection(null);
+    setShowSectionSelector(true);
+    setPhase("intro"); // Will be overridden when section is selected
+  };
+
+  // ── Handle discovery state changes ──
+  const handleDiscoveryStateChange = useCallback((state) => {
+    setDiscoveryState(state);
+    if (state.lensDoc) {
+      setLensOutput(state.lensDoc);
+    }
+  }, []);
 
   const handleAdd = async (catId, newFiles) => {
     // Extract text from each file before adding to state
@@ -1176,6 +1617,36 @@ export default function LensIntake() {
         <div style={{ fontSize: "12px", color: LT, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: FONT }}>
           Loading…
         </div>
+      </div>
+    );
+  }
+
+  // Show session recovery prompt
+  if (showRecoveryPrompt && savedSession) {
+    return (
+      <div style={{ background: "#fff", minHeight: "100vh" }}>
+        <SessionRecoveryPrompt
+          savedSession={savedSession}
+          onContinue={handleContinueSession}
+          onStartFresh={handleStartFresh}
+        />
+      </div>
+    );
+  }
+
+  // Show section re-entry selector
+  if (showSectionSelector && lensOutput) {
+    return (
+      <div style={{ background: "#fff", minHeight: "100vh" }}>
+        <SectionReentrySelector
+          existingLens={lensOutput}
+          onSelectSection={handleSelectSection}
+          onStartFresh={handleStartOver}
+          onBack={() => {
+            setShowSectionSelector(false);
+            setShowRecoveryPrompt(true);
+          }}
+        />
       </div>
     );
   }
@@ -1249,8 +1720,20 @@ export default function LensIntake() {
       )}
 
       {phase === "discovery" && (
-        <DiscoveryPhase status={status} totalFiles={totalFiles} files={files}
-          onBack={() => setPhase("status")} onStartOver={handleStartOver} />
+        <DiscoveryPhase
+          status={status}
+          totalFiles={totalFiles}
+          files={files}
+          onBack={() => setPhase("status")}
+          onStartOver={handleStartOver}
+          savedDiscoveryState={discoveryState}
+          onDiscoveryStateChange={handleDiscoveryStateChange}
+          reentryMode={reentryMode}
+          reentrySection={reentrySection}
+          existingLens={lensOutput}
+          onReentryComplete={handleReentryComplete}
+          onSelectAnotherSection={handleSelectAnotherSection}
+        />
       )}
 
       <style>{`
