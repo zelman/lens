@@ -683,6 +683,7 @@ function DiscoveryPhase({
   const [sectionData, setSectionData] = useState(savedDiscoveryState?.sectionData || {});
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState(null); // Error state for API failures
   const [aiGreeting, setAiGreeting] = useState("");
   const [greetingDone, setGreetingDone] = useState(savedDiscoveryState?.greetingDone || false);
   const [lensDoc, setLensDoc] = useState(savedDiscoveryState?.lensDoc || null);
@@ -736,6 +737,7 @@ function DiscoveryPhase({
     const fileNote = fileContext
       ? `\n\nThe user has uploaded the following materials. Use them to inform your questions — skip what their resume already covers and go deeper:\n\n${fileContext}`
       : "";
+
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -746,8 +748,20 @@ function DiscoveryPhase({
         messages: msgs,
       }),
     });
+
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => "Unknown error");
+      throw new Error(`API error (${res.status}): ${errorText}`);
+    }
+
     const data = await res.json();
-    return data.content?.[0]?.text || "";
+    const text = data.content?.[0]?.text;
+
+    if (!text) {
+      throw new Error("Empty response from AI");
+    }
+
+    return text;
   }
 
   async function startSection(idx) {
@@ -756,30 +770,37 @@ function DiscoveryPhase({
     setMessages([]);
     setGreetingDone(false);
     setSectionComplete(false);
+    setApiError(null);
     setLoading(true);
 
-    const sec = SECTIONS[idx];
-    const prevContext = Object.entries(sectionData)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join("\n");
-    const statusNote = `The user's current employment status is: ${status}.`;
+    try {
+      const sec = SECTIONS[idx];
+      const prevContext = Object.entries(sectionData)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join("\n");
+      const statusNote = `The user's current employment status is: ${status}.`;
 
-    let contextPrompt;
-    if (reentryMode && existingLens) {
-      // Re-entry mode: provide existing lens context
-      contextPrompt = `${statusNote}\n\nThis user already has a completed lens document. They want to update the "${sec.label}" section specifically. Here is their existing lens:\n\n${existingLens}\n\nYour job is to help them refine or update just this section. Start by acknowledging you've reviewed their lens and ask a targeted question about what's changed or needs updating in their ${sec.label}. Keep your opener to 2-3 sentences max.`;
-    } else if (prevContext) {
-      contextPrompt = `${statusNote}\n\nPrior context from earlier sections:\n${prevContext}\n\nNow introduce the next section with this prompt to the user: "${sec.prompt}". Keep your opener to 2-3 sentences max.`;
-    } else {
-      contextPrompt = `${statusNote}\n\nIntroduce this section with the following prompt: "${sec.prompt}". Keep your opener to 2-3 sentences max. Start warm but don't over-introduce yourself.`;
+      let contextPrompt;
+      if (reentryMode && existingLens) {
+        // Re-entry mode: provide existing lens context
+        contextPrompt = `${statusNote}\n\nThis user already has a completed lens document. They want to update the "${sec.label}" section specifically. Here is their existing lens:\n\n${existingLens}\n\nYour job is to help them refine or update just this section. Start by acknowledging you've reviewed their lens and ask a targeted question about what's changed or needs updating in their ${sec.label}. Keep your opener to 2-3 sentences max.`;
+      } else if (prevContext) {
+        contextPrompt = `${statusNote}\n\nPrior context from earlier sections:\n${prevContext}\n\nNow introduce the next section with this prompt to the user: "${sec.prompt}". Keep your opener to 2-3 sentences max.`;
+      } else {
+        contextPrompt = `${statusNote}\n\nIntroduce this section with the following prompt: "${sec.prompt}". Keep your opener to 2-3 sentences max. Start warm but don't over-introduce yourself.`;
+      }
+
+      const greeting = await callClaude(
+        [{ role: "user", content: contextPrompt }],
+        sec.systemContext
+      );
+      setAiGreeting(greeting);
+    } catch (err) {
+      console.error("startSection error:", err);
+      setApiError(err.message || "Failed to start section. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    const greeting = await callClaude(
-      [{ role: "user", content: contextPrompt }],
-      sec.systemContext
-    );
-    setAiGreeting(greeting);
-    setLoading(false);
   }
 
   useEffect(() => {
@@ -801,47 +822,54 @@ function DiscoveryPhase({
     setInput("");
     const newMsgs = [...messages, { role: "user", content: userMsg }];
     setMessages(newMsgs);
+    setApiError(null);
     setLoading(true);
 
-    const userMsgCount = newMsgs.filter((m) => m.role === "user").length;
-    const minMessages = ["mission", "disqualifiers", "goals"].includes(sec.id) ? 3 : 2;
-    const isLongEnough = userMsgCount >= minMessages;
+    try {
+      const userMsgCount = newMsgs.filter((m) => m.role === "user").length;
+      const minMessages = ["mission", "disqualifiers", "goals"].includes(sec.id) ? 3 : 2;
+      const isLongEnough = userMsgCount >= minMessages;
 
-    const systemExtra =
-      sec.systemContext +
-      (isLongEnough
-        ? `\n\nYou may have enough to synthesize. Before ending, verify you have the specific, filterable data this section requires (see PIPELINE NOTE above). If critical specifics are missing, ask one more targeted question instead of completing. If the section has what it needs, end with exactly: [SECTION_COMPLETE]`
-        : "");
+      const systemExtra =
+        sec.systemContext +
+        (isLongEnough
+          ? `\n\nYou may have enough to synthesize. Before ending, verify you have the specific, filterable data this section requires (see PIPELINE NOTE above). If critical specifics are missing, ask one more targeted question instead of completing. If the section has what it needs, end with exactly: [SECTION_COMPLETE]`
+          : "");
 
-    const reply = await callClaude(newMsgs, systemExtra);
-    const isComplete = reply.includes("[SECTION_COMPLETE]");
-    const cleanReply = reply.replace("[SECTION_COMPLETE]", "").trim();
+      const reply = await callClaude(newMsgs, systemExtra);
+      const isComplete = reply.includes("[SECTION_COMPLETE]");
+      const cleanReply = reply.replace("[SECTION_COMPLETE]", "").trim();
 
-    setMessages([...newMsgs, { role: "assistant", content: cleanReply }]);
-    setLoading(false);
+      setMessages([...newMsgs, { role: "assistant", content: cleanReply }]);
 
-    if (isComplete) {
-      const summary = await callClaude(
-        [
-          ...newMsgs,
-          { role: "assistant", content: cleanReply },
-          {
-            role: "user",
-            content: `Synthesize what you learned about me in this section into content for my lens document. Include TWO parts:
+      if (isComplete) {
+        const summary = await callClaude(
+          [
+            ...newMsgs,
+            { role: "assistant", content: cleanReply },
+            {
+              role: "user",
+              content: `Synthesize what you learned about me in this section into content for my lens document. Include TWO parts:
 
 1. NARRATIVE (3-5 sentences): First person, present tense, specific. Captures the authentic patterns and insights from our conversation.
 
 2. SIGNALS (bullet list): The specific, filterable criteria a job-matching pipeline can score against. These should be concrete: sector names, company sizes, title preferences, behavioral indicators, hard boundaries — whatever this section surfaced that a scoring engine needs.
 
 No preamble — start with the narrative, then the signals.`,
-          },
-        ],
-        sec.systemContext
-      );
-      setSectionData((prev) => ({ ...prev, [sec.label]: summary }));
+            },
+          ],
+          sec.systemContext
+        );
+        setSectionData((prev) => ({ ...prev, [sec.label]: summary }));
 
-      // Signal section is done — user decides when to advance
-      setSectionComplete(true);
+        // Signal section is done — user decides when to advance
+        setSectionComplete(true);
+      }
+    } catch (err) {
+      console.error("sendMessage error:", err);
+      setApiError(err.message || "Failed to send message. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -858,50 +886,68 @@ No preamble — start with the narrative, then the signals.`,
 
   async function mergeUpdatedSection() {
     setSubPhase("synthesis");
+    setApiError(null);
     setLoading(true);
-    const sec = SECTIONS[currentSection];
-    const updatedContent = sectionData[sec.label] || "";
 
-    const mergedDoc = await callClaude(
-      [
-        {
-          role: "user",
-          content: `Here is the user's existing lens document:\n\n${existingLens}\n\nThey have just updated the "${sec.label}" section. Here is the new content for that section:\n\n${updatedContent}\n\nMerge this updated section into the existing lens document. Keep everything else intact. Only update the ${sec.label} section (both narrative and any related YAML frontmatter signals). Return the complete updated lens document.`,
-        },
-      ],
-      "You are merging an updated section into an existing lens document. Preserve the document structure, YAML frontmatter format, and all other sections unchanged. Only update the specific section that was re-discovered."
-    );
+    try {
+      const sec = SECTIONS[currentSection];
+      const updatedContent = sectionData[sec.label] || "";
 
-    setLensDoc(mergedDoc);
-    setLoading(false);
-    setSubPhase("done");
+      const mergedDoc = await callClaude(
+        [
+          {
+            role: "user",
+            content: `Here is the user's existing lens document:\n\n${existingLens}\n\nThey have just updated the "${sec.label}" section. Here is the new content for that section:\n\n${updatedContent}\n\nMerge this updated section into the existing lens document. Keep everything else intact. Only update the ${sec.label} section (both narrative and any related YAML frontmatter signals). Return the complete updated lens document.`,
+          },
+        ],
+        "You are merging an updated section into an existing lens document. Preserve the document structure, YAML frontmatter format, and all other sections unchanged. Only update the specific section that was re-discovered."
+      );
 
-    // Notify parent of completion
-    if (onReentryComplete) {
-      onReentryComplete(mergedDoc);
+      setLensDoc(mergedDoc);
+      setSubPhase("done");
+
+      // Notify parent of completion
+      if (onReentryComplete) {
+        onReentryComplete(mergedDoc);
+      }
+    } catch (err) {
+      console.error("mergeUpdatedSection error:", err);
+      setApiError(err.message || "Failed to merge section. Please try again.");
+      setSubPhase("conversation"); // Go back to conversation so user can retry
+    } finally {
+      setLoading(false);
     }
   }
 
   async function generateLens() {
     setSubPhase("synthesis");
+    setApiError(null);
     setLoading(true);
-    const allSections = Object.entries(sectionData)
-      .map(([k, v]) => `## ${k}\n${v}`)
-      .join("\n\n");
-    const statusLabel = STATUS_OPTIONS.find((s) => s.id === status)?.label || status;
 
-    const doc = await callClaude(
-      [
-        {
-          role: "user",
-          content: `Here is everything from the discovery conversation:\n\nStatus: ${statusLabel}\n\n${allSections}\n\nNow write the complete lens document. Start with YAML frontmatter (---) that includes: name (leave as "TBD" — the user will fill this in), status, scoring weights for mission_alignment (25), role_fit (20), culture_fit (18), skill_match (17), work_style (12), energy_match (8), and instant_disqualifiers extracted from the Disqualifiers section.\n\nThen write narrative markdown sections:\n\n## Essence\n[Their throughline. What they're known for. What they want to carry forward. Specific.]\n\n## Values\n[Genuine values with evidence or grounding. No platitudes.]\n\n## Mission & Sector Fit\n[Where the work needs to matter. Specific sectors, org types, cause areas, stage preferences.]\n\n## Work Style\n[How they work best. Environment, pace, autonomy, collaboration. Grounded in real patterns.]\n\n## What Fills Them\n[Problem types, outputs, and contexts that give energy. Distinguishes from what merely looks good.]\n\n## Disqualifiers\n[Hard stops — cultural, structural, ethical, interpersonal. Specific enough to filter with.]\n\n## Goals & Timeline\n[Current state, runway, urgency, geographic or structural constraints. What success looks like.]\n\n## How to Use This Document\n[2-3 sentences: what this lens is for, how the workflow should apply it, what it shouldn't be used to do.]\n\nWrite the entire document. Be specific. Be honest. No generic career language.`,
-        },
-      ],
-      "You are synthesizing a personal lens document for career intelligence use. The YAML frontmatter will be machine-parsed to route this person to relevant opportunities. The narrative sections will be read by human collaborators. Both must be specific and useful."
-    );
-    setLensDoc(doc);
-    setLoading(false);
-    setSubPhase("done");
+    try {
+      const allSections = Object.entries(sectionData)
+        .map(([k, v]) => `## ${k}\n${v}`)
+        .join("\n\n");
+      const statusLabel = STATUS_OPTIONS.find((s) => s.id === status)?.label || status;
+
+      const doc = await callClaude(
+        [
+          {
+            role: "user",
+            content: `Here is everything from the discovery conversation:\n\nStatus: ${statusLabel}\n\n${allSections}\n\nNow write the complete lens document. Start with YAML frontmatter (---) that includes: name (leave as "TBD" — the user will fill this in), status, scoring weights for mission_alignment (25), role_fit (20), culture_fit (18), skill_match (17), work_style (12), energy_match (8), and instant_disqualifiers extracted from the Disqualifiers section.\n\nThen write narrative markdown sections:\n\n## Essence\n[Their throughline. What they're known for. What they want to carry forward. Specific.]\n\n## Values\n[Genuine values with evidence or grounding. No platitudes.]\n\n## Mission & Sector Fit\n[Where the work needs to matter. Specific sectors, org types, cause areas, stage preferences.]\n\n## Work Style\n[How they work best. Environment, pace, autonomy, collaboration. Grounded in real patterns.]\n\n## What Fills Them\n[Problem types, outputs, and contexts that give energy. Distinguishes from what merely looks good.]\n\n## Disqualifiers\n[Hard stops — cultural, structural, ethical, interpersonal. Specific enough to filter with.]\n\n## Goals & Timeline\n[Current state, runway, urgency, geographic or structural constraints. What success looks like.]\n\n## How to Use This Document\n[2-3 sentences: what this lens is for, how the workflow should apply it, what it shouldn't be used to do.]\n\nWrite the entire document. Be specific. Be honest. No generic career language.`,
+          },
+        ],
+        "You are synthesizing a personal lens document for career intelligence use. The YAML frontmatter will be machine-parsed to route this person to relevant opportunities. The narrative sections will be read by human collaborators. Both must be specific and useful."
+      );
+      setLensDoc(doc);
+      setSubPhase("done");
+    } catch (err) {
+      console.error("generateLens error:", err);
+      setApiError(err.message || "Failed to generate lens. Please try again.");
+      setSubPhase("conversation"); // Go back so user can retry
+    } finally {
+      setLoading(false);
+    }
   }
 
   function copyToClipboard() {
@@ -1227,6 +1273,31 @@ No preamble — start with the narrative, then the signals.`,
                 }} />
               ))}
             </div>
+          </div>
+        )}
+        {/* API Error Banner */}
+        {apiError && (
+          <div style={{
+            padding: "12px 16px", background: "#FEF2F2", border: `1px solid ${RED}`,
+            alignSelf: "stretch", display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+            <div>
+              <div style={{ fontSize: "13px", color: RED, fontWeight: 600, marginBottom: "4px" }}>
+                Something went wrong
+              </div>
+              <div style={{ fontSize: "12px", color: "#7F1D1D" }}>
+                {apiError}
+              </div>
+            </div>
+            <button
+              onClick={() => setApiError(null)}
+              style={{
+                background: "none", border: "none", color: RED, fontSize: "18px",
+                cursor: "pointer", padding: "4px 8px", lineHeight: 1,
+              }}
+            >
+              &times;
+            </button>
           </div>
         )}
         <div ref={messagesEndRef} />
