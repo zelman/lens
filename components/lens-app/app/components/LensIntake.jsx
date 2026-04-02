@@ -87,6 +87,13 @@ const CATEGORIES = [
     multiple: false,
   },
   {
+    id: "linkedin",
+    label: "LinkedIn profile",
+    accept: ".pdf",
+    hint: "Print your LinkedIn profile to PDF: Profile → More → Save to PDF. The AI can read it directly.",
+    multiple: false,
+  },
+  {
     id: "writing",
     label: "Writing samples",
     accept: ".pdf,.docx,.doc,.txt,.md,.html",
@@ -552,22 +559,32 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, savedFileCont
             {totalFiles} file{totalFiles !== 1 ? "s" : ""} uploaded: {fileSummary}
           </div>
         )}
+        {/* Primary CTA: Continue button */}
         <button onClick={onContinue} style={{
           width: "100%", padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
           letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
           border: `1.5px solid ${RED}`, cursor: "pointer", transition: "all 0.15s ease", borderRadius: 0,
         }}>
-          {totalFiles > 0 || hasSavedContext ? "Continue" : "Skip — start from scratch"}
+          {totalFiles > 0 ? `Continue with ${totalFiles} file${totalFiles !== 1 ? "s" : ""}` :
+           hasSavedContext ? "Continue with previous files" : "Continue"}
         </button>
-        {totalFiles === 0 && !hasSavedContext ? (
-          <p style={{ fontSize: "11px", color: LT, textAlign: "center", marginTop: "10px" }}>
-            You can always come back and add materials later.
-          </p>
-        ) : (
-          <p style={{ fontSize: "11px", color: LT, textAlign: "center", marginTop: "10px" }}>
-            {hasSavedContext ? "New files will be added to your existing context." : "If you close the tab, you'll need to re-add your files when you return. Everything else is saved automatically."}
-          </p>
+        {/* Secondary option: Skip link (only when no files uploaded and no saved context) */}
+        {totalFiles === 0 && !hasSavedContext && (
+          <button onClick={onContinue} style={{
+            width: "100%", padding: "12px", fontFamily: FONT, fontSize: "12px", fontWeight: 500,
+            letterSpacing: "0.06em", background: "transparent", color: GRY,
+            border: "none", cursor: "pointer", marginTop: "8px",
+          }}>
+            Skip — start from scratch
+          </button>
         )}
+        <p style={{ fontSize: "11px", color: LT, textAlign: "center", marginTop: "10px" }}>
+          {totalFiles === 0 && !hasSavedContext
+            ? "You can always come back and add materials later."
+            : hasSavedContext
+              ? "New files will be added to your existing context."
+              : "If you close the tab, you'll need to re-add your files when you return. Everything else is saved automatically."}
+        </p>
       </div>
     </div>
   );
@@ -1732,7 +1749,7 @@ function loadSession() {
 export default function LensIntake() {
   const [phase, setPhase] = useState("intro");
   const [files, setFiles] = useState({
-    resume: [], writing: [], assessments: [], other: [],
+    resume: [], linkedin: [], writing: [], assessments: [], other: [],
   });
   const [status, setStatus] = useState(null);
   const [previousFiles, setPreviousFiles] = useState(null);
