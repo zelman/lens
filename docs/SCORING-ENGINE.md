@@ -2,7 +2,7 @@
 
 *How the scoring pipeline works today (personal system) and how it evolves into the Lens Project product.*
 
-*Last updated: March 19, 2026 (v6.5 calibration updates)*
+*Last updated: April 2, 2026 (scoring-config.yaml v2.0 alignment)*
 
 ---
 
@@ -61,7 +61,7 @@ The system currently runs two separate n8n workflows:
 - **Job Alert Parser:** Processes job board alerts with full Brave Search enrichment and Claude scoring. More enriched, higher accuracy.
 - **VC Portfolio Scraper:** Processes company lists from VC portfolios. Less enriched — identified gap. Needs Brave Search enrichment layer added to match job alert pipeline quality.
 
-**Known issue:** Scoring logic is partially duplicated across these two workflows. The PRODUCT-VISION.md (November 2024) identified this as a consolidation target — a single "Scoring Service" sub-workflow both pipelines call.
+**Known issue:** Scoring logic was partially duplicated across these two workflows. As of March 2026, the signal library in `config/scoring-config.yaml` is the single source of truth. Both pipelines should consume this config rather than defining signals inline.
 
 ### The Agent Lens (v2.3)
 
@@ -221,115 +221,155 @@ Both are needed. The lens without the config produces scores that are directiona
 | Hand-built agent lens (v2.3) | AI-coached discovery → lens document (YAML + markdown) |
 | n8n scoring prompt | Prompt assembled from lens YAML + scoring config + enrichment |
 | Hardcoded disqualifiers in prompt | Disqualifiers extracted from discovery, stored in lens YAML |
-| Caps in n8n JavaScript nodes | Scoring config `caps` object (shared across all users) |
-| Adjustments in n8n JavaScript nodes | Scoring config `adjustments` (some shared, some per-lens) |
+| Caps/adjustments in n8n JavaScript nodes | Signal library in `config/scoring-config.yaml` (dual-mode) |
+| Single additive score | Pipeline mode (additive) or Product mode (weighted composite) |
 | Brave Search enrichment | Same, plus expanded sources |
 | Airtable output | Airtable → Postgres at scale |
 | Manual daily review | Daily briefing email + web dashboard |
-| Eric tunes scoring by editing n8n nodes | Users tune scoring by editing their lens; system tunes config from aggregate feedback |
+| Eric tunes scoring by editing n8n nodes | Users tune weights via sliders; system tunes signals from aggregate feedback |
 
 ### What Transfers Directly
 
 - **Enrichment pipeline:** Brave Search integration, company data extraction patterns, data quality heuristics. All of this transfers.
-- **Guardrails:** The caps and adjustments table above. These are universal scoring truths (CX vendors are false positives, stale funding is a risk signal) that apply regardless of which user's lens is being scored.
+- **Guardrails:** The signal library and gates. These are universal scoring truths (CX vendors are false positives, stale funding is a risk signal, PE-backed = auto-reject) that apply regardless of which user's lens is being scored.
 - **Prompt engineering patterns:** The tiered prompt structure (Tier 1 = non-negotiable rules, Tier 2 = user preferences, Tier 3 = output format) is the right architecture for multi-user scoring.
 - **Regression test methodology:** The principle of turning every false positive/negative into a test case.
 
 ### What Changes
 
 - **Lens source:** From hand-built to AI-generated. The scoring engine consumes the same YAML structure but the input comes from a discovery flow instead of manual authoring.
-- **Scoring dimensionality:** The current system scores on a single 0-100 scale. The product scores across 6 weighted dimensions (Mission 25%, Role 20%, Culture 18%, Skill 17%, Work Style 12%, Energy 8%) with a composite score.
+- **Scoring dimensionality:** The current system scores on a single 0-100 scale. The product scores across 6 weighted dimensions (Company Stage 25%, Role Fit 25%, Mission 20%, Culture 15%, Work Style 10%, Energy 5%) with a composite score.
 - **Source intake:** From Eric's curated n8n scrapers to user-connected sources (BYOS: RSS, career pages, email forwarding, paste).
 - **Output:** From Airtable rows to scored briefings with dimension breakdowns, enrichment context, and tension notes.
 - **Feedback loop:** From Eric manually tuning n8n nodes to users Pursuing/Skipping/Flagging scored opportunities, which feeds back into scoring accuracy.
 
 ---
 
-## Config-Driven Scoring Architecture (Target)
+## Config-Driven Scoring Architecture (Implemented)
 
-### The Scoring Config Object
+The scoring configuration now lives in `config/scoring-config.yaml` (v2.0, March 2026). This replaces the scattered JavaScript nodes in n8n workflows with a single source of truth.
 
-```javascript
-const scoringConfig = {
-  version: "2026-03-18",
-  changelog: "Migrated from PRODUCT-VISION.md; aligned with lens YAML schema",
+### Dual-Mode Architecture
 
-  // Pre-scoring binary gates (saves API costs)
-  filters: {
-    // Universal filters (apply to all users)
-    reject_pe_backed: true,
-    exclude_industries: ["consulting", "staffing", "recruiting"],
-    min_employees: 5,
+The same configuration supports two scoring modes:
 
-    // User-lens-derived filters (populated from lens YAML disqualifiers)
-    // These are extracted from the user's lens, not set manually
-    max_employees: null,  // from lens: disqualifiers.hard
-    min_stage: null,      // from lens: role_fit.preferred_stage
-    max_stage: null,
-  },
+| Mode | Math | Scale | Used By |
+|------|------|-------|---------|
+| **Pipeline** | Additive bonuses/penalties | 0-100 base, can exceed 100 | n8n workflows (current) |
+| **Product** | Weighted composite | Always 0-100 | JSX scorer, sliders (future) |
 
-  // Post-scoring ceilings (universal domain knowledge)
-  caps: {
-    cs_hire_unlikely: { max: 65, condition: "cs_hire_likelihood === 'unlikely'" },
-    self_serve_no_ops_gap: { max: 60, condition: "product_type === 'self_serve' && !ops_gap" },
-    cx_tooling_vendor: { max: 55, condition: "is_cx_tooling_company === true" },
-    stale_early_stage: { max: 70, condition: "funding_age_years > 3 && stage in ['seed', 'series_a']" },
-    // NOTE: Some caps are role-specific (cs_hire_unlikely applies to CS roles).
-    // As the product supports multiple role types, caps need role-type tagging.
-  },
+Both modes share the same gates, signals, and investor lookup. The difference is *how* scores are calculated, not *what* signals matter. A user's `scoring.yaml` declares which mode via `mode: pipeline | product`.
 
-  // Score modifiers (some universal, some lens-derived)
-  adjustments: {
-    sector_match: { value: 15, trigger: "industry in lens.mission.sectors" },
-    recent_funding: { value: 10, trigger: "funding_age_years < 1" },
-    active_role_hiring: { value: 10, trigger: "has_matching_job_posting" },
-    network_connection: { value: 5, trigger: "has_network_connection" },
-    stale_funding_penalty: { value: -10, trigger: "funding_age_years >= 3 && early_stage" },
-    employee_funding_mismatch: { value: -15, trigger: "employee_count_suspicious" },
-  },
+### Hard Gates (Pre-Scoring)
 
-  // Data quality heuristics
-  dataQuality: {
-    employee_count: {
-      cross_reference: true,
-      source_priority: ["company_website", "crunchbase", "brave_search", "linkedin"],
-      stage_floors: { seed: 5, series_a: 15, series_b: 50 },
-    },
-    funding_recency: {
-      calculate: true,
-      stale_threshold_years: 3,
-    },
-  },
+Gates are binary disqualifiers evaluated before scoring. They save API costs by rejecting obvious mismatches early.
 
-  // Prompt assembly
-  promptConfig: {
-    tier1_rules: "Non-negotiable scoring rules. Never override.",
-    tier2_criteria: "Assembled from user's lens YAML.",
-    tier3_output: "Structured JSON with per-dimension scores + reasoning.",
-  }
-};
+```yaml
+gates:
+  investor_type: [PE, "Growth Equity"]
+  company_status: [Acquired, "Shut Down", Merged, Defunct]
+  company_type: ["Fortune 500", "Fortune 500 Subsidiary", Public]
+  funding_stage: ["Series D", "Series E", Growth]
+```
+
+User-specific gates (employee min/max, excluded sectors) come from the lens YAML disqualifiers, not from this shared config.
+
+### The Signal Library
+
+Signals are the atomic unit. Each signal defines:
+- **Keywords or conditions** that trigger it
+- **Pipeline behavior:** Fixed point bonus or penalty
+- **Product behavior:** Which dimensions it affects and how strongly
+
+```yaml
+signals:
+  builder_positive:
+    keywords: ["build from scratch", "first hire", "greenfield", "0 to 1"]
+    pipeline_bonus: 40          # Additive: +40 points
+    product_dimensions: ["role_fit"]
+    product_weight: high        # Raises role_fit score significantly
+
+  series_a:
+    pipeline_bonus: 50
+    product_dimensions: ["company_stage"]
+    product_weight: high
+
+  nrr_first_language:
+    keywords: [NRR, "Net Revenue Retention", GRR]
+    location: "first 2 bullets of JD"
+    pipeline_penalty: -15
+    product_dimensions: ["role_fit"]
+    product_weight: negative_strong
+    note: "Build mandate is gone. Someone already built it."
+```
+
+In pipeline mode, `builder_positive` adds 40 points to the total. In product mode, it raises the `role_fit` dimension score (which then gets multiplied by the user's weight for that dimension).
+
+### Product Mode Dimensions
+
+Six dimensions, each scored 0-100 by the LLM based on detected signals. The user controls weights via sliders. Composite = sum of (score × weight).
+
+| Dimension | Default Weight | What It Measures |
+|-----------|----------------|------------------|
+| `company_stage` | 25% | Right inflection point? Stage, size, funding, age, investors |
+| `role_fit` | 25% | Builder vs maintainer spectrum. Scope. Title. Team size |
+| `mission` | 20% | Sector alignment, social impact, purpose |
+| `culture` | 15% | Values alignment, autonomy, communication style |
+| `work_style` | 10% | Remote/hybrid, meeting load, async vs sync, compensation |
+| `energy` | 5% | Would this fill or empty the pool? |
+
+Note: The earlier "Skill" dimension was absorbed into `role_fit`. Culture and energy have no fixed signals — they're scored entirely from lens-specific criteria.
+
+### Pipeline Mode Dimensions (Backward Compatibility)
+
+For n8n workflows, the tiered scoring system remains:
+
+```yaml
+pipeline_dimensions:
+  company_stage_fit:
+    max: 50
+    tiers:
+      - { range: "Pre-A to Series A (0-50)", points: 50 }
+      - { range: "Series B (51-300)", points: 30 }
+      - { range: "Series C (301-500)", points: 10 }
+
+  role_type:
+    max: 30
+    tiers:
+      - { range: "First hire / build from scratch", points: 30 }
+      - { range: "Build and scale (team <5)", points: 25 }
+      - { range: "Scale operations (team 6-15)", points: 15 }
 ```
 
 ### How the Lens YAML Feeds the Scoring Config
 
-When a user creates a lens, their YAML frontmatter populates the user-specific parts of the scoring config:
-
 ```
 Lens YAML                          → Scoring Config
 ─────────────────────────────────────────────────────
-disqualifiers.hard                 → filters (binary gates)
-scoring.weights                    → dimension weighting
-mission.sectors                    → adjustments.sector_match trigger
-mission.anti_sectors               → filters.exclude_industries
-role_fit.preferred_stage           → filters.min_stage / max_stage
-role_fit.autonomy_need             → prompt context for LLM
-culture.values_behavioral          → prompt context for LLM
-work_style.remote                  → filters or adjustments
-energy.fills / energy.drains       → prompt context for LLM
+disqualifiers.hard                 → gates (binary, pre-scoring)
+scoring.mode                       → pipeline | product math
+scoring.weights                    → dimension weighting (product mode)
+mission.sectors                    → signals.healthcare_b2b, etc.
+mission.anti_sectors               → gates.excluded_industries
+role_fit.preferred_stage           → evaluated against company_stage signals
+energy.fills / energy.drains       → prompt context for LLM (no fixed signals)
 thresholds                         → briefing display thresholds
 ```
 
-The universal guardrails (caps, data quality rules) stay constant across users. The user-specific parameters come from the lens. This is how the same scoring engine serves Eric's CS leadership search and someone else's engineering management search — the engine is the same, the lens is different.
+The shared config (`config/scoring-config.yaml`) provides the signal library and gates. The user's lens provides the weights, disqualifiers, and sector preferences. The scoring engine combines both at runtime.
+
+### Investor Lookup
+
+PE detection is centralized in the config:
+
+```yaml
+investor_lookup:
+  vc: [a16z, Sequoia, Accel, Greylock, "First Round", Bessemer, ...]
+  pe: ["Nordic Capital", "Vista Equity", "Thoma Bravo", ...]
+  growth_equity_evaluate: ["Summit Partners", "General Atlantic", TCV]
+```
+
+Growth equity investors trigger manual review rather than auto-reject.
 
 ---
 
