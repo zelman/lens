@@ -1,7 +1,7 @@
 # Competitive Landscape — Lens Project
 
 **Last updated:** April 3, 2026
-**Entry count:** 12
+**Entry count:** 16
 **Maintained by:** Eric Zelman
 **Patent Pending:** App #64/015,187 — Confidential
 
@@ -353,11 +353,70 @@ Closest patent prior art but distinguishable on all five novel claims. Their ent
 
 ## Emerging / Watch List
 
+**🔴 Microsoft Patent US20250378320A1** — "Generative agent guided conversations for artifact completion." Describes using an LLM to guide a conversation that fills a structured artifact against a schema. This is the strongest prior-art anchor for the Lens discovery mechanism at the generic level. Our differentiation: domain-specific (career identity), bidirectional architecture, coaching personas, feedback loops. **Attorney must see this before nonprovisional filing.**
+
+**🟡 Textkernel** — Explicitly markets "bi-directional matching" and "bimetric scoring" for candidates and jobs. Skills/experience/preference-based, not identity-based. Symmetric dimensions (same weights both directions). Our differentiation: asymmetric dimension sets, identity-signal foundation, coached discovery, portable artifact. The concept of "score both directions" is not novel; the asymmetric identity architecture is.
+
 **PersonaSight** (referenced by Perplexity) — Appears to be more academic/research concept than commercial product. Text-based personality inference from small samples. Worth monitoring if it commercializes, but not a current competitor.
 
 **Delenta** — AI coaching platform producing "actionable intelligence" summaries. Moves toward artifact-producing coaching but focused on coaching practice management, not matching.
 
 **AI career assistants (emerging wave)** — Resume builders, interview prep bots, application copilots. All optimize for speed and volume. None produce a persistent identity artifact.
+
+---
+
+## Internal Mobility Platform Landscape
+
+**Gloat** — Leading talent marketplace. Skills-graph matching, internal gigs, career pathing. Strong on opportunity matching. Messaging emphasizes "near matches" over perfect fits. Does NOT model values, energy, work style, or seat-specific culture. (~$190M raised)
+
+**Fuel50** — Career pathing and talent marketplace. Skills-first matching with career development focus. Some interest/aspiration capture, but primarily skills taxonomy. Does NOT model identity-level fit. (~$30M raised)
+
+**Eightfold AI** — Talent intelligence platform. Deep skills inference from resume/profile data using AI. Predictive models for internal mobility. Sophisticated on skills but does NOT capture coached identity data or values/energy alignment. (~$400M+ raised)
+
+**Workday / SAP SuccessFactors / ServiceNow** — Enterprise HCM suites with internal mobility modules. Skills-based matching bolted onto existing HRIS infrastructure. Broad but shallow on fit.
+
+**The open lane:** All of these platforms answer "Can this person do the job?" None of them answer "Will this person thrive in this specific seat on this specific team?" The Lens identity layer sits on top of existing skills infrastructure — it's an overlay, not a replacement.
+
+---
+
+## Verified Research & Market Data
+
+*These citations are verified against primary sources and are safe to use in decks, patent filings, and enterprise conversations.*
+
+### Internal Mobility Market (Aptitude Research)
+
+Source: Aptitude Research, "The New Era of Internal Mobility" (2023), co-published with Workday. Supplemented by "The State of Internal Mobility" (2022) and Beamery Talent Index.
+
+- **70%** of companies increased investment in internal mobility (Aptitude, 2022)
+- **77%** of companies have lost talent due to a lack of career development opportunities (Aptitude, 2023)
+- **Only 25%** of companies are confident in their internal mobility strategies (Aptitude, 2023)
+- **58%** of employees said if their company recruited externally for a role they were interested in and they weren't considered, they would leave (Beamery/Aptitude Talent Index)
+- **77%** of high-performing companies improved retention through internal mobility, vs. 45% of all others (Aptitude/Workday)
+- **82%** of companies identified skills as a priority; #1 driver is career development (Aptitude, 2023)
+- **95%** of companies said skills are more important than job titles for promotions (Aptitude/Workday)
+- Current internal mobility strategies require employees to do most of the work to find their next opportunity (Aptitude, 2023)
+- Most platforms match on skills taxonomy — values, energy, and work-style fit are not modeled
+
+**What this means for Lens:** The market is spending heavily on internal mobility but most companies don't think their approach is working. The tools match on skills ("can they do it?") but not on identity ("will they thrive?"). 95% say skills matter more than titles — the next logical step is that values and energy matter more than skills alone, and nobody is measuring those.
+
+### Observer Ratings vs. Self-Reports (Academic Foundation)
+
+**Primary source:** Oh, I-S., Wang, G., & Mount, M.K. (2011). "Validity of Observer Ratings of the Five-Factor Model of Personality Traits: A Meta-Analysis." *Journal of Applied Psychology*, 96(4), 762-773.
+
+Key findings:
+- Observer ratings of personality traits are significantly better predictors of job performance than self-reports
+- When measured by observers, ALL five personality factors are significant predictors of performance
+- Observer ratings show incremental validity over self-reports, but the reverse is not true
+- The validity of personality traits in predicting performance "is higher than previously believed" — the limitation was the measurement method (self-report), not the construct itself
+
+**Supporting research:**
+- Connelly & Ones (2010): Informant-reports surpassed self-reports as predictors for academic achievement and work performance
+- Wihler et al. (2023): Other-ratings of personality showed coefficients up to 9x higher than self-ratings
+- Schmidt & Oh (2016): "Personality traits measured using ratings by others who know the individual tend to have higher validities, but such measures are rarely used in job selection because such ratings are difficult to obtain"
+
+**What this means for Lens:** The research establishes that the *method* of personality measurement matters as much as the *construct*. Self-report surveys (DISC, Big Five, SquarePeg-style instruments) produce lower-validity data not because personality doesn't predict performance, but because people can't accurately self-report. Observer/informant ratings predict better, but they're hard to obtain at scale. AI-guided coached discovery functions as a scalable informant-report mechanism — the AI probes, follows threads, surfaces contradictions, and produces a structured output that captures what self-report cannot. This is the academic basis for the Lens method's superiority over survey-based approaches.
+
+**Caveat for precision:** The AI coach is not technically an "observer" or "informant" in the I/O psychology sense (those terms refer to other humans who know the person). The analogy is conceptually strong — the AI acts as a structured elicitor that surfaces signal self-report misses — but should be framed carefully in academic or patent contexts. The more precise claim: coached discovery produces data more similar to informant-report quality than to self-report quality, because it bypasses the self-awareness and social desirability limitations that degrade self-report validity.
 
 ---
 
@@ -439,6 +498,10 @@ BetterUp raised $628M and hit $250M ARR, proving enterprise willingness to pay f
 | BetterUp | AI + human coaching platform | $628M | Active, struggling | Low — no artifact, no matching |
 | CoachHub | Digital coaching (EU) | ~$200M+ | Active | Low — same ceiling as BetterUp |
 | Gallup/DISC/Hogan | Static psychometric assessments | Established | Active | Low — no matching, no portability |
+| Gloat | Internal talent marketplace | ~$190M | Active | Medium — right market, skills-only |
+| Fuel50 | Career pathing + talent marketplace | ~$30M | Active | Low — skills-first, no identity layer |
+| Eightfold AI | Talent intelligence platform | ~$400M+ | Active | Medium — sophisticated AI, skills-only |
+| Textkernel | Bidirectional "bimetric" matching | Established | Active | Medium — closest on bidirectional, but skills-only, symmetric |
 | iMocha | Skills + internal mobility | ~$14M | Active | Low — skills only, no identity |
 | Korn Ferry | Enterprise talent assessment | Public ($1.7B rev) | Active | Low — different market, distinguishable patent |
 
@@ -453,6 +516,21 @@ BetterUp raised $628M and hit $250M ARR, proving enterprise willingness to pay f
 | March 22, 2026 | Prior art patent landscape completed (6 competitors surveyed) |
 | March 31, 2026 | J&J "Jack's Brief" signal architecture deep-dive (8 new screenshots). Created living competitive-landscape.md per competitive-entry skill format. Added architecture comparison table, "Auto" badge analysis, and exclusion signal inventory. |
 | April 3, 2026 | Major expansion: Added Three Stacked Bets, structural analysis (why deep-fit hasn't been built), SquarePeg cautionary tale, BetterUp struggles analysis, Pymetrics/Harver, Plum.io, iMocha, CoachHub. Added Critical Risks, Strategic Implications, GTM sequence, validation questions, quick reference table. Entry count 5 → 12. |
+| April 3, 2026 | Added Microsoft Patent US20250378320A1 (prior art alert for attorney), Textkernel bidirectional matching, Internal Mobility Platform Landscape (Gloat, Fuel50, Eightfold AI), Verified Research section (Aptitude Research stats, Oh/Wang/Mount 2011 academic foundation), Cross-Reference section. Entry count 12 → 16. |
+
+---
+
+## Cross-Reference: Where This Research Appears
+
+The verified research above should be incorporated into:
+
+1. **Investor Pitch Deck** (`lens-investor-pitch-v5.3.pptx`) — Add Aptitude stats to the market slide. Add Oh, Wang & Mount finding to the "why this works" slide. Frame: "Observer ratings predict job performance significantly better than self-reports, but they're hard to obtain at scale. Our AI-guided discovery makes that possible for the first time."
+
+2. **Lens for Hiring Leaders** (v1.1, sent to Edie Hunt) — Next revision should include the internal mobility stats (70% investing more, 77% losing talent, only 25% confident) and the "Can they do it?" vs. "Will they thrive?" framing from the mobility platform gap analysis.
+
+3. **Nonprovisional Patent Background Section** — Add Oh, Wang & Mount (2011) as foundational research supporting the claim that the method of personality measurement (not just the construct) determines predictive validity. Add SquarePeg's original bidirectional matching model (2016-2019) and subsequent pivot as prior art, with explicit differentiation on method (coached discovery vs. self-report), artifact (portable machine-readable document vs. platform-locked profile), and adaptivity (feedback loop vs. static scores). **CRITICAL: Review Microsoft Patent US20250378320A1 before filing.**
+
+4. **CONTEXT-lens-project.md** — Update competitive research section with SquarePeg history, Pymetrics/Harver acquisition, BetterUp current state, internal mobility platform landscape (Gloat, Fuel50, Eightfold), and the Oh, Wang & Mount citation.
 
 ---
 
