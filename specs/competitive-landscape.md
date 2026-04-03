@@ -1,14 +1,60 @@
 # Competitive Landscape — Lens Project
 
-**Last updated:** March 31, 2026
-**Entry count:** 5
+**Last updated:** April 3, 2026
+**Entry count:** 12
 **Maintained by:** Eric Zelman
+**Patent Pending:** App #64/015,187 — Confidential
 
 ---
 
 ## Executive Summary
 
-No existing product combines coached identity discovery, portable machine-readable documents, weighted composite scoring, and bidirectional matching. The closest functional competitor (Jack & Jill, $20M seed) operates at recruiter-level intelligence — structured preference collection and keyword-adjacent matching — but lacks discovery depth, portable output, coach integration, or company-side matching. The Lens Project's defensible position is upstream: coaching-level depth producing a functional artifact that governs automated evaluation, not a faster way to filter jobs. Patent-pending (App #64/015,187, filed 3/24/26) covers the novel combination of identity-signal extraction, asymmetric scoring, and drift detection. No competitor has filed on any of these claims.
+No existing product combines coached identity discovery, portable machine-readable documents, weighted composite scoring, and bidirectional matching. The closest functional competitor (Jack & Jill, $20M seed) operates at recruiter-level intelligence — structured preference collection and keyword-adjacent matching — but lacks discovery depth, portable output, coach integration, or company-side matching. SquarePeg tried bidirectional psychometric matching and pivoted away. BetterUp proved enterprise coaching demand ($628M raised) but produces no functional artifact. The Lens Project's defensible position is upstream: coaching-level depth producing a functional artifact that governs automated evaluation, not a faster way to filter jobs. Patent-pending (App #64/015,187, filed 3/24/26) covers the novel combination of identity-signal extraction, asymmetric scoring, and drift detection. No competitor has filed on any of these claims.
+
+---
+
+## The Three Stacked Bets
+
+The Lens Project isn't making one bet — it's making three, and each one has to hold for the next to matter.
+
+**Bet A: "Fit" is the unsolved problem in hiring.** The dominant systems optimize for efficiency (sourcing, screening, compliance), not for predicting whether someone will thrive in a specific seat. The biggest cost is mis-hire, not slow hiring.
+
+**Bet B: Identity can be structured and operationalized.** A person's values, energy patterns, work style, and constraints can be reliably elicited, encoded into a machine-readable format, and used as a matching signal.
+
+**Bet C: Bidirectional matching is possible and valuable.** Employers can be modeled with the same depth as candidates, and matching improves when both sides are deeply profiled.
+
+---
+
+## Why Deep-Fit Assessment Hasn't Been Built at Scale
+
+All three AI platforms (Gemini, ChatGPT, Perplexity) converged on the same answer: this is a structural incentive problem, not a technical limitation.
+
+**The speed-over-signal trap.** Time-to-fill remains the primary TA KPI. Deep-fit discovery is perceived as friction that slows the pipeline. Budget flows to sourcing, CRM, and automation — not to multi-hour discovery processes.
+
+**The buyer persona mismatch.** ATS platforms are sold to recruiters (who value volume and efficiency). Deep-fit tools are needed by hiring managers (who feel the pain of a culture misfit six months later). The person writing the check isn't the one feeling the pain.
+
+**The ground-truth data problem.** To validate a fit-prediction model, you need rich pre-hire data linked to long-horizon post-hire outcomes (thriving, engagement, regretted attrition) at the role/team level. Almost no company systematically captures this. The Lens Project creates this feedback loop by generating the pre-hire data (the lens) and then tracking what happens. That's not just a feature — it's the moat.
+
+**The candidate friction problem.** Tolerance for long, introspective workflows is low unless candidates clearly see personal benefit (career clarity, coaching, development) — not just "better matching for this job." The free lens as a standalone value prop addresses this directly.
+
+---
+
+## The Lens Gap (Where Nobody Sits)
+
+```
+                    DEPTH OF UNDERSTANDING
+                    Low ◄──────────────────► High
+
+SCALE   High │  LinkedIn        │               │
+             │  Indeed           │               │
+             │  ATS platforms    │    [LENS]     │
+             │                   │               │
+        Low  │  Resume builders  │  BetterUp     │
+             │  AI assistants    │  Human coaches │
+             │  Jack & Jill      │  Psychometrics │
+```
+
+The Lens Project sits in the upper-right quadrant: **deep AND scalable**. It gets there by using AI-guided discovery (scalable) to produce a coaching-depth artifact (deep) that then governs automated matching (scalable again).
 
 ---
 
@@ -107,63 +153,123 @@ Jack & Jill is the nearest functional competitor and the one to watch, especiall
 
 ---
 
-## Tier 2: Adjacent Products
-
----
-
-### JSON Resume
-**URL:** https://jsonresume.org
-**Founded:** ~2014
-**Funding:** Open source / community project
-**Last reviewed:** March 15, 2026
+### SquarePeg
+**URL:** https://squarepeghires.com
+**Founded:** 2016, NYC (Claire McTaggart)
+**Funding:** Unknown
+**Last reviewed:** April 3, 2026
 
 **What they do:**
-Open standard for structured resume data in JSON format. Community-maintained schema with rendering themes. Establishes the precedent that career data can be structured, portable, and machine-readable.
+Originally built psychometric-driven matching: 19 personality traits, values, environment fit, work style. Assessed both candidates AND companies for bidirectional fit. Has since **pivoted toward AI-powered resume screening and candidate sourcing** — moved away from deep-fit matching toward speed and efficiency.
 
-**Overlap with Lens Project:**
-Format precedent. Demonstrates that structured career documents can exist outside proprietary platforms. The lens document's markdown + YAML approach is a spiritual descendant.
+**Why this matters:**
+SquarePeg is the cautionary tale. They tried bidirectional psychometric matching and it stayed niche.
 
-**Key differentiators (theirs):**
-- Established open standard with community adoption
-- Multiple rendering themes
-- Developer-friendly ecosystem
+**What went wrong:**
+1. Employer adoption of deep self-assessment was hard to get
+2. Adding assessment friction early in funnel slowed pipelines
+3. Demonstrating ROI in CFO-legible terms proved difficult
 
-**Key differentiators (ours):**
-- Identity and values layer (not just career history)
-- Scoring/matching capability built into the format
-- Discovery process to generate the document (not just data entry)
-- Coach methodology integration
-
-**Gap analysis:**
-- Discovery depth: **none** (data entry only)
-- Portable output: **yes** (JSON, open standard)
-- Scoring/matching: **no**
-- Coach integration: **no**
-- Bidirectional: **no**
-- Passive monitoring: **no**
+**Gap vs. Lens:**
+- Self-report assessments produce shallow data — coaching-facilitated discovery produces deeper, more honest data
+- The role lens must be embedded in existing workflows (req creation, intake meetings), not added as an extra exercise
+- Need proxy signals early (early attrition reduction, interview-to-offer improvement) before claiming long-term fit prediction
 
 **Verdict:**
-Not a competitor. A format precedent that validates portable structured career documents. Worth referencing in positioning but poses zero threat.
+Low threat — they abandoned the fit thesis. But their pivot is instructive: the Lens Project must make the employer side frictionless or enterprise adoption will stall.
 
 ---
 
-### DISC / StrengthsFinder (CliftonStrengths) / Myers-Briggs
+## Tier 2: Assessment & Matching Platforms
+
+---
+
+### Pymetrics (acquired by Harver, August 2022)
+**Funding:** ~$60.7M raised
+**Founded by:** Frida Polli (CEO noted: "people are notoriously bad at knowing themselves and then reporting that in an accurate way")
+**Last reviewed:** April 3, 2026
+
+**What they did:**
+Neuroscience-based games to capture behavioral/cognitive traits. Employer-side only: candidates had to "play the game" for every company. Not portable — no persistent identity layer.
+
+**Gap vs. Lens:**
+Pymetrics solved for behavioral traits but made the experience non-portable and employer-controlled. Acquisition by Harver absorbed it into traditional assessment stack. Lens is candidate-owned and portable.
+
+---
+
+### Harver (acquired Pymetrics, previously known as Outmatch)
+Industry-leading hiring assessment platform combining I/O psychology and cognitive science. Focus on hourly and professional role hiring decisions.
+
+**Gap vs. Lens:**
+Employer-facing, assessment-based, no identity discovery, no coaching integration, no bidirectional matching.
+
+---
+
+### Plum.io / Criteria Corp
+Traditional I/O psychology assessments for hiring decisions. Static, one-time use, employer-controlled.
+
+**Gap vs. Lens:**
+Static reports, not living documents. No coaching integration. Not candidate-owned.
+
+---
+
+### iMocha
+AI-powered skills matching for internal career pathing. Inches toward "fit" but in a skills/capability framing only. Values and energy patterns are not primary axes.
+
+**Gap vs. Lens:**
+Strong on skills, weak on identity. No deep discovery. Internal-only.
+
+---
+
+## Tier 3: Coaching Platforms (Depth, No Scale)
+
+---
+
+### BetterUp
+**HQ:** Austin
+**Funding:** $628M raised, $4.7B peak valuation (2021)
+**ARR:** ~$250M (2023), growth slowed from 127% to ~40% YoY
+**Status:** Three rounds of layoffs, executive turnover, strategic instability
+**Last reviewed:** April 3, 2026
+
+**What they do:**
+AI-powered coaching + human coaching network (~3,000 coaches). Launched AI coaching features (BetterUp Grow, roleplay, Slack/Teams integration). Sells to enterprise (Google, Salesforce, Workday). Revenue model: SaaS subscription, takes cut from coach fees.
+
+**Gap vs. Lens:**
+Coaching is conversational, not artifact-producing. No portable document. No matching layer. Expensive ($2K-3K per session historically). Coaching outcomes are qualitative, not machine-readable.
+
+**What BetterUp's struggles teach you:**
+BetterUp raised $628M and hit $250M ARR, proving enterprise willingness to pay for coaching at scale. But their challenges — layoffs, strategy shifts, coach retention, the "SaaSy not SaaS" identity crisis — suggest that coaching-as-service without a functional artifact is structurally fragile. The Lens insight: coaching produces measurable ROI when it generates a functional artifact that governs downstream decisions.
+
+---
+
+### CoachHub
+**HQ:** Berlin
+**Funding:** ~$200M+
+**Last reviewed:** April 3, 2026
+
+Digital coaching platform for European market. AI coaching features emerging.
+
+**Gap vs. Lens:**
+Same ceiling as BetterUp — coaching without a functional artifact.
+
+---
+
+## Tier 4: Traditional Psychometrics (Static, No Matching)
+
+---
+
+### DISC / CliftonStrengths (Gallup) / Myers-Briggs / Hogan
 **URL:** Various
 **Founded:** Various (decades-old)
 **Funding:** Gallup (CliftonStrengths) is a $2B+ organization; DISC is public domain
 **Last reviewed:** March 22, 2026
 
 **What they do:**
-Personality and strengths assessment tools that produce trait profiles. Widely used in corporate development, team building, and coaching. CliftonStrengths identifies top 5 (or 34) talent themes. DISC categorizes communication/behavioral styles. MBTI classifies cognitive preferences.
+Personality and strengths assessment tools that produce trait profiles. Widely used in corporate development, team building, and coaching. CliftonStrengths identifies top 5 (or 34) talent themes. DISC categorizes communication/behavioral styles. MBTI classifies cognitive preferences. Massive installed base (30M+ CliftonStrengths assessments).
 
 **Overlap with Lens Project:**
 All produce a "who you are" artifact. Coaches (including James Pratt) often use these as inputs to their process. Users may compare the lens document to these assessments.
-
-**Key differentiators (theirs):**
-- Decades of validation and brand recognition
-- Massive installed base (30M+ CliftonStrengths assessments)
-- Corporate procurement channels established
-- Gallup holds copyright/trade secret protection (not patent) on CliftonStrengths
 
 **Key differentiators (ours):**
 - Forward-looking (what do you want next) vs. backward-looking (what are your traits)
@@ -181,41 +287,23 @@ All produce a "who you are" artifact. Coaches (including James Pratt) often use 
 - Passive monitoring: **no**
 
 **Verdict:**
-Not direct competitors. These are upstream inputs that coaches and users bring into the discovery process. The Lens Project can reference and integrate assessment results rather than competing with them. CliftonStrengths' lack of patent protection (copyright/trade secret only) is relevant to our IP positioning.
+Not direct competitors. These are upstream inputs that coaches and users bring into the discovery process. The Lens Project can reference and integrate assessment results rather than competing with them. The lens must avoid the "astrology with better UX" perception risk while still producing something people trust. CliftonStrengths' lack of patent protection (copyright/trade secret only) is relevant to our IP positioning.
 
 ---
 
-### ATS Systems (Greenhouse, Lever, Ashby)
-**URL:** Various
+## Tier 5: ATS / Job Boards (Scale, No Depth)
+
+---
+
+### LinkedIn / Indeed / Greenhouse / Lever / Ashby
 **Funding:** Greenhouse ($110M+), Lever (acquired by Employ), Ashby (growing)
 **Last reviewed:** March 22, 2026
 
 **What they do:**
-Applicant tracking systems that manage the hiring pipeline from job posting through offer. Core function is workflow management for recruiters and hiring managers. Some include AI-powered candidate matching, resume parsing, and structured interviewing.
+High-volume keyword matching and workflow management. LinkedIn has the data to build something deeper but optimizes for engagement/ads. ATS platforms are compliance and workflow databases, not identity data platforms. Core function is managing the hiring pipeline from job posting through offer.
 
-**Overlap with Lens Project:**
-ATS systems are the infrastructure the Lens Project's enterprise (Role Lens) offering would need to integrate with. They also represent the "keyword matching" philosophy the Lens Project positions against.
-
-**Key differentiators (theirs):**
-- Established enterprise infrastructure with massive adoption
-- Workflow management beyond just matching
-- Compliance, reporting, analytics
-- Greenhouse has 3 patents in adjacent space (workflow, not matching)
-
-**Key differentiators (ours):**
-- Signal matching vs. keyword matching
-- Identity-based fit vs. resume-based screening
-- Candidate-owned document vs. company-controlled profile
-- Coaching depth vs. form-fill intake
-- Greenhouse patents are distinguishable (workflow optimization, not identity-signal extraction)
-
-**Gap analysis:**
-- Discovery depth: **none** (application form)
-- Portable output: **no** (data locked in ATS)
-- Scoring/matching: **partial** (keyword/skill matching, not identity-signal matching)
-- Coach integration: **no**
-- Bidirectional: **partial** (both sides use the system, but matching is keyword-based)
-- Passive monitoring: **no** (job boards, not ongoing scoring)
+**Gap vs. Lens:**
+Surface-level matching, high noise-to-signal ratio. Store text tied to job reqs, not longitudinal candidate identity data. Keyword matching vs. signal matching. Greenhouse has 3 patents in adjacent space (workflow optimization, not identity-signal extraction — distinguishable).
 
 **Verdict:**
 Integration targets, not competitors. The Role Lens (company-side) would ideally feed into or sit alongside ATS systems. Their keyword-matching approach is exactly what the Lens Project positions against, making them useful foils in positioning narrative.
@@ -232,12 +320,6 @@ Enterprise talent assessment and organizational consulting. Their platform inclu
 
 **Overlap with Lens Project:**
 Korn Ferry's patent (US10346804) is the closest existing patent to the Lens Project's claims. Their system matches candidate profiles to role requirements using structured assessment data.
-
-**Key differentiators (theirs):**
-- Existing patent in adjacent space
-- Enterprise-scale with Fortune 500 client base
-- Decades of competency framework research
-- Full-service consulting model
 
 **Key differentiators (ours):**
 - Korn Ferry patent is unidirectional (company evaluates candidate); Lens is asymmetric (both sides score independently with different schemas)
@@ -260,14 +342,105 @@ Closest patent prior art but distinguishable on all five novel claims. Their ent
 
 ---
 
-## Tier 3: Ecosystem Players
-
-*(To be expanded as research surfaces relevant platforms)*
+## Tier 6: Ecosystem Players
 
 - **LinkedIn** — dominant professional network; data source and distribution channel, not a matching competitor
 - **Indeed** — job aggregator; potential data source for scoring pipeline
 - **Brave Search** — currently used in n8n pipeline for job discovery enrichment
 - **Crunchbase** — funding/company data source for VC portfolio scraping
+
+---
+
+## Emerging / Watch List
+
+**PersonaSight** (referenced by Perplexity) — Appears to be more academic/research concept than commercial product. Text-based personality inference from small samples. Worth monitoring if it commercializes, but not a current competitor.
+
+**Delenta** — AI coaching platform producing "actionable intelligence" summaries. Moves toward artifact-producing coaching but focused on coaching practice management, not matching.
+
+**AI career assistants (emerging wave)** — Resume builders, interview prep bots, application copilots. All optimize for speed and volume. None produce a persistent identity artifact.
+
+---
+
+## Critical Risks (Ranked by Severity)
+
+### 🔴 Risk 1: Is this the problem buyers actually pay for?
+
+If CHROs say "our issue is pipeline, not fit" or "we solve fit via managers + interviews" — the enterprise wedge weakens. Perplexity's reframing: don't position "fit prediction" as the value prop. Position it as the mechanism that moves metrics buyers already care about — early attrition, quality-of-hire, internal redeployment. **Test this in the Edie Hunt and Anne/Rob Birdsong conversations.**
+
+### 🔴 Risk 2: Can "fit" be measured in a way people trust?
+
+Even if technically possible, the product could feel too subjective for enterprise adoption. Needs either predictive validity or perceived legitimacy. The coaching-facilitated, artifact-producing model is the right counter — it's not a personality label, it's a working document that governs real decisions.
+
+### 🔴 Risk 3: Is the required behavior change too large?
+
+The system requires candidates to do deep introspection AND employers to expose real cultural truth. That's a multi-sided adoption problem. **Mitigation:** Coach channel solves candidate-side adoption (coaches bring their clients). Making the role lens a byproduct of existing work (req creation, intake meetings) reduces employer-side friction.
+
+### 🟡 Risk 4: Lens document becomes static
+
+If users don't revisit/update it, it decays like a resume. **Mitigation:** "Append, don't overwrite" philosophy. Feedback loops from scoring pipeline recalibrate. The paid tier creates ongoing engagement through daily briefings.
+
+### 🟡 Risk 5: Employer-side data honesty
+
+Companies may resist codifying unflattering truths about teams. Legal/comms organizations may prefer generic, positive language. **Mitigation:** Frame role lens as a tool for the hiring manager, not a public document. Start with teams that self-select (high-integrity orgs, startups, internal mobility programs).
+
+---
+
+## Strategic Implications
+
+### Positioning
+
+**Don't say:** "We predict fit before you hire."
+**Do say:** "We help you understand what someone actually needs to thrive — and whether this seat is the right one — before either side commits."
+
+**Enterprise framing:** "Teams that use structured role lenses have lower early attrition and higher new-hire performance." (Need to build the data to back this up.)
+
+**Candidate framing:** "It's not about finding jobs faster. It's about finding what's right for you."
+
+### GTM Sequence
+
+1. **Candidate product first.** Free lens intake → portable artifact. Coach channel as distribution. This is where you have traction and where adoption friction is lowest.
+2. **Internal mobility as enterprise wedge.** All three platforms flagged this as adjacent and potentially more tractable than external hiring. "We're losing great people because we don't help them find the right internal roles" is a pain point hiring leaders already articulate.
+3. **External hiring as the scale play.** Bidirectional matching for external candidates is the big vision but requires both sides to be deeply profiled. Build toward this as the data and trust accumulate.
+
+### The Feedback Loop Is the Moat
+
+The lens creates pre-hire identity data. The scoring pipeline tracks engagement. User decisions (apply, skip, save) generate feedback. Over time, this produces the ground-truth dataset that nobody else has — rich pre-hire profiles linked to post-hire outcomes. This is what makes the model improve and what makes the product defensible.
+
+### What SquarePeg's Pivot Teaches You
+
+SquarePeg tried psychometric-driven bidirectional matching and pivoted to AI resume screening. The lesson isn't "bidirectional matching doesn't work." The lesson is:
+- Self-report assessments produce shallow data — coaching-facilitated discovery produces deeper, more honest data
+- Employers resisted doing the work — the role lens must be embedded in existing workflows, not added as an extra step
+- ROI was hard to prove — you need proxy signals early (early attrition reduction, interview-to-offer improvement) before you can claim long-term fit prediction
+
+### What BetterUp's Struggles Teach You
+
+BetterUp raised $628M and hit $250M ARR, proving enterprise willingness to pay for coaching at scale. But their challenges — layoffs, strategy shifts, coach retention, the "SaaSy not SaaS" identity crisis — suggest that coaching-as-service without a functional artifact is structurally fragile. The Lens insight: coaching produces measurable ROI when it generates a functional artifact that governs downstream decisions.
+
+---
+
+## Key Questions for Validation Conversations
+
+1. When you think about your worst hires — the ones that looked great on paper — what was the thing you missed?
+2. Does your organization have a structured way to evaluate whether someone will thrive in a specific seat, or is that still mostly judgment?
+3. If someone handed you a document about a candidate that told you what they actually care about, how they work, and what their dealbreakers are — would that change how you interview them?
+4. Is "predicting fit before the offer" even the right problem? Or is the real pain somewhere else?
+5. Why haven't the major platforms built this?
+
+---
+
+## Competitor Quick Reference
+
+| Company | What They Do | Funding | Status | Threat Level |
+|---------|-------------|---------|--------|-------------|
+| Jack & Jill AI | AI career agent | ~$20M seed | Active | Medium — speed-focused, no depth |
+| SquarePeg | AI resume screening (pivoted from fit matching) | Unknown | Active | Low — abandoned the fit thesis |
+| Pymetrics | Neuroscience behavioral assessment | $60.7M | Acquired by Harver (2022) | Low — absorbed into assessment stack |
+| BetterUp | AI + human coaching platform | $628M | Active, struggling | Low — no artifact, no matching |
+| CoachHub | Digital coaching (EU) | ~$200M+ | Active | Low — same ceiling as BetterUp |
+| Gallup/DISC/Hogan | Static psychometric assessments | Established | Active | Low — no matching, no portability |
+| iMocha | Skills + internal mobility | ~$14M | Active | Low — skills only, no identity |
+| Korn Ferry | Enterprise talent assessment | Public ($1.7B rev) | Active | Low — different market, distinguishable patent |
 
 ---
 
@@ -279,3 +452,8 @@ Closest patent prior art but distinguishable on all five novel claims. Their ent
 | March 22, 2026 | Full J&J product walkthrough (19 screenshots), DOCX competitive report created |
 | March 22, 2026 | Prior art patent landscape completed (6 competitors surveyed) |
 | March 31, 2026 | J&J "Jack's Brief" signal architecture deep-dive (8 new screenshots). Created living competitive-landscape.md per competitive-entry skill format. Added architecture comparison table, "Auto" badge analysis, and exclusion signal inventory. |
+| April 3, 2026 | Major expansion: Added Three Stacked Bets, structural analysis (why deep-fit hasn't been built), SquarePeg cautionary tale, BetterUp struggles analysis, Pymetrics/Harver, Plum.io, iMocha, CoachHub. Added Critical Risks, Strategic Implications, GTM sequence, validation questions, quick reference table. Entry count 5 → 12. |
+
+---
+
+*This is a living document. Update when new competitors surface, when validation conversations produce new signal, or when the competitive thesis changes.*
