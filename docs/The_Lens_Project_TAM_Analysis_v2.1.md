@@ -1,21 +1,22 @@
 # The Lens Project
-## Total Addressable Market (TAM) Analysis — v2
+## Total Addressable Market (TAM) Analysis — v2.1
 ### Expanded Use Cases: PLG, Consultative, Coach Channel, Passive Monitoring, Freemium
+### Updated April 2, 2026
 
 ---
 
 # Executive Summary
 
-The Lens Project is a predictive inflection intelligence platform designed for experienced operators targeting roles before they are publicly posted. The core value proposition: coaching-quality self-discovery that produces a machine-readable lens document governing daily job scoring and briefings.
+The Lens Project is an AI-powered career identity discovery and job-fit platform that produces portable, machine-readable lens documents through coaching-depth discovery, then scores opportunities against those documents using signal matching rather than keyword matching. The core value proposition: the gap in hiring is not in filtering — it is in what is being filtered. No existing tool collects the behavioral signals, energy patterns, values-in-practice, and disqualifiers that predict whether someone will thrive in a specific role.
 
 This revision expands the original TAM model to incorporate use cases identified through product development and stakeholder conversations:
 
 1. **Active Job Seekers (PLG)** — original model, refined
 2. **Passive Monitoring for Employed Professionals** — "tell me if I should pay attention"
 3. **Coach-as-Channel (B2B2C)** — coaches license the tool as a deliverable for clients
-4. **Freemium Lead Generation** — free sample report → paid add-ons (coaching, extended briefings)
+4. **Freemium Lead Generation** — free lens creation → paid pipeline (coaching, daily briefings)
 5. **VC / Recruiter Extension** — intelligence layer for institutional buyers
-6. **Corporate / Outplacement** — enterprise buyers for employees in transition
+6. **Corporate / Outplacement** — enterprise buyers for employees in transition (SPECULATIVE — pending employer-side validation)
 
 ---
 
@@ -77,6 +78,8 @@ Subset serving career transition specifically (estimated 30–40%): ~2,250–8,0
 Adoption rate at early stage (estimated 2–5%): ~45–400
 
 **Realistic coach channel: ~100–300 coaches in year 1–2**
+
+**Near-term reality (April 2026):** James Pratt is coach #1 (persona encoded, in testing). Pipeline for coaches 2-3 depends on James proving the model. Launch plan targets 5-10 active coach personas by month 18. The 100-300 figure is the addressable ceiling, not the near-term pipeline.
 
 Revenue model: per-seat license ($50–$150/month per coach), per-client usage fee, or revenue share on downstream subscriptions.
 
@@ -174,9 +177,11 @@ If 2% adopt at $500/month: 100–160 firms = $600k–$960k ARR
 
 **Institutional layer: $360k–$1.9M ARR**
 
-## Scenario G: Corporate / Outplacement (New)
+## Scenario G: Corporate / Outplacement (New — SPECULATIVE)
 
 Companies offering career transition support to departing employees.
+
+**Status (April 2026):** This scenario and Scenario F (VC/Recruiter) represent institutional buyer segments that depend on employer-side adoption. James Pratt's strategic feedback (3/30/26) challenges the assumption that companies prioritize precision over volume in hiring. Edie Hunt (employer-side advisor) call scheduled April 7 is the first validation point. Until validated with actual hiring leaders, all enterprise/institutional revenue scenarios should be treated as speculative ceiling estimates, not planning targets.
 
 US companies with formal outplacement programs: ~2,000–5,000
 
@@ -233,6 +238,7 @@ Requires:
 - Clean data model and proprietary trajectory dataset
 - Coach network as moat (coaches won't switch once clients depend on the output)
 - Demonstrated signal-matching advantage over keyword-based competitors
+- IP protection: provisional patent filed March 2026 (App #64/015,187) covering bidirectional identity-signal matching, asymmetric scoring, and drift detection. No competitor has filed on these claims. Convert to nonprovisional by March 2027.
 
 ---
 
@@ -271,6 +277,10 @@ Revenue sharing with coaches (10–20% of downstream subscription revenue from t
 
 **Competitive risk from incumbents:** LinkedIn, Indeed, and large job platforms could add "preference profiles." Their advantage is distribution. The Lens Project's advantage is depth — signal matching vs. keyword matching. The question is whether depth matters enough to sustain a niche against broad platforms with good-enough matching.
 
+**Free tool indistinguishable from ChatGPT + resume:** A sophisticated user who uploads their materials to ChatGPT with a well-crafted prompt could get a comparable throughline analysis. The raw AI capability is not the moat. The moat is: (1) structured output format — machine-readable YAML that a scoring pipeline can parse, which ChatGPT does not produce; (2) methodology encoding — coaching frameworks that push past surface answers, not a raw chatbot; (3) pipeline integration — daily scoring the user cannot replicate without significant technical setup. If the free tier does not produce a visible "aha" moment that feels qualitatively different from a ChatGPT conversation, the freemium funnel breaks at the top and all downstream revenue scenarios degrade. This is the most important signal to watch in Experiment 1 (Lens Shock Test).
+
+**Enterprise thesis unvalidated:** James Pratt's feedback (3/30/26) challenges the assumption that companies want hiring precision over volume. Scenarios F and G depend on employer-side adoption. Until validated with actual hiring leaders (Edie Hunt call April 7 is the first test), institutional revenue projections are speculative ceilings.
+
 ---
 
 # Core Insight (Revised)
@@ -287,4 +297,4 @@ The difference is not the technology. It is the go-to-market architecture.
 
 ---
 
-End of TAM Analysis v2.
+End of TAM Analysis v2.1 | Updated April 2, 2026 | PATENT PENDING (App #64/015,187)

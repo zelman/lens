@@ -1,12 +1,12 @@
 # The Lens Project: Strategic Brief & Competitive Analysis
 
-*March 2026 | Comprehensive research summary for external review and critique*
+*v1.1 | April 2, 2026 | Comprehensive research summary for external review and critique*
 
 ---
 
 ## Purpose of This Document
 
-This document captures the complete research, competitive analysis, product vision, go-to-market strategy, and identified gaps for the Lens Project — a proposed bidirectional identity marketplace for hiring. It is intended to be reviewed critically by outside parties (human or AI) to stress-test the thesis, identify blind spots, and challenge assumptions.
+This document captures the complete research, competitive analysis, product vision, go-to-market strategy, and identified gaps for the Lens Project — a bidirectional identity marketplace for hiring, currently in active tester validation. It is intended to be reviewed critically by outside parties (human or AI) to stress-test the thesis, identify blind spots, and challenge assumptions.
 
 The core question this document tries to answer: **Is there a defensible, fundable business in building structured professional identity documents (lenses) that replace keyword-matched resumes with signal-matched profiles, on both sides of every hire?**
 
@@ -52,6 +52,8 @@ ATS platforms score keyword overlap between resumes and job descriptions — mat
 ### The Structural Problem
 
 The entire hiring infrastructure — job boards, ATS platforms, LinkedIn, recruiting agencies — runs on the resume-as-currency model. Both sides are performing. Neither side is showing up as themselves. Matches fail because they were never real.
+
+**The gap is not in filtering — it is in what is being filtered.** Every tool in the hiring stack operates on the same shallow input: keywords, titles, credentials, assessment scores. Better filtering of shallow data still produces shallow results. No existing tool collects the data that would make better matching possible: behavioral signals, energy patterns, builder-vs-maintainer orientation, values in practice, disqualifiers. You cannot filter on what was never captured.
 
 This is what we call "the Severance state" — a term borrowed from the coaching work that originated this project. The professional self and the actual self are separated by a wall. The hiring process enforces and rewards that separation.
 
@@ -466,17 +468,17 @@ The Lens Project is "Spotify for coaching methodologies." The platform doesn't d
 
 ## 11. Go-to-Market Strategy
 
-### Phase 1: Ship the Free Tool (Weeks 1-4)
-Host the AI lens creation tool as a free, public web application. Full 8-section discovery flow. No paywall. The goal is format adoption, proof of concept, and learning.
+### Phase 1: Ship the Free Tool (Weeks 1-4) — COMPLETE
+AI lens creation tool deployed on Vercel. Full 8-section discovery flow with live Claude API integration. Session persistence. 5-category file upload. Feedback form deployed separately. 13 testers in pipeline. Feedback Archive table collecting qualitative discussion notes.
 
-### Phase 2: Distribution & Learning (Weeks 4-12)
-Content marketing around "the indelible you" thesis. LinkedIn launch post (personal story). Todd's C-level network activation. James's coaching network seeding. Weekly follow-up posts with anonymized insights from real lenses.
+### Phase 2: Distribution & Learning (Weeks 4-12) — IN PROGRESS
+Content marketing around "the indelible you" thesis. LinkedIn launch post (personal story, pending). Todd's C-level network activation (contingent on formalization). James's coaching network seeding. Core narrative v1.1 built as single source for all positioning materials.
 
 ### Phase 3: Coach Recruitment (Weeks 8-16)
-3-5 founding coaches. Methodology capture → persona encoding → testing → refinement → launch. Revenue share model. Starting with James Pratt (deep/introspective) and Todd Gerspach (executive/strategic).
+3-5 founding coaches. Methodology capture → persona encoding → testing → refinement → launch. Revenue share model. Starting with James Pratt (deep/introspective). Todd Gerspach involvement contingent on business formalization.
 
-### Phase 4: Company Side (Months 4-8)
-With candidate lenses in circulation and coach quality demonstrated, approach companies through Todd's network. Pitch: pre-profiled candidates whose compatibility is already scored. Offer free role lens creation for design partners.
+### Phase 4: Company Side (Months 4-8) — SPECULATIVE
+With candidate lenses in circulation and coach quality demonstrated, approach companies through Todd's network. Pitch: pre-profiled candidates whose compatibility is already scored. Offer free role lens creation for design partners. **Note (April 2026):** James Pratt's 3/30 feedback challenges the assumption that companies want precision over volume. Enterprise thesis labeled speculative pending validation with actual hiring leaders. Edie Hunt call (April 7) is the first employer-side validation point. Strongest use case may be internal mobility rather than external screening.
 
 ### Phase 5: Network Effect (Months 8-12)
 More coaches → better discovery → higher quality lenses → more valuable to companies → more companies → more attractive to coaches. The flywheel.
@@ -489,15 +491,17 @@ Coaches bring both sides simultaneously. Their clients are the candidates. Their
 
 ## 12. Technical Architecture & Scaling Concerns
 
-### Launch Architecture
-- **Frontend:** React (evolved from existing 800-line lens-form.jsx), Vercel hosted
+### Launch Architecture (Current as of April 2026)
+- **Frontend:** React (LensIntake.jsx, ~2200 lines with live Claude API discovery, session persistence), Vercel hosted
 - **AI:** Claude API (Sonnet for discovery, Haiku for scoring/enrichment)
+- **Discovery guardrails:** Single-question constraint, config/guardrails.yaml
 - **Workflow orchestration:** n8n (self-hosted Community Edition for unlimited executions)
 - **Source intake:** RSS polling, career page monitoring, email parsing (Mailgun/Postmark), paste-and-score API
 - **Enrichment:** Brave Search API, Crunchbase API, Glassdoor sentiment extraction
 - **Scoring:** Claude API call with lens YAML + enriched opportunity as context
-- **Storage:** Airtable (migrating to Postgres at scale)
+- **Storage:** Airtable (Artifact Registry, Testers, Feedback Archive, Lens Feedback tables)
 - **Briefing delivery:** Email (primary) + web dashboard
+- **IP:** Provisional patent filed March 24, 2026 (App #64/015,187, micro entity). Convert to nonprovisional by March 24, 2027.
 
 ### Critical Scaling Concern: n8n Execution Volume
 
@@ -646,6 +650,16 @@ This is a pre-revenue raise. Year 1 revenue offsets costs slightly but does not 
 
 12. **ATS integration or independence.** Does the product eventually need to integrate with Greenhouse, Ashby, Lever to be useful on the company side? Or does it stay independent as a sourcing channel? Integration adds distribution but adds dependency. Independence preserves the "candidate-owned" thesis but limits adoption.
 
+### Gaps Added April 2026
+
+13. **Free tool indistinguishable from ChatGPT + resume.** A sophisticated user who uploads their resume, LinkedIn, DISC results, and writing samples to ChatGPT with a well-crafted prompt could get a comparable throughline analysis. The raw AI capability is not the moat. The moat is structured output format (machine-readable YAML a pipeline can parse), methodology encoding (coaching frameworks, not raw chatbot), and pipeline integration (daily scoring the user cannot replicate without technical setup). But if the free standalone lens does not produce a visible "aha" moment, conversion to the paid pipeline will not happen.
+
+14. **Enterprise thesis unvalidated with actual hiring leaders.** James Pratt (3/30/26) challenges the assumption that companies want precision over volume: companies he works with want more candidates, not better-filtered ones. The Role Lens and bidirectional matching may solve a problem that hiring leaders do not actually prioritize. Edie Hunt (advisor via Howard, call scheduled April 7) is the first test of this with someone who has hired from within companies. Until validated, the enterprise thesis is speculative.
+
+15. **Gaming and performative answers.** If an employer mandated lens creation for applicants, the instinct to give performative answers would be strong — the same optimization behavior that makes resumes shallow. Multi-source cross-referencing and coaching methodology mitigate this, but intrinsic motivation (self-directed use where shallow input costs you real opportunities) is the real anti-gaming mechanism. The employer-mandated use case is structurally weaker than the self-directed use case. Strongest employer path may be internal mobility (where the employee is motivated) rather than external screening.
+
+16. **Product center of gravity shifting.** James Pratt's feedback and tester discussions (Brendan, Graham, Luis) are collectively pulling the product toward consumer-first, self-directed use. The enterprise and bidirectional framing may be premature for the current phase. The question is whether to lead with the consumer tool (stronger evidence) and let enterprise follow, or continue developing both tracks in parallel.
+
 ---
 
 ## 16. Assumptions to Challenge
@@ -686,4 +700,4 @@ We're asking reviewers of this document to:
 
 ---
 
-*This document was produced in March 2026 as part of strategic planning for the Lens Project. It incorporates primary competitive research, product design work, financial modeling, and honest gap analysis. It is intended for critical review, not advocacy.*
+*v1.1 updated April 2, 2026. Original produced March 2026. Incorporates primary competitive research, product design work, financial modeling, tester feedback (Brendan McCarthy, Graham, Luis Sampaio), James Pratt strategic feedback (3/30/26), and honest gap analysis. Provisional patent filed App #64/015,187. It is intended for critical review, not advocacy.*
