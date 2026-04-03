@@ -2,6 +2,19 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-03] Documentation Update
+
+### docs/SCORING-ENGINE.md
+- Aligned with `config/scoring-config.yaml` v2.0
+- Renamed "Config-Driven Scoring Architecture (Target)" → "(Implemented)"
+- Documented dual-mode architecture (pipeline vs product)
+- Added signal library concept and YAML examples
+- Corrected dimension weights: Company Stage 25%, Role Fit 25%, Mission 20%, Culture 15%, Work Style 10%, Energy 5%
+- Updated mapping table with signal library and dual-mode references
+- Removed obsolete "Skill" dimension (absorbed into role_fit)
+
+---
+
 ## [2026-03-22] Initial Release
 
 ### lens-app v1.0.0
