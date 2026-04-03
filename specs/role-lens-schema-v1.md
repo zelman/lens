@@ -2,6 +2,9 @@
 
 *The company-side structured identity document for the Lens marketplace*
 
+**Status:** CONFIDENTIAL — Subject to Mutual NDA
+**Patent Status:** Patent Pending — U.S. Application #64/015,187 (filed March 24, 2026)
+
 ---
 
 ## Overview

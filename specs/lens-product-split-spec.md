@@ -83,6 +83,14 @@ The scorer becomes genuinely user-agnostic. Eric's URL produces Eric's scores. R
 - The threshold bands
 - The n8n pipeline structure
 
+## Schema Note: 3-Dimension vs 6-Dimension Models
+
+Eric's personal pipeline uses a 3-dimension weight model (Company Stage 50, Role Type 30, Mission 20) that was calibrated through months of daily scoring before the product schema was formalized. This is a **user-specific weight implementation** — a collapsed version of the 6-dimension model where Culture, Work Style, and Energy are evaluated qualitatively within the LLM prompt rather than scored as independent weighted dimensions.
+
+The **product standard is 6 dimensions** (Mission, Role Fit, Culture, Skill, Work Style, Energy summing to 100). This is what the candidate lens schema, role lens schema, bidirectional system spec, and LENS-SPEC all define. New users, coach personas, and the intake form all produce 6-dimension lenses.
+
+Eric's 3-dimension config will be migrated to the 6-dimension model when his personal pipeline is refactored to use the product scoring engine. Until then, both models coexist — Eric's as a working implementation, the 6-dimension model as the product specification.
+
 ## Migration Path
 
 1. Extract `scoring-config.yaml` from the current lens (the YAML penalties, bonuses, thresholds, data validation, customer persona gate)

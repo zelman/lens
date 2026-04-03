@@ -2,6 +2,9 @@
 
 *The candidate-side structured identity document*
 
+**Status:** CONFIDENTIAL — Subject to Mutual NDA
+**Patent Status:** Patent Pending — U.S. Application #64/015,187 (filed March 24, 2026)
+
 ---
 
 ## Format
@@ -28,12 +31,12 @@ years_experience: 12
 # === SCORING DIMENSIONS (weighted) ===
 scoring:
   weights:
-    mission: 0.25
-    role_fit: 0.20
-    culture: 0.18
-    skill: 0.17
-    work_style: 0.12
-    energy: 0.08
+    mission: 25
+    role_fit: 20
+    culture: 18
+    skill: 17
+    work_style: 12
+    energy: 8
 
   # --- MISSION (25%) ---
   mission:
@@ -128,9 +131,9 @@ disqualifiers:
 
 # === SCORE THRESHOLDS ===
 thresholds:
-  strong_match: 0.80
-  worth_exploring: 0.65
-  likely_mismatch: 0.50
+  strong_match: 80
+  worth_exploring: 65
+  likely_mismatch: 50
 ---
 ```
 

@@ -4,6 +4,7 @@
 **Date:** March 21, 2026
 **Version:** 1.0
 **Status:** CONFIDENTIAL — Subject to Mutual NDA
+**Patent Status:** Patent Pending — U.S. Application #64/015,187 (filed March 24, 2026)
 
 ---
 
@@ -779,7 +780,7 @@ This document, combined with the IP Summary dated March 21, 2026, establishes:
 
 4. **The Feedback Loop** as a three-level learning system (per-user weight calibration, per-user disqualifier refinement, global model improvement) with explicit and implicit signal collection, lens drift detection, and the "append, don't overwrite" design principle.
 
-All of the above are the original intellectual property of Eric Zelman, conceived and documented between November 2025 and March 2026.
+All of the above are the original intellectual property of Eric Zelman, conceived and documented between November 2025 and March 2026. Patent-pending as of March 24, 2026 (U.S. Application #64/015,187).
 
 ---
 

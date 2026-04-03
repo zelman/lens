@@ -1,8 +1,9 @@
 # The Lens Document Specification
 
-> **Version:** 0.1 (Draft)  
-> **Status:** Working spec — codifying what exists in practice, identifying gaps  
-> **Location:** `lens/schemas/LENS-SPEC.md`  
+> **Version:** 0.1 (Draft)
+> **Status:** Working spec — codifying what exists in practice, identifying gaps
+> **Patent Status:** Patent Pending — U.S. Application #64/015,187 (filed March 24, 2026)
+> **Location:** `lens/schemas/LENS-SPEC.md`
 > **Last updated:** March 2026
 
 ---
@@ -260,6 +261,25 @@ What makes this methodology IP rather than "just asking good questions":
 4. **Resume is context, not definition.** The form accepts a resume upload, but it feeds the conversation as background — "I see you were at Bigtincan for 3 years. What did you build there that you'd want to build again?" The resume is never the source of identity signals. This is a philosophical choice with structural implications.
 
 5. **Behavioral evidence over self-report.** The methodology probes for stories and patterns, not preferences. "Tell me about a time you were energized at work" extracts different data than "what kind of work energizes you?" The first gives you signals; the second gives you keywords.
+
+### Discovery Section → Output Field Mapping
+
+Discovery sections are not 1:1 with output sections. Each discovery conversation extracts signals that populate multiple schema fields. The mapping below shows where signals from each discovery section land in the lens document.
+
+| Discovery Section (guardrails.yaml) | Primary Output Fields | Secondary Output Fields |
+|---|---|---|
+| Professional Identity | `identity.essence`, `identity.throughline`, `identity.orientation` | `dimensions[role_fit].signals` |
+| Work Environment | `dimensions[work_style].signals`, `dimensions[energy].signals` | `disqualifiers` (environment-based) |
+| Values & Motivation | `dimensions[culture_match].signals`, `dimensions[culture_match].anti_signals` | `dimensions[energy].signals` |
+| Leadership & Collaboration | `dimensions[role_fit].signals`, `dimensions[culture_match].signals` | `identity.orientation_signals` |
+| Skills & Craft | `dimensions[skill_leverage].signals`, `dimensions[skill_leverage].anti_signals` | `identity.orientation` (builder vs maintainer evidence) |
+| Growth & Aspiration | `dimensions[role_fit].signals`, `dimensions[mission_alignment].signals` | `identity.throughline` (refinement) |
+| Domain & Sector | `dimensions[mission_alignment].signals`, `domain_distance[]` | `disqualifiers` (sector-based) |
+| Integration & Synthesis | All fields (validation pass) | User corrections feed back as highest-confidence signals |
+
+**Key design implication:** The discovery flow is organized around the *human conversation* (what's natural to talk about in sequence). The output schema is organized around the *scoring engine* (what needs to be machine-readable). The mapping layer between them is where coach persona quality matters most — a good persona extracts the right signals from a natural conversation and routes them to the right schema fields.
+
+**"Disqualifiers" and "Situation & Timeline"** appear in the output schema but have no dedicated discovery section. Disqualifiers emerge organically from anti-signals across all sections (especially Values, Work Environment, and Domain). Situation and timeline are captured in the intake form's status selection and context upload phases, before discovery begins.
 
 ---
 

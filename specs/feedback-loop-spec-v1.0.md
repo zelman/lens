@@ -4,6 +4,7 @@
 **Date:** March 21, 2026
 **Version:** 1.0
 **Status:** CONFIDENTIAL — Subject to Mutual NDA
+**Patent Status:** Patent Pending — U.S. Application #64/015,187 (filed March 24, 2026)
 **Extends:** Bidirectional Lens System v1.0, Section 6
 
 ---
@@ -598,7 +599,7 @@ This document, dated March 21, 2026, formally specifies:
 
 7. **Data schemas** for signal records, weight history, and lens version snapshots.
 
-All of the above are the original intellectual property of Eric Zelman.
+All of the above are the original intellectual property of Eric Zelman. Patent-pending as of March 24, 2026 (U.S. Application #64/015,187).
 
 ---
 
