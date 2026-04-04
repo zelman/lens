@@ -132,6 +132,17 @@ Claude AI (claude.ai) creates JSX components, scoring configs, markdown docs, an
 | User lens files | **DO NOT PUT HERE** — goes in `zelman/tidepool/users/` |
 | n8n workflow JSON | **DO NOT PUT HERE** — goes in `zelman/job_search` |
 
+### Local Development Server
+
+**Always run localhost when iterating on code.** Do not deploy to Vercel for testing during development — it wastes time waiting for builds.
+
+```bash
+cd "/Users/zelman/Desktop/Quarantine/Side Projects/Lens/components/lens-app"
+npm run dev
+```
+
+Test at `http://localhost:3000`. Changes hot-reload immediately. Only push to Vercel when the feature is ready for tester deployment.
+
 ### Vercel Deployment
 
 The Next.js app deploys to Vercel. When Claude Code receives a JSX component to add:
