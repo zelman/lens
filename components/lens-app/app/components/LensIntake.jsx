@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { parseLens, LensReport, PRINT_CSS } from "./lens-report-renderer";
 
 const STORAGE_KEY = "lens-session";
 const STORAGE_VERSION = "1.0";
 
 // Maximum size for localStorage (~5MB limit, leave headroom)
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
+
+// ── Build info ──
+const BUILD_ID = "2026.04.03-e";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -590,7 +594,15 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, savedFileCont
   );
 }
 
-function StatusPhase({ status, setStatus, onContinue, onBack }) {
+const PRONOUN_OPTIONS = [
+  { id: "he/him", label: "He/Him" },
+  { id: "she/her", label: "She/Her" },
+  { id: "they/them", label: "They/Them" },
+];
+
+function StatusPhase({ status, setStatus, userName, setUserName, pronouns, setPronouns, onContinue, onBack }) {
+  const canContinue = status && userName.trim();
+
   return (
     <div style={containerStyle}>
       {/* Header */}
@@ -602,7 +614,7 @@ function StatusPhase({ status, setStatus, onContinue, onBack }) {
                 Step 2 of 3
               </div>
               <h1 style={{ fontFamily: FONT, fontSize: "26px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
-                Where are you right now?
+                A few quick details
               </h1>
             </div>
             <button onClick={onBack} style={{
@@ -614,13 +626,56 @@ function StatusPhase({ status, setStatus, onContinue, onBack }) {
           </div>
         </div>
         <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, maxWidth: "480px", margin: 0 }}>
-          This shapes the conversation and how your lens document is used by the matching system.
+          This shapes the conversation and how your lens document is written.
         </p>
       </div>
 
-      <div style={{ height: "1px", background: RULE, marginBottom: "28px" }} />
+      {/* Name input */}
+      <div style={{ marginBottom: "24px" }}>
+        <label style={{ fontSize: "12px", fontWeight: 600, color: BLK, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+          Your name
+        </label>
+        <input
+          type="text"
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
+          placeholder="First and last name"
+          style={{
+            width: "100%", padding: "14px 16px", fontFamily: FONT, fontSize: "14px",
+            border: `1.5px solid ${userName.trim() ? "#ddd" : RULE}`, borderRadius: 0,
+            outline: "none", boxSizing: "border-box",
+          }}
+        />
+      </div>
+
+      {/* Pronouns */}
+      <div style={{ marginBottom: "28px" }}>
+        <label style={{ fontSize: "12px", fontWeight: 600, color: BLK, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+          Pronouns <span style={{ fontWeight: 400, color: GRY }}>(for your lens document)</span>
+        </label>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          {PRONOUN_OPTIONS.map(opt => (
+            <button key={opt.id} onClick={() => setPronouns(opt.id)} style={{
+              padding: "10px 16px", fontFamily: FONT, fontSize: "13px",
+              background: pronouns === opt.id ? "rgba(217,48,37,0.04)" : "#fff",
+              color: pronouns === opt.id ? RED : BLK,
+              border: pronouns === opt.id ? `1.5px solid ${RED}` : "1.5px solid #ddd",
+              cursor: "pointer", borderRadius: 0,
+            }}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ height: "1px", background: RULE, marginBottom: "24px" }} />
 
       {/* Status options */}
+      <div style={{ marginBottom: "8px" }}>
+        <label style={{ fontSize: "12px", fontWeight: 600, color: BLK, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "12px" }}>
+          Current situation
+        </label>
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "36px" }}>
         {STATUS_OPTIONS.map(opt => (
           <button key={opt.id} onClick={() => setStatus(opt.id)} style={{
@@ -645,12 +700,12 @@ function StatusPhase({ status, setStatus, onContinue, onBack }) {
 
       {/* Continue */}
       <div style={{ borderTop: `2px solid ${BLK}`, paddingTop: "20px" }}>
-        <button onClick={onContinue} disabled={!status} style={{
+        <button onClick={onContinue} disabled={!canContinue} style={{
           width: "100%", padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
           letterSpacing: "0.1em", textTransform: "uppercase",
-          background: status ? RED : "#f5f5f5", color: status ? "#fff" : LT,
-          border: status ? `1.5px solid ${RED}` : "1.5px solid #eee",
-          cursor: status ? "pointer" : "default",
+          background: canContinue ? RED : "#f5f5f5", color: canContinue ? "#fff" : LT,
+          border: canContinue ? `1.5px solid ${RED}` : "1.5px solid #eee",
+          cursor: canContinue ? "pointer" : "default",
           transition: "all 0.15s ease", borderRadius: 0,
         }}>
           Begin discovery
@@ -662,6 +717,8 @@ function StatusPhase({ status, setStatus, onContinue, onBack }) {
 
 function DiscoveryPhase({
   status,
+  userName,
+  pronouns,
   totalFiles,
   files,
   onBack,
@@ -688,7 +745,19 @@ function DiscoveryPhase({
   const [greetingDone, setGreetingDone] = useState(savedDiscoveryState?.greetingDone || false);
   const [lensDoc, setLensDoc] = useState(savedDiscoveryState?.lensDoc || null);
   const [copyLabel, setCopyLabel] = useState("Copy markdown");
+  const [viewMode, setViewMode] = useState("report"); // 'report' | 'markdown'
   const [sectionComplete, setSectionComplete] = useState(savedDiscoveryState?.sectionComplete || false);
+
+  // Parse lens document for the report renderer
+  const parsedLens = useMemo(() => {
+    if (!lensDoc) return null;
+    try {
+      return parseLens(lensDoc);
+    } catch (e) {
+      console.warn("Failed to parse lens for report view:", e);
+      return null;
+    }
+  }, [lensDoc]);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -733,20 +802,29 @@ function DiscoveryPhase({
 
   const parsedCount = Object.values(files).flat().filter(f => f._textContent).length;
 
-  async function callClaude(msgs, systemExtra = "") {
+  async function callClaude(msgs, systemExtra = "", options = {}) {
+    const { temperature, max_tokens = 1000 } = options;
+
     const fileNote = fileContext
       ? `\n\nThe user has uploaded the following materials. Use them to inform your questions — skip what their resume already covers and go deeper:\n\n${fileContext}`
       : "";
 
+    const requestBody = {
+      model: "claude-sonnet-4-20250514",
+      max_tokens,
+      system: SYSTEM_BASE + fileNote + (systemExtra ? "\n\n" + systemExtra : ""),
+      messages: msgs,
+    };
+
+    // Add temperature if specified (for synthesis)
+    if (temperature !== undefined) {
+      requestBody.temperature = temperature;
+    }
+
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: SYSTEM_BASE + fileNote + (systemExtra ? "\n\n" + systemExtra : ""),
-        messages: msgs,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!res.ok) {
@@ -817,6 +895,91 @@ function DiscoveryPhase({
 
   async function sendMessage() {
     if (!input.trim() || loading) return;
+
+    // DEV: Skip to synthesis with test data
+    if (input.trim().toLowerCase() === "/skip") {
+      setInput("");
+      const testData = {
+        "Essence": `NARRATIVE: I'm a builder who thrives in early-stage chaos. I've spent my career taking customer success functions from zero to scale, and I'm at my best when there's no playbook yet. I need ownership and autonomy — being handed someone else's process to maintain drains me.
+
+SIGNALS:
+- Builder archetype, not maintainer
+- Early-stage preference (Series A-B)
+- Needs high autonomy
+- 18+ years experience
+- Customer Success / Support leadership`,
+
+        "Skills & Experience": `NARRATIVE: I built Bigtincan's support org from 1 to 25 people across three continents over 13 years. Before that, I cut my teeth at Apple managing enterprise education accounts at Harvard and Tufts. I've led ISO 27001 and SOC-2 implementations, managed $2M budgets, and maintained 93%+ CSAT across 15,000+ annual cases.
+
+SIGNALS:
+- Team building: 1 → 25 people
+- Budget management: $2M
+- Compliance: ISO 27001, SOC-2
+- CSAT: 93%+
+- Case volume: 15,000+/year
+- Industries: EdTech, B2B SaaS`,
+
+        "Values": `NARRATIVE: Ownership comes first — I need to shape the function, not execute someone else's playbook. Candor is non-negotiable; I've left roles where raising problems got you labeled as difficult. I believe in constructive friction over false harmony.
+
+SIGNALS:
+- High ownership requirement
+- Candor-friendly culture required
+- Psychological safety priority
+- Anti-political environment
+- Values humans over metrics`,
+
+        "Mission & Direction": `NARRATIVE: I'm drawn to VC-backed Series A to early Series B companies — 30-100 people, under $75M raised — solving real problems for non-technical business users. Healthcare operations, compliance-heavy environments, workforce enablement tools where users didn't choose the software but have to live with it.
+
+SIGNALS:
+- Stage: Series A to early B
+- Size: 30-100 employees
+- Funding: <$75M
+- Sectors: Healthcare ops, compliance, workforce tools
+- Users: Non-technical business users`,
+
+        "Work Style": `NARRATIVE: I've worked remotely for 25 years — it's how I'm wired. Best deep work happens in coffee shops, best reactive work in small video calls under 5 people. I thrive on a 70/30 split between strategic work and firefighting. I have ADHD, which means I'm either locked in or unmoored — dynamic work with quick feedback loops keeps me engaged.
+
+SIGNALS:
+- Remote required
+- Async communication preferred
+- Small meeting preference (<5 people)
+- 70/30 strategy/reactive split
+- ADHD-friendly environment needed`,
+
+        "What Fills You": `NARRATIVE: Building from scratch energizes me. The zero-to-one phase where there's no playbook, real pressure, and visible impact. I love coaching team members through escalations in the afternoon after building frameworks in the morning.
+
+SIGNALS:
+- Zero-to-one building
+- Visible impact required
+- Coaching/mentoring
+- Variety in work
+- Quick feedback loops`,
+
+        "Disqualifiers": `NARRATIVE: PE-backed companies are out — the extraction timeline corrupts CS before you can build anything. Companies over 150 people or $75M raised are too established unless there's a rebuild situation. Sub-$125K base signals CS is a cost center. No pure IC roles without team-building path.
+
+SIGNALS:
+- No PE-backed companies
+- No companies >150 employees (unless rebuild)
+- No companies >$75M raised (unless new product)
+- Base salary minimum: $125K
+- Title minimum: Director
+- No pure IC roles`,
+
+        "Situation & Timeline": `NARRATIVE: Actively searching after a layoff. No hard timeline but ready to move quickly for the right opportunity. Remote required, US-based. Looking for Director+ title with real ownership.
+
+SIGNALS:
+- Status: Actively searching
+- Timeline: Flexible but ready
+- Location: Remote, US
+- Title: Director+
+- Availability: Immediate`,
+      };
+
+      setSectionData(testData);
+      generateLens(testData);  // Pass directly to avoid race condition
+      return;
+    }
+
     const sec = SECTIONS[currentSection];
     const userMsg = input.trim();
     setInput("");
@@ -919,27 +1082,186 @@ No preamble — start with the narrative, then the signals.`,
     }
   }
 
-  async function generateLens() {
+  async function generateLens(overrideData = null) {
     setSubPhase("synthesis");
     setApiError(null);
     setLoading(true);
 
+    // Use override data if provided (for /skip command), otherwise use state
+    const dataToUse = overrideData || sectionData;
+
+    // Synthesis system prompt (from SYNTHESIS-PROMPT.md)
+    const SYNTHESIS_SYSTEM_PROMPT = `You are writing a professional identity document — a "lens" — based on a discovery conversation you just had with someone. This document will be the primary deliverable of a 45-minute guided conversation. It needs to justify that investment. The person will share this with recruiters, coaches, and hiring managers. It must read as if a perceptive colleague who knows them well wrote it, not as if they filled out a form.
+
+## STRUCTURE
+
+Produce a markdown document with YAML frontmatter and exactly 6 sections. No more, no fewer.
+
+### Frontmatter
+
+---
+name: [Full Name]
+title: [Target role title — what they're looking for, not their last job]
+sector: [Primary sector focus]
+stage: [Company stage preference]
+date: [Current month and year]
+status: [Employed / Actively Searching / In Transition]
+stats: [3-4 headline metrics separated by pipes]
+---
+
+The stats field is critical. Extract 3-4 of the most striking career numbers from the conversation. Format: "18+ years | 25-person team built | 3 continents | 13 products supported". Prefer concrete numbers. Each stat under 6 words. If you can't find 3 strong stats, use 2 — don't pad with weak ones.
+
+### Sections
+
+## Essence
+
+The throughline. Who this person is as a professional, in their own language reflected back to them. 2-3 paragraphs.
+
+First sentence must be a clean identity statement that someone could quote back. Not a resume summary — an insight about how they show up in the world. "Eric builds the bridge between a product that works and the people who need it to." Not "Eric is an experienced customer success leader with 18 years of experience."
+
+Second paragraph should establish what they are NOT — the contrast that sharpens the identity. Builder vs. maintainer. Strategist vs. executor. Whatever tension emerged in the conversation.
+
+Third paragraph (optional) covers operating style — how they think, how they decide, what drains them at a macro level. Only include if distinct material emerged that doesn't belong in Work Style.
+
+## Skills & Experience
+
+The career arc as a story, not a resume. 2-3 paragraphs plus a carry-forward / done-with closing.
+
+Tell the career as a narrative with a throughline: where they started, what shaped them, where the pattern crystallized. Name specific companies, roles, and numbers — but embed them in sentences, not bullet points. "Over thirteen years, he built the customer support organization from a team of one to twenty-five" not "• Built team from 1 to 25 over 13 years."
+
+End with two short paragraphs:
+- "What [they] carry forward:" — a flowing sentence listing 3-5 capabilities, not a bulleted list.
+- "What [they're] done with:" — what they've outgrown. Be specific and honest. This is the section that makes the document feel real, not aspirational.
+
+## Values
+
+Named values with behavioral evidence. 3-5 values, each as its own paragraph.
+
+Each paragraph opens with the value named plainly: "Ownership comes first." "Candor is non-negotiable." Then the evidence: what it looks like in practice, what happens when it's absent, what they've done or left because of it.
+
+Do NOT list values as a bulleted catalog. Do NOT use generic value words without grounding them in the person's actual experience. "Integrity" means nothing. "He left his last role because leadership asked him to present metrics that excluded at-risk accounts" means everything.
+
+## Mission & Direction
+
+Where they're headed and why. 2-3 paragraphs.
+
+Be specific about company stage, size, sector, and the type of problem they want to solve. Use the person's own framing when it's vivid — if they said "people who measure success by whether Tuesday sucked less than Monday," use that.
+
+This section should make a hiring manager think "that's us" or "that's not us" within the first paragraph. Vague aspiration ("looking for a mission-driven company making a difference") is a failure mode. Concrete targeting ("VC-backed Series A to early B, thirty to a hundred people, serving non-technical business users in healthcare operations") is the goal.
+
+## Work Style
+
+How they actually operate day-to-day. 3-4 paragraphs.
+
+Cover: remote/hybrid/in-person preferences, communication style, collaboration patterns, energy management (what kind of work mix they need), and any neurodivergence or personal context that shapes how they work — but only if it came up in the conversation and they were open about it.
+
+Fold energy content (what fills vs. drains) into this section rather than treating it separately. The question isn't "what energizes you" in the abstract — it's "what does a good Tuesday look like vs. a bad one."
+
+This is where the document gets practical. A hiring manager reading this should be able to picture what it's like to work with this person.
+
+## Non-Negotiables
+
+Hard boundaries with reasoning. 2-3 paragraphs of flowing prose.
+
+Every non-negotiable needs a "because" — either explicit or implied. "PE-backed companies are out — the extraction timeline corrupts the customer success function before anyone can build anything worth keeping." Not just "No PE-backed companies."
+
+Do NOT format as a bulleted list. Write as connected prose where each boundary flows into the next. The parenthetical-reason structure works well: "Sub-$125K base salary signals that the organization views customer success as a cost center, not a strategic function."
+
+Include compensation expectations, title expectations, and any strong interview-process signals if they came up. End the section with the most revealing non-negotiable — the one that says the most about who this person is.
+
+## VOICE AND STYLE RULES
+
+1. **Third person throughout.** "Eric builds..." not "I build..." The document reads as a professional portrait written by someone who knows the person well.
+
+2. **Narrative prose, never bullet points.** Every section is flowing paragraphs. If you catch yourself reaching for a dash or bullet, rewrite as a sentence. The only exception: if the person's values or skills are genuinely best expressed as a short structured list, embed it in a sentence: "What he carries forward: building organizations from scratch, compliance frameworks, and cross-functional leadership."
+
+3. **Specific over generic.** Use the person's actual language, actual numbers, actual company names. "93%+ CSAT across 15,000 cases" not "high customer satisfaction." "Healthcare operations and compliance-heavy environments" not "mission-driven companies."
+
+4. **Each section does one job.** If you find yourself repeating a theme across sections, you've bled. The builder identity belongs in Essence. The career evidence belongs in Skills. The values evidence belongs in Values. Don't let them leak.
+
+5. **Sentences that work read aloud.** Before writing any sentence, hear it spoken. If it sounds like a form field or a bullet point with a period at the end, rewrite it. The test: would a thoughtful colleague say this sentence out loud when describing this person?
+
+6. **The person's voice, not yours.** Mirror their vocabulary, their metaphors, their level of formality. If they speak in direct, blunt sentences, don't soften them into corporate prose. If they think in metaphors, use those metaphors. The document should feel like them, not like an AI wrote it.
+
+7. **Honest, not flattering.** Include the tensions, the things they've outgrown, the self-awareness about limitations. "He's done maintenance work. It makes him restless." A document that's all strengths reads as marketing. A document that includes honest self-knowledge reads as real.
+
+## FAILURE MODES TO AVOID
+
+- **The resume trap:** Listing accomplishments without narrative. If it could appear on a LinkedIn profile, it's not deep enough.
+- **The therapy trap:** Over-indexing on emotional language or personal growth narrative. This is a professional document.
+- **The vagueness trap:** "Passionate about making a difference." Delete and replace with specifics.
+- **The repetition trap:** Saying the same thing in Essence, Values, and Mission with different words. Each section earns its existence by saying something the others don't.
+- **The bullet-point trap:** Formatting as a list with periods instead of dashes. Bullets-as-sentences is not prose.
+- **The length trap:** More is not better. Each section should be 2-4 paragraphs. The entire document should be readable in 5-7 minutes. Cut anything that doesn't earn its space.`;
+
     try {
-      const allSections = Object.entries(sectionData)
+      // Summarize discovery sections (keep it concise to avoid token limits)
+      const allSections = Object.entries(dataToUse)
         .map(([k, v]) => `## ${k}\n${v}`)
         .join("\n\n");
       const statusLabel = STATUS_OPTIONS.find((s) => s.id === status)?.label || status;
 
-      const doc = await callClaude(
-        [
-          {
-            role: "user",
-            content: `Here is everything from the discovery conversation:\n\nStatus: ${statusLabel}\n\n${allSections}\n\nNow write the complete lens document. Start with YAML frontmatter (---) that includes: name (leave as "TBD" — the user will fill this in), status, scoring weights for mission_alignment (25), role_fit (20), culture_fit (18), skill_match (17), work_style (12), energy_match (8), and instant_disqualifiers extracted from the Disqualifiers section.\n\nThen write narrative markdown sections:\n\n## Essence\n[Their throughline. What they're known for. What they want to carry forward. Specific.]\n\n## Values\n[Genuine values with evidence or grounding. No platitudes.]\n\n## Mission & Sector Fit\n[Where the work needs to matter. Specific sectors, org types, cause areas, stage preferences.]\n\n## Work Style\n[How they work best. Environment, pace, autonomy, collaboration. Grounded in real patterns.]\n\n## What Fills Them\n[Problem types, outputs, and contexts that give energy. Distinguishes from what merely looks good.]\n\n## Disqualifiers\n[Hard stops — cultural, structural, ethical, interpersonal. Specific enough to filter with.]\n\n## Goals & Timeline\n[Current state, runway, urgency, geographic or structural constraints. What success looks like.]\n\n## How to Use This Document\n[2-3 sentences: what this lens is for, how the workflow should apply it, what it shouldn't be used to do.]\n\nWrite the entire document. Be specific. Be honest. No generic career language.`,
-          },
-        ],
-        "You are synthesizing a personal lens document for career intelligence use. The YAML frontmatter will be machine-parsed to route this person to relevant opportunities. The narrative sections will be read by human collaborators. Both must be specific and useful."
-      );
-      setLensDoc(doc);
+      // Direct API call for synthesis (bypasses callClaude to avoid SYSTEM_BASE overhead)
+      const synthesisCall = async (systemPrompt, userContent) => {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 4000,
+            temperature: 0.75,
+            system: systemPrompt,
+            messages: [{ role: "user", content: userContent }],
+          }),
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text().catch(() => "Unknown error");
+          throw new Error(`API error (${res.status}): ${errorText}`);
+        }
+
+        const data = await res.json();
+        const text = data.content?.[0]?.text;
+        if (!text) throw new Error("Empty response from AI");
+        return text;
+      };
+
+      // Build pronoun guidance
+      const pronounGuide = pronouns
+        ? `Use ${pronouns} pronouns throughout the document.`
+        : "Use they/them pronouns if gender is unclear.";
+
+      // Get current date for the document
+      const now = new Date();
+      const currentDate = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+      const userContent = `Here is the full discovery conversation:
+
+Name: ${userName || "[Name not provided]"}
+Pronouns: ${pronouns || "they/them"}
+Status: ${statusLabel}
+Today's Date: ${currentDate}
+
+${allSections}
+
+Now write the complete lens document following the structure in your instructions.
+- Use the name "${userName || "this person"}" in the document
+- ${pronounGuide}
+- Use "${currentDate}" for the date field in the YAML frontmatter
+- 6 sections exactly, YAML frontmatter with the stats field
+- Third person voice, narrative prose (no bullet points), specific and honest`;
+
+      const doc = await synthesisCall(SYNTHESIS_SYSTEM_PROMPT, userContent);
+
+      // Validate output has enough sections (retry once if malformed)
+      const sectionCount = (doc.match(/^##\s+/gm) || []).length;
+      if (sectionCount < 4) {
+        console.warn(`Synthesis produced only ${sectionCount} sections, retrying...`);
+        const retryDoc = await synthesisCall(SYNTHESIS_SYSTEM_PROMPT, userContent);
+        setLensDoc(retryDoc);
+      } else {
+        setLensDoc(doc);
+      }
       setSubPhase("done");
     } catch (err) {
       console.error("generateLens error:", err);
@@ -1102,84 +1424,165 @@ No preamble — start with the narrative, then the signals.`,
   // ── Done / lens document output ──
   if (subPhase === "done" && lensDoc) {
     return (
-      <div style={containerStyle}>
-        <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "28px" }}>
-          <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
-            Complete
+      <>
+        <style>{PRINT_CSS}</style>
+        <div style={containerStyle}>
+          <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "28px" }}>
+            <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
+              Complete
+            </div>
+            <h1 style={{ fontFamily: FONT, fontSize: "26px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
+              Your lens document
+            </h1>
           </div>
-          <h1 style={{ fontFamily: FONT, fontSize: "26px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
-            Your lens document
-          </h1>
-        </div>
 
-        <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, marginBottom: "24px" }}>
-          This is yours. Download it, share it with a recruiter, or connect it to the scoring pipeline.
-        </p>
+          <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, marginBottom: "24px" }}>
+            This is yours. Download it or share it with a recruiter.
+          </p>
 
-        {/* Lens document display */}
-        <div style={{
-          padding: "24px", border: `1px solid ${RULE}`, marginBottom: "24px",
-          background: "#fafafa", maxHeight: "480px", overflowY: "auto",
-        }}>
-          <pre style={{
-            fontFamily: "'SF Mono', 'Monaco', 'Inconsolata', 'Courier New', monospace",
-            fontSize: "12px", lineHeight: 1.7, color: BLK, whiteSpace: "pre-wrap",
-            wordBreak: "break-word", margin: 0,
-          }}>
-            {lensDoc}
-          </pre>
-        </div>
-
-        {/* Actions */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
-          <button onClick={downloadMarkdown} style={{
-            flex: 1, padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
-            letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
-            border: `1.5px solid ${RED}`, cursor: "pointer", borderRadius: 0,
-          }}>
-            Download .md
-          </button>
-          <button onClick={copyToClipboard} style={{
-            flex: 1, padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
-            letterSpacing: "0.1em", textTransform: "uppercase", background: "#fff",
-            color: GRY, border: `1.5px solid #ddd`, cursor: "pointer", borderRadius: 0,
-          }}>
-            {copyLabel}
-          </button>
-        </div>
-
-        {reentryMode ? (
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button onClick={() => {
-              onReentryComplete && onReentryComplete(lensDoc);
-            }} style={{
-              flex: 1, padding: "11px", fontFamily: FONT, fontSize: "12px",
-              color: GRY, background: "none", border: "1px solid #ddd", cursor: "pointer",
-              letterSpacing: "0.04em",
-            }}>
-              Done
+          {/* Tab bar */}
+          <div style={{ display: "flex", gap: 0, borderBottom: `2px solid ${BLK}`, marginBottom: 24 }} className="no-print">
+            <button
+              onClick={() => setViewMode("report")}
+              style={{
+                padding: "10px 20px",
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                fontFamily: FONT,
+                background: "transparent",
+                color: viewMode === "report" ? RED : GRY,
+                border: "none",
+                borderBottom: viewMode === "report" ? `2px solid ${RED}` : "2px solid transparent",
+                marginBottom: -2,
+                cursor: "pointer",
+              }}
+            >
+              Report
             </button>
-            <button onClick={() => {
-              onReentryComplete && onReentryComplete(lensDoc);
-              onSelectAnotherSection && onSelectAnotherSection();
-            }} style={{
-              flex: 1, padding: "11px", fontFamily: FONT, fontSize: "12px",
-              color: RED, background: "none", border: `1px solid ${RED}`, cursor: "pointer",
-              letterSpacing: "0.04em",
-            }}>
-              Update another section
+            <button
+              onClick={() => setViewMode("markdown")}
+              style={{
+                padding: "10px 20px",
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                fontFamily: FONT,
+                background: "transparent",
+                color: viewMode === "markdown" ? RED : GRY,
+                border: "none",
+                borderBottom: viewMode === "markdown" ? `2px solid ${RED}` : "2px solid transparent",
+                marginBottom: -2,
+                cursor: "pointer",
+              }}
+            >
+              Markdown
             </button>
           </div>
-        ) : (
-          <button onClick={onStartOver} style={{
-            width: "100%", padding: "11px", fontFamily: FONT, fontSize: "12px",
-            color: GRY, background: "none", border: "none", cursor: "pointer",
-            letterSpacing: "0.04em",
-          }}>
-            Start over
-          </button>
-        )}
-      </div>
+
+          {/* Content based on view mode */}
+          {viewMode === "report" ? (
+            <>
+              {/* Rendered report view */}
+              {parsedLens ? (
+                <LensReport data={parsedLens} />
+              ) : (
+                <div style={{ padding: "24px", border: `1px solid ${RULE}`, marginBottom: "24px", background: "#fafafa" }}>
+                  <p style={{ fontSize: "13px", color: GRY }}>
+                    Unable to parse lens for report view. Switch to Markdown tab to view raw content.
+                  </p>
+                </div>
+              )}
+
+              {/* Report actions */}
+              <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }} className="no-print">
+                <button onClick={() => window.print()} style={{
+                  flex: 1, padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
+                  letterSpacing: "0.1em", textTransform: "uppercase", background: BLK, color: "#fff",
+                  border: `1.5px solid ${BLK}`, cursor: "pointer", borderRadius: 0,
+                }}>
+                  Download PDF
+                </button>
+                <button onClick={() => setViewMode("markdown")} style={{
+                  flex: 1, padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
+                  letterSpacing: "0.1em", textTransform: "uppercase", background: "#fff",
+                  color: GRY, border: `1.5px solid #ddd`, cursor: "pointer", borderRadius: 0,
+                }}>
+                  View Markdown
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Raw markdown view */}
+              <div style={{
+                padding: "24px", border: `1px solid ${RULE}`, marginBottom: "24px",
+                background: "#fafafa", maxHeight: "480px", overflowY: "auto",
+              }}>
+                <pre style={{
+                  fontFamily: "'SF Mono', 'Monaco', 'Inconsolata', 'Courier New', monospace",
+                  fontSize: "12px", lineHeight: 1.7, color: BLK, whiteSpace: "pre-wrap",
+                  wordBreak: "break-word", margin: 0,
+                }}>
+                  {lensDoc}
+                </pre>
+              </div>
+
+              {/* Markdown actions */}
+              <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+                <button onClick={downloadMarkdown} style={{
+                  flex: 1, padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
+                  letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
+                  border: `1.5px solid ${RED}`, cursor: "pointer", borderRadius: 0,
+                }}>
+                  Download .md
+                </button>
+                <button onClick={copyToClipboard} style={{
+                  flex: 1, padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
+                  letterSpacing: "0.1em", textTransform: "uppercase", background: "#fff",
+                  color: GRY, border: `1.5px solid #ddd`, cursor: "pointer", borderRadius: 0,
+                }}>
+                  {copyLabel}
+                </button>
+              </div>
+            </>
+          )}
+
+          {reentryMode ? (
+            <div style={{ display: "flex", gap: "10px" }} className="no-print">
+              <button onClick={() => {
+                onReentryComplete && onReentryComplete(lensDoc);
+              }} style={{
+                flex: 1, padding: "11px", fontFamily: FONT, fontSize: "12px",
+                color: GRY, background: "none", border: "1px solid #ddd", cursor: "pointer",
+                letterSpacing: "0.04em",
+              }}>
+                Done
+              </button>
+              <button onClick={() => {
+                onReentryComplete && onReentryComplete(lensDoc);
+                onSelectAnotherSection && onSelectAnotherSection();
+              }} style={{
+                flex: 1, padding: "11px", fontFamily: FONT, fontSize: "12px",
+                color: RED, background: "none", border: `1px solid ${RED}`, cursor: "pointer",
+                letterSpacing: "0.04em",
+              }}>
+                Update another section
+              </button>
+            </div>
+          ) : (
+            <button onClick={onStartOver} style={{
+              width: "100%", padding: "11px", fontFamily: FONT, fontSize: "12px",
+              color: GRY, background: "none", border: "none", cursor: "pointer",
+              letterSpacing: "0.04em",
+            }} className="no-print">
+              Start over
+            </button>
+          )}
+        </div>
+      </>
     );
   }
 
@@ -1279,24 +1682,51 @@ No preamble — start with the narrative, then the signals.`,
         {apiError && (
           <div style={{
             padding: "12px 16px", background: "#FEF2F2", border: `1px solid ${RED}`,
-            alignSelf: "stretch", display: "flex", justifyContent: "space-between", alignItems: "center",
+            alignSelf: "stretch",
           }}>
-            <div>
-              <div style={{ fontSize: "13px", color: RED, fontWeight: 600, marginBottom: "4px" }}>
-                Something went wrong
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+              <div>
+                <div style={{ fontSize: "13px", color: RED, fontWeight: 600, marginBottom: "4px" }}>
+                  Something went wrong
+                </div>
+                <div style={{ fontSize: "12px", color: "#7F1D1D" }}>
+                  {apiError}
+                </div>
               </div>
-              <div style={{ fontSize: "12px", color: "#7F1D1D" }}>
-                {apiError}
-              </div>
+              <button
+                onClick={() => setApiError(null)}
+                style={{
+                  background: "none", border: "none", color: RED, fontSize: "18px",
+                  cursor: "pointer", padding: "4px 8px", lineHeight: 1,
+                }}
+              >
+                &times;
+              </button>
             </div>
             <button
-              onClick={() => setApiError(null)}
+              onClick={() => {
+                setApiError(null);
+                // Retry last action - re-trigger the greeting or re-send last message
+                if (messages.length === 0 && !greetingDone) {
+                  // Retry initial greeting
+                  startSection(currentSection);
+                } else if (messages.length > 0) {
+                  // Re-send the last user message by putting it back in input
+                  const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
+                  if (lastUserMsg) {
+                    // Remove the last user message from history and put it back in input
+                    setMessages(messages.slice(0, -1));
+                    setInput(lastUserMsg.content);
+                  }
+                }
+              }}
               style={{
-                background: "none", border: "none", color: RED, fontSize: "18px",
-                cursor: "pointer", padding: "4px 8px", lineHeight: 1,
+                padding: "8px 16px", fontFamily: FONT, fontSize: "12px", fontWeight: 600,
+                background: RED, color: "#fff", border: "none", cursor: "pointer",
+                borderRadius: 0,
               }}
             >
-              &times;
+              Retry
             </button>
           </div>
         )}
@@ -1823,6 +2253,8 @@ export default function LensIntake() {
     resume: [], linkedin: [], writing: [], assessments: [], other: [],
   });
   const [status, setStatus] = useState(null);
+  const [userName, setUserName] = useState("");
+  const [pronouns, setPronouns] = useState(""); // "he/him", "she/her", "they/them", or custom
   const [previousFiles, setPreviousFiles] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -1865,6 +2297,8 @@ export default function LensIntake() {
   const restoreSession = (session) => {
     if (session.phase) setPhase(session.phase);
     if (session.status) setStatus(session.status);
+    if (session.userName) setUserName(session.userName);
+    if (session.pronouns) setPronouns(session.pronouns);
     if (session.fileMeta) setPreviousFiles(session.fileMeta);
     if (session.fileContext) setFileContext(session.fileContext);
     if (session.discoveryState) setDiscoveryState(session.discoveryState);
@@ -1895,6 +2329,8 @@ export default function LensIntake() {
       lastUpdated: new Date().toISOString(),
       phase,
       status,
+      userName,
+      pronouns,
       fileMeta: Object.keys(fileMeta).length > 0 ? fileMeta : null,
       fileContext: Object.keys(fileCtx).length > 0 ? fileCtx : (Object.keys(fileContext).length > 0 ? fileContext : null),
       discoveryState,
@@ -1911,20 +2347,23 @@ export default function LensIntake() {
     } else {
       setStorageWarning(null);
     }
-  }, [phase, status, files, discoveryState, lensOutput, loaded, showRecoveryPrompt, fileContext]);
+  }, [phase, status, userName, pronouns, files, discoveryState, lensOutput, loaded, showRecoveryPrompt, fileContext]);
 
   // ── Clear saved progress ──
   const handleStartOver = () => {
     setPhase("intro");
-    setFiles({ resume: [], writing: [], assessments: [], other: [] });
+    setFiles({ resume: [], linkedin: [], writing: [], assessments: [], other: [] });
     setStatus(null);
+    setUserName("");
+    setPronouns("");
     setPreviousFiles(null);
     setDiscoveryState(null);
     setFileContext({});
     setLensOutput(null);
     setReentryMode(false);
     setReentrySection(null);
-    setShowSectionSelector(false);
+    setShowModeSelector(false);
+    setShowSectionPicker(false);
     setSavedSession(null);
     setShowRecoveryPrompt(false);
     try {
@@ -2234,13 +2673,19 @@ export default function LensIntake() {
       )}
 
       {phase === "status" && (
-        <StatusPhase status={status} setStatus={setStatus}
-          onContinue={() => setPhase("discovery")} onBack={() => setPhase("upload")} />
+        <StatusPhase
+          status={status} setStatus={setStatus}
+          userName={userName} setUserName={setUserName}
+          pronouns={pronouns} setPronouns={setPronouns}
+          onContinue={() => setPhase("discovery")} onBack={() => setPhase("upload")}
+        />
       )}
 
       {phase === "discovery" && (
         <DiscoveryPhase
           status={status}
+          userName={userName}
+          pronouns={pronouns}
           totalFiles={totalFiles}
           files={files}
           onBack={() => setPhase("status")}
@@ -2260,6 +2705,19 @@ export default function LensIntake() {
         @keyframes bar { 0% { opacity: 0.15 } 100% { opacity: 1 } }
         input::placeholder, textarea::placeholder { color: #ccc }
       `}</style>
+
+      {/* Build version */}
+      <div style={{
+        position: "fixed",
+        bottom: 8,
+        right: 12,
+        fontSize: 10,
+        color: "#ccc",
+        fontFamily: FONT,
+        letterSpacing: "0.02em",
+      }}>
+        build {BUILD_ID}
+      </div>
     </div>
   );
 }
