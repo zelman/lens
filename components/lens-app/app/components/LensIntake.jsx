@@ -10,7 +10,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.03-e";
+const BUILD_ID = "2026.04.05-c";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -120,70 +120,16 @@ const CATEGORIES = [
   },
 ];
 
-// ── AI coaching system prompt ──
-const SYSTEM_BASE = `You are a thoughtful coach helping someone build a lens document — a structured profile that captures who they are and what they need. You're conducting a discovery conversation, one section at a time.
-
-Your tone is warm but direct, curious but not invasive. You ask follow-up questions that go deeper, not wider. You reflect back what you hear with precision. You never use corporate jargon, HR-speak, or generic coaching platitudes.
-
-CONVERSATION STYLE:
-Ask only one question per response. If you have multiple follow-up threads, choose the most important one and hold the rest. Let the user's answer guide what to ask next. Never stack multiple questions in a single message — it overwhelms the user and produces shallower answers.
-
-Keep responses concise: briefly reflect what you heard (1-2 sentences), then ask your one question. Do not lecture or over-explain.
-
-Ask open-ended questions. Do not offer multiple-choice options or suggest possible answers within your question. Let the user arrive at their own language.
-
-CRITICAL CONTEXT: The lens document you are helping build will be consumed by an automated job-matching pipeline. It will score real job listings against the person's profile daily. This means every section must produce SPECIFIC, FILTERABLE content — not just narrative insight. "I care about mission-driven work" is useless to a pipeline. "B2B SaaS in healthcare, Series A-B, 15-200 employees" is actionable.
-
-Your dual mandate:
-1. DEPTH — Help the person articulate authentic patterns, values, and preferences they may not have language for yet. This is real coaching.
-2. UTILITY — Ensure every section captures criteria that a scoring engine can match against job listings, company profiles, and role descriptions. If the person gives you poetry, reflect it back warmly — then ask for the specifics.
-
-When the person talks about aspirations (founding a company, side projects, long-term dreams), acknowledge them — then redirect: "That's clearly important to you. For the lens document, though, let's focus on the next role you'd actually accept. What would that company look like?"
-
-Do not let sections end without concrete, filterable output. If someone completes the Mission section without naming specific sectors, company stages, or org sizes, ask directly before wrapping up.`;
-
-// ── Discovery sections ──
+// ── Discovery sections (UI display only - actual coaching prompts are server-side) ──
 const SECTIONS = [
-  {
-    number: "01", label: "Essence", id: "essence",
-    prompt: "Let's start with what makes you, you. Not your title, not your resume — the thing people notice about how you work across every context. What's the throughline?",
-    systemContext: "This section is about identity patterns — what's consistent across roles, contexts, and chapters. Push past titles and skills into the 'how' and 'why' of their work. PIPELINE NOTE: The essence section helps score culture fit and role type. Extract whether they're a builder vs. maintainer, leader vs. IC, structured vs. improvisational. Keep responses under 80 words.",
-  },
-  {
-    number: "02", label: "Values", id: "values",
-    prompt: "When you say something matters to you at work, what does that actually look like? Tell me about a time your values were honored — or violated.",
-    systemContext: "This section is about behavioral values, not aspirational ones. You want evidence: stories, friction points, moments of alignment or betrayal. Push past 'I value collaboration' into 'here's what happened when collaboration broke down.' PIPELINE NOTE: Values feed culture fit scoring. Extract observable signals a company would exhibit (or violate). Before completing, ensure you have at least 2-3 values grounded in specific stories. Keep responses under 80 words.",
-  },
-  {
-    number: "03", label: "Mission", id: "mission",
-    prompt: "Think about the next role you'd actually say yes to — not someday, but in the next few months. What is that company doing? What sector are they in? How big are they? What stage?",
-    systemContext: "This is the most pipeline-critical section. You MUST extract: specific sectors/industries (e.g. 'healthcare B2B SaaS', not just 'tech'), company stage (seed, Series A, Series B, growth, etc.), employee count range, funding preferences (VC-backed, bootstrapped, etc.), and business model (B2B, B2C, marketplace, etc.). If the person drifts into aspirations, side projects, or founding their own company, acknowledge it warmly and redirect: 'That's clearly where your energy is long-term. For matching you to real opportunities right now, what kind of company and role would you say yes to this quarter?' Do NOT complete this section without at least: 1-2 specific sectors, a company stage preference, and a size range. Keep responses under 80 words.",
-  },
-  {
-    number: "04", label: "Work Style", id: "workstyle",
-    prompt: "Describe the best working day you've had in the last few years. What made it good — the pace, the people, the problem, the autonomy?",
-    systemContext: "This section captures how they actually work — not how they think they should. Environment, pace, collaboration style, relationship to structure and autonomy. Real patterns, not interview answers. PIPELINE NOTE: This feeds work style match scoring. Extract: remote vs. in-person preference, team size they thrive in, meeting cadence, communication style, timezone/schedule needs. Keep responses under 80 words.",
-  },
-  {
-    number: "05", label: "What Fills You", id: "energy",
-    prompt: "There are things you're good at that drain you, and things that light you up that no one's paying you for yet. What fills your tank at work?",
-    systemContext: "This section distinguishes between competence and energy. Someone might be great at spreadsheets but die inside doing them. Find what gives energy vs. what merely looks good on a resume. PIPELINE NOTE: Energy signals help score role fit — the KIND of work matters. Extract: problem types (building vs. optimizing, people vs. systems, strategic vs. tactical), outputs they're proud of, contexts that energize vs. drain. Keep responses under 80 words.",
-  },
-  {
-    number: "06", label: "Disqualifiers", id: "disqualifiers",
-    prompt: "What would make you walk away from an opportunity — even if the title and comp were perfect? What are your hard stops?",
-    systemContext: "This section builds the exclusion filter — the most powerful part of the pipeline. Get concrete and specific: company types (PE-backed, public, etc.), industries to exclude, cultural patterns, structural realities, ethical lines, minimum comp. These become instant-reject rules. BEFORE completing: confirm each disqualifier is specific enough to be a yes/no filter. 'Toxic culture' is too vague. 'PE-backed companies' or 'orgs over 300 people' are filterable. Push for specificity. Keep responses under 80 words.",
-  },
-  {
-    number: "07", label: "Goals", id: "goals",
-    prompt: "What does the next chapter look like if it goes well? What title, comp range, and location work for you — and what's your timeline?",
-    systemContext: "This section captures job search parameters. MUST extract: target titles (and title flexibility — would they accept a senior IC role at the right company?), compensation floor, location preferences (remote, hybrid, specific cities, relocation willingness), timeline/urgency, and any structural constraints (visa, non-compete, notice period). If they only talk about life goals or feelings, acknowledge those and redirect: 'That paints a clear picture of what matters. Now let's get practical — what title, comp, and location make this real?' Keep responses under 80 words.",
-  },
-  {
-    number: "08", label: "Synthesis", id: "synthesis",
-    prompt: "Looking back at everything you've shared — the patterns, the values, the energy sources, the hard stops — what feels most true? What surprised you?",
-    systemContext: "This is the final reflection. Help them see the through-line across all sections. Reflect back the most important themes. Also use this as a gap-check: if any critical pipeline data is missing from earlier sections (sectors, company size, comp, titles, disqualifiers), ask for it now. This isn't just a mirror — it's quality control. Keep responses under 80 words.",
-  },
+  { number: "01", label: "Essence", id: "essence", prompt: "What's the throughline across everything you do? The pattern people notice about how you work, regardless of title or context." },
+  { number: "02", label: "Values", id: "values", prompt: "When you say something matters at work, what does that look like in practice? Values grounded in real stories and friction points." },
+  { number: "03", label: "Mission", id: "mission", prompt: "What kind of problem do you want to be solving? What kind of organization would you actually say yes to?" },
+  { number: "04", label: "Work Style", id: "workstyle", prompt: "How do you actually work best? Pace, people, autonomy, environment — the conditions where you thrive." },
+  { number: "05", label: "What Fills You", id: "energy", prompt: "What gives you energy vs. what drains you — even if you're good at both. The difference between competence and fulfillment." },
+  { number: "06", label: "Disqualifiers", id: "disqualifiers", prompt: "Your hard stops. What would make you walk away, even if the title and comp were perfect?" },
+  { number: "07", label: "Goals", id: "goals", prompt: "What does success look like in your next chapter? Practical constraints like role level, compensation, location, and timeline." },
+  { number: "08", label: "Synthesis", id: "synthesis", prompt: "The through-line across all sections. What patterns emerged? What feels most true?" },
 ];
 
 const STATUS_OPTIONS = [
@@ -420,6 +366,38 @@ function IntroPhase({ onContinue }) {
         fontSize: "12px", color: GRY, lineHeight: 1.6,
       }}>
         <span style={{ fontWeight: 500, color: BLK }}>If you close the tab:</span> Your place in the process and your selections are saved automatically. Uploaded files will need to be re-added when you return, so it helps to keep them handy. Conversation progress during discovery is also saved.
+      </div>
+
+      {/* Privacy notice */}
+      <div style={{
+        borderTop: `1px solid ${RULE}`,
+        borderBottom: `1px solid ${RULE}`,
+        padding: "20px 0",
+        marginBottom: "24px",
+      }}>
+        <div style={{
+          fontSize: "11px",
+          color: RED,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          fontWeight: 600,
+          marginBottom: "10px",
+        }}>
+          Your data, your control
+        </div>
+        <p style={{
+          fontSize: "13px",
+          color: GRY,
+          lineHeight: 1.7,
+          margin: 0,
+          maxWidth: "500px",
+        }}>
+          Everything you share here is used only to generate your lens document.
+          Your inputs are not stored in any database, sold, or shared with third parties.
+          Your conversation is processed by Claude (Anthropic) to generate your lens —
+          the same privacy protections that apply to any Claude conversation apply here.
+          You can close the tab at any time and nothing is retained.
+        </p>
       </div>
 
       {/* CTA */}
@@ -802,44 +780,37 @@ function DiscoveryPhase({
 
   const parsedCount = Object.values(files).flat().filter(f => f._textContent).length;
 
-  async function callClaude(msgs, systemExtra = "", options = {}) {
-    const { temperature, max_tokens = 1000 } = options;
+  // Call the discover API (system prompts are server-side)
+  async function callDiscover(sectionId, messages, action = null, extraContext = {}) {
+    const prevContext = Object.entries(sectionData)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join("\n");
 
-    const fileNote = fileContext
-      ? `\n\nThe user has uploaded the following materials. Use them to inform your questions — skip what their resume already covers and go deeper:\n\n${fileContext}`
-      : "";
-
-    const requestBody = {
-      model: "claude-sonnet-4-20250514",
-      max_tokens,
-      system: SYSTEM_BASE + fileNote + (systemExtra ? "\n\n" + systemExtra : ""),
-      messages: msgs,
-    };
-
-    // Add temperature if specified (for synthesis)
-    if (temperature !== undefined) {
-      requestBody.temperature = temperature;
-    }
-
-    const res = await fetch("/api/chat", {
+    const res = await fetch("/api/discover", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        section: sectionId,
+        messages,
+        action,
+        context: {
+          status,
+          establishedContext: prevContext || null,
+          uploadSummary: fileContext || null,
+          reentryMode: reentryMode || false,
+          existingLens: existingLens || null,
+          ...extraContext,
+        },
+      }),
     });
 
     if (!res.ok) {
-      const errorText = await res.text().catch(() => "Unknown error");
-      throw new Error(`API error (${res.status}): ${errorText}`);
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `API error (${res.status})`);
     }
 
     const data = await res.json();
-    const text = data.content?.[0]?.text;
-
-    if (!text) {
-      throw new Error("Empty response from AI");
-    }
-
-    return text;
+    return data;
   }
 
   async function startSection(idx) {
@@ -853,26 +824,8 @@ function DiscoveryPhase({
 
     try {
       const sec = SECTIONS[idx];
-      const prevContext = Object.entries(sectionData)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join("\n");
-      const statusNote = `The user's current employment status is: ${status}.`;
-
-      let contextPrompt;
-      if (reentryMode && existingLens) {
-        // Re-entry mode: provide existing lens context
-        contextPrompt = `${statusNote}\n\nThis user already has a completed lens document. They want to update the "${sec.label}" section specifically. Here is their existing lens:\n\n${existingLens}\n\nYour job is to help them refine or update just this section. Start by acknowledging you've reviewed their lens and ask a targeted question about what's changed or needs updating in their ${sec.label}. Keep your opener to 2-3 sentences max.`;
-      } else if (prevContext) {
-        contextPrompt = `${statusNote}\n\nPrior context from earlier sections:\n${prevContext}\n\nNow introduce the next section with this prompt to the user: "${sec.prompt}". Keep your opener to 2-3 sentences max.`;
-      } else {
-        contextPrompt = `${statusNote}\n\nIntroduce this section with the following prompt: "${sec.prompt}". Keep your opener to 2-3 sentences max. Start warm but don't over-introduce yourself.`;
-      }
-
-      const greeting = await callClaude(
-        [{ role: "user", content: contextPrompt }],
-        sec.systemContext
-      );
-      setAiGreeting(greeting);
+      const data = await callDiscover(sec.id, [], "greeting");
+      setAiGreeting(data.response);
     } catch (err) {
       console.error("startSection error:", err);
       setApiError(err.message || "Failed to start section. Please try again.");
@@ -989,41 +942,21 @@ SIGNALS:
     setLoading(true);
 
     try {
-      const userMsgCount = newMsgs.filter((m) => m.role === "user").length;
-      const minMessages = ["mission", "disqualifiers", "goals"].includes(sec.id) ? 3 : 2;
-      const isLongEnough = userMsgCount >= minMessages;
-
-      const systemExtra =
-        sec.systemContext +
-        (isLongEnough
-          ? `\n\nYou may have enough to synthesize. Before ending, verify you have the specific, filterable data this section requires (see PIPELINE NOTE above). If critical specifics are missing, ask one more targeted question instead of completing. If the section has what it needs, end with exactly: [SECTION_COMPLETE]`
-          : "");
-
-      const reply = await callClaude(newMsgs, systemExtra);
-      const isComplete = reply.includes("[SECTION_COMPLETE]");
-      const cleanReply = reply.replace("[SECTION_COMPLETE]", "").trim();
+      // Call the discover API (system prompts handled server-side)
+      const data = await callDiscover(sec.id, newMsgs);
+      const isComplete = data.sectionComplete;
+      const cleanReply = data.response;
 
       setMessages([...newMsgs, { role: "assistant", content: cleanReply }]);
 
       if (isComplete) {
-        const summary = await callClaude(
-          [
-            ...newMsgs,
-            { role: "assistant", content: cleanReply },
-            {
-              role: "user",
-              content: `Synthesize what you learned about me in this section into content for my lens document. Include TWO parts:
-
-1. NARRATIVE (3-5 sentences): First person, present tense, specific. Captures the authentic patterns and insights from our conversation.
-
-2. SIGNALS (bullet list): The specific, filterable criteria a job-matching pipeline can score against. These should be concrete: sector names, company sizes, title preferences, behavioral indicators, hard boundaries — whatever this section surfaced that a scoring engine needs.
-
-No preamble — start with the narrative, then the signals.`,
-            },
-          ],
-          sec.systemContext
+        // Get the section summary
+        const summaryData = await callDiscover(
+          sec.id,
+          [...newMsgs, { role: "assistant", content: cleanReply }],
+          "summarize"
         );
-        setSectionData((prev) => ({ ...prev, [sec.label]: summary }));
+        setSectionData((prev) => ({ ...prev, [sec.label]: summaryData.response }));
 
         // Signal section is done — user decides when to advance
         setSectionComplete(true);
@@ -1056,22 +989,29 @@ No preamble — start with the narrative, then the signals.`,
       const sec = SECTIONS[currentSection];
       const updatedContent = sectionData[sec.label] || "";
 
-      const mergedDoc = await callClaude(
-        [
-          {
-            role: "user",
-            content: `Here is the user's existing lens document:\n\n${existingLens}\n\nThey have just updated the "${sec.label}" section. Here is the new content for that section:\n\n${updatedContent}\n\nMerge this updated section into the existing lens document. Keep everything else intact. Only update the ${sec.label} section (both narrative and any related YAML frontmatter signals). Return the complete updated lens document.`,
-          },
-        ],
-        "You are merging an updated section into an existing lens document. Preserve the document structure, YAML frontmatter format, and all other sections unchanged. Only update the specific section that was re-discovered."
-      );
+      // Call merge API (system prompt is server-side)
+      const res = await fetch("/api/merge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          existingLens,
+          sectionLabel: sec.label,
+          updatedContent,
+        }),
+      });
 
-      setLensDoc(mergedDoc);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error (${res.status})`);
+      }
+
+      const data = await res.json();
+      setLensDoc(data.lens);
       setSubPhase("done");
 
       // Notify parent of completion
       if (onReentryComplete) {
-        onReentryComplete(mergedDoc);
+        onReentryComplete(data.lens);
       }
     } catch (err) {
       console.error("mergeUpdatedSection error:", err);
@@ -1090,178 +1030,26 @@ No preamble — start with the narrative, then the signals.`,
     // Use override data if provided (for /skip command), otherwise use state
     const dataToUse = overrideData || sectionData;
 
-    // Synthesis system prompt (from SYNTHESIS-PROMPT.md)
-    const SYNTHESIS_SYSTEM_PROMPT = `You are writing a professional identity document — a "lens" — based on a discovery conversation you just had with someone. This document will be the primary deliverable of a 45-minute guided conversation. It needs to justify that investment. The person will share this with recruiters, coaches, and hiring managers. It must read as if a perceptive colleague who knows them well wrote it, not as if they filled out a form.
-
-## STRUCTURE
-
-Produce a markdown document with YAML frontmatter and exactly 6 sections. No more, no fewer.
-
-### Frontmatter
-
----
-name: [Full Name]
-title: [Target role title — what they're looking for, not their last job]
-sector: [Primary sector focus]
-stage: [Company stage preference]
-date: [Current month and year]
-status: [Employed / Actively Searching / In Transition]
-stats: [3-4 headline metrics separated by pipes]
----
-
-The stats field is critical. Extract 3-4 of the most striking career numbers from the conversation. Format: "18+ years | 25-person team built | 3 continents | 13 products supported". Prefer concrete numbers. Each stat under 6 words. If you can't find 3 strong stats, use 2 — don't pad with weak ones.
-
-### Sections
-
-## Essence
-
-The throughline. Who this person is as a professional, in their own language reflected back to them. 2-3 paragraphs.
-
-First sentence must be a clean identity statement that someone could quote back. Not a resume summary — an insight about how they show up in the world. "Eric builds the bridge between a product that works and the people who need it to." Not "Eric is an experienced customer success leader with 18 years of experience."
-
-Second paragraph should establish what they are NOT — the contrast that sharpens the identity. Builder vs. maintainer. Strategist vs. executor. Whatever tension emerged in the conversation.
-
-Third paragraph (optional) covers operating style — how they think, how they decide, what drains them at a macro level. Only include if distinct material emerged that doesn't belong in Work Style.
-
-## Skills & Experience
-
-The career arc as a story, not a resume. 2-3 paragraphs plus a carry-forward / done-with closing.
-
-Tell the career as a narrative with a throughline: where they started, what shaped them, where the pattern crystallized. Name specific companies, roles, and numbers — but embed them in sentences, not bullet points. "Over thirteen years, he built the customer support organization from a team of one to twenty-five" not "• Built team from 1 to 25 over 13 years."
-
-End with two short paragraphs:
-- "What [they] carry forward:" — a flowing sentence listing 3-5 capabilities, not a bulleted list.
-- "What [they're] done with:" — what they've outgrown. Be specific and honest. This is the section that makes the document feel real, not aspirational.
-
-## Values
-
-Named values with behavioral evidence. 3-5 values, each as its own paragraph.
-
-Each paragraph opens with the value named plainly: "Ownership comes first." "Candor is non-negotiable." Then the evidence: what it looks like in practice, what happens when it's absent, what they've done or left because of it.
-
-Do NOT list values as a bulleted catalog. Do NOT use generic value words without grounding them in the person's actual experience. "Integrity" means nothing. "He left his last role because leadership asked him to present metrics that excluded at-risk accounts" means everything.
-
-## Mission & Direction
-
-Where they're headed and why. 2-3 paragraphs.
-
-Be specific about company stage, size, sector, and the type of problem they want to solve. Use the person's own framing when it's vivid — if they said "people who measure success by whether Tuesday sucked less than Monday," use that.
-
-This section should make a hiring manager think "that's us" or "that's not us" within the first paragraph. Vague aspiration ("looking for a mission-driven company making a difference") is a failure mode. Concrete targeting ("VC-backed Series A to early B, thirty to a hundred people, serving non-technical business users in healthcare operations") is the goal.
-
-## Work Style
-
-How they actually operate day-to-day. 3-4 paragraphs.
-
-Cover: remote/hybrid/in-person preferences, communication style, collaboration patterns, energy management (what kind of work mix they need), and any neurodivergence or personal context that shapes how they work — but only if it came up in the conversation and they were open about it.
-
-Fold energy content (what fills vs. drains) into this section rather than treating it separately. The question isn't "what energizes you" in the abstract — it's "what does a good Tuesday look like vs. a bad one."
-
-This is where the document gets practical. A hiring manager reading this should be able to picture what it's like to work with this person.
-
-## Non-Negotiables
-
-Hard boundaries with reasoning. 2-3 paragraphs of flowing prose.
-
-Every non-negotiable needs a "because" — either explicit or implied. "PE-backed companies are out — the extraction timeline corrupts the customer success function before anyone can build anything worth keeping." Not just "No PE-backed companies."
-
-Do NOT format as a bulleted list. Write as connected prose where each boundary flows into the next. The parenthetical-reason structure works well: "Sub-$125K base salary signals that the organization views customer success as a cost center, not a strategic function."
-
-Include compensation expectations, title expectations, and any strong interview-process signals if they came up. End the section with the most revealing non-negotiable — the one that says the most about who this person is.
-
-## VOICE AND STYLE RULES
-
-1. **Third person throughout.** "Eric builds..." not "I build..." The document reads as a professional portrait written by someone who knows the person well.
-
-2. **Narrative prose, never bullet points.** Every section is flowing paragraphs. If you catch yourself reaching for a dash or bullet, rewrite as a sentence. The only exception: if the person's values or skills are genuinely best expressed as a short structured list, embed it in a sentence: "What he carries forward: building organizations from scratch, compliance frameworks, and cross-functional leadership."
-
-3. **Specific over generic.** Use the person's actual language, actual numbers, actual company names. "93%+ CSAT across 15,000 cases" not "high customer satisfaction." "Healthcare operations and compliance-heavy environments" not "mission-driven companies."
-
-4. **Each section does one job.** If you find yourself repeating a theme across sections, you've bled. The builder identity belongs in Essence. The career evidence belongs in Skills. The values evidence belongs in Values. Don't let them leak.
-
-5. **Sentences that work read aloud.** Before writing any sentence, hear it spoken. If it sounds like a form field or a bullet point with a period at the end, rewrite it. The test: would a thoughtful colleague say this sentence out loud when describing this person?
-
-6. **The person's voice, not yours.** Mirror their vocabulary, their metaphors, their level of formality. If they speak in direct, blunt sentences, don't soften them into corporate prose. If they think in metaphors, use those metaphors. The document should feel like them, not like an AI wrote it.
-
-7. **Honest, not flattering.** Include the tensions, the things they've outgrown, the self-awareness about limitations. "He's done maintenance work. It makes him restless." A document that's all strengths reads as marketing. A document that includes honest self-knowledge reads as real.
-
-## FAILURE MODES TO AVOID
-
-- **The resume trap:** Listing accomplishments without narrative. If it could appear on a LinkedIn profile, it's not deep enough.
-- **The therapy trap:** Over-indexing on emotional language or personal growth narrative. This is a professional document.
-- **The vagueness trap:** "Passionate about making a difference." Delete and replace with specifics.
-- **The repetition trap:** Saying the same thing in Essence, Values, and Mission with different words. Each section earns its existence by saying something the others don't.
-- **The bullet-point trap:** Formatting as a list with periods instead of dashes. Bullets-as-sentences is not prose.
-- **The length trap:** More is not better. Each section should be 2-4 paragraphs. The entire document should be readable in 5-7 minutes. Cut anything that doesn't earn its space.`;
-
     try {
-      // Summarize discovery sections (keep it concise to avoid token limits)
-      const allSections = Object.entries(dataToUse)
-        .map(([k, v]) => `## ${k}\n${v}`)
-        .join("\n\n");
-      const statusLabel = STATUS_OPTIONS.find((s) => s.id === status)?.label || status;
+      // Call the synthesize API (system prompt is server-side)
+      const res = await fetch("/api/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sectionData: dataToUse,
+          userName,
+          pronouns,
+          status,
+        }),
+      });
 
-      // Direct API call for synthesis (bypasses callClaude to avoid SYSTEM_BASE overhead)
-      const synthesisCall = async (systemPrompt, userContent) => {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 4000,
-            temperature: 0.75,
-            system: systemPrompt,
-            messages: [{ role: "user", content: userContent }],
-          }),
-        });
-
-        if (!res.ok) {
-          const errorText = await res.text().catch(() => "Unknown error");
-          throw new Error(`API error (${res.status}): ${errorText}`);
-        }
-
-        const data = await res.json();
-        const text = data.content?.[0]?.text;
-        if (!text) throw new Error("Empty response from AI");
-        return text;
-      };
-
-      // Build pronoun guidance
-      const pronounGuide = pronouns
-        ? `Use ${pronouns} pronouns throughout the document.`
-        : "Use they/them pronouns if gender is unclear.";
-
-      // Get current date for the document
-      const now = new Date();
-      const currentDate = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-
-      const userContent = `Here is the full discovery conversation:
-
-Name: ${userName || "[Name not provided]"}
-Pronouns: ${pronouns || "they/them"}
-Status: ${statusLabel}
-Today's Date: ${currentDate}
-
-${allSections}
-
-Now write the complete lens document following the structure in your instructions.
-- Use the name "${userName || "this person"}" in the document
-- ${pronounGuide}
-- Use "${currentDate}" for the date field in the YAML frontmatter
-- 6 sections exactly, YAML frontmatter with the stats field
-- Third person voice, narrative prose (no bullet points), specific and honest`;
-
-      const doc = await synthesisCall(SYNTHESIS_SYSTEM_PROMPT, userContent);
-
-      // Validate output has enough sections (retry once if malformed)
-      const sectionCount = (doc.match(/^##\s+/gm) || []).length;
-      if (sectionCount < 4) {
-        console.warn(`Synthesis produced only ${sectionCount} sections, retrying...`);
-        const retryDoc = await synthesisCall(SYNTHESIS_SYSTEM_PROMPT, userContent);
-        setLensDoc(retryDoc);
-      } else {
-        setLensDoc(doc);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error (${res.status})`);
       }
+
+      const data = await res.json();
+      setLensDoc(data.lens);
       setSubPhase("done");
     } catch (err) {
       console.error("generateLens error:", err);
@@ -1626,6 +1414,19 @@ Now write the complete lens document following the structure in your instruction
           </div>
         )}
       </div>
+
+      {/* Privacy reminder - shown only in first section */}
+      {currentSection === 0 && messages.length === 0 && !loading && (
+        <div style={{
+          fontSize: "11px",
+          color: LT,
+          marginBottom: "12px",
+          paddingBottom: "12px",
+          borderBottom: `1px solid ${RULE}`,
+        }}>
+          Your responses are used only to build your lens document.
+        </div>
+      )}
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: "auto", marginBottom: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>

@@ -29,17 +29,16 @@ Same signals, same gates, same investor lookup. Different math. User's `scoring.
 
 ## Claude API Integration Pattern
 
-JSX scorer and intake components call the Claude API directly (client-side, no proxy):
+The lens-app uses a **serverless proxy architecture** to protect IP:
 
-- **Endpoint:** `https://api.anthropic.com/v1/messages`
+- **Server-side routes:** `/api/discover`, `/api/synthesize`, `/api/merge`
+- **System prompts:** Stored in `app/api/_prompts/` (discovery.js, synthesis.js) — NEVER sent to client
 - **Model:** `claude-sonnet-4-20250514`
-- **Auth:** API key in client-side fetch (no server proxy in current architecture)
-- **System prompt:** Hardcoded as `SYSTEM_PROMPT` const at top of component file
-- **Response parsing:** Filter `content` blocks for `type: "text"`, strip ```json fences, `JSON.parse`
-- **Streaming:** Used in lens-form.jsx discovery flow (typewriter effect). NOT used in lens-scorer.jsx (single completion).
-- **Error handling:** try/catch with user-facing error string
+- **Auth:** API key in environment variable (`ANTHROPIC_API_KEY`), accessed only server-side
+- **Client code:** Sends section ID and user messages; receives responses only
+- **Error handling:** Sanitized errors returned to client (no internal details leaked)
 
-**Planned change:** System prompts will move from hardcoded consts to runtime-fetched config (guardrails.yaml). Until then, the const IS the source of truth.
+The `/api/chat` route remains for legacy/testing but should not be used with client-side system prompts.
 
 ## Key Files
 
@@ -63,6 +62,25 @@ When editing `scoring-config.yaml`:
 1. Increment version
 2. Update `last_updated`
 3. Ensure both pipeline and product mode entries stay in sync for shared signals
+
+## Build Versioning & Changelog
+
+**IMPORTANT: Always update the changelog after creating a build.**
+
+### Build ID Convention
+The lens-app uses build IDs in `LensIntake.jsx`:
+- Format: `YYYY.MM.DD-letter` (e.g., `2026.04.05-c`)
+- Letter increments for each build on the same day (a, b, c, d...)
+- Displayed in the app footer for debugging
+
+### Changelog Requirements
+After every build that changes app behavior:
+1. Bump the `BUILD_ID` constant in `LensIntake.jsx`
+2. Add an entry to `CHANGELOG.md` at the project root
+3. Group related changes under the date heading
+4. Include: what changed, why, and any security implications
+
+The changelog is the source of truth for what's deployed and when.
 
 ## Design Language: Swiss Style
 
@@ -190,13 +208,13 @@ node code-review.mjs components/lens-scorer.jsx --model opus --log
 
 ## Current State (April 2026)
 
-- Next.js intake app in `app/`
+- Next.js intake app in `app/` with serverless proxy architecture (build 2026.04.05-c)
+- System prompts protected server-side in `app/api/_prompts/` — IP no longer exposed to browser
 - Dual-mode scoring config committed
 - Enhancement backlog in `docs/enhancements.md`
 - Provisional patent filed 3/24/26 (App #64/015,187). Convert to nonprovisional by 3/24/27.
 - 5 warm testers in pipeline (Ravi, Nathan, Edith, Brendan, Graham)
 - Dark theme → Swiss Style migration: decided April 1, 2026. All components will migrate.
-- Guardrails extraction (system prompts → guardrails.yaml): schema designed, deferred until testers complete current sessions
 - Review profiles system added (`review-profiles/`) for code review context injection
 - scoring-config.yaml moved from tidepool to this repo (last week)
 

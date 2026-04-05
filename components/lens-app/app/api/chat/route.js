@@ -6,7 +6,7 @@ export async function POST(request) {
 
   if (!apiKey) {
     return Response.json(
-      { error: "ANTHROPIC_API_KEY not configured" },
+      { error: "Service temporarily unavailable" },
       { status: 500 }
     );
   }

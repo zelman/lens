@@ -2,6 +2,29 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-05] Serverless Proxy & Tester Feedback Fixes
+
+### lens-app 2026.04.05-c
+- **Build a**: Jared Hibbs feedback fixes
+  - Added privacy disclosure to intro screen
+  - Implemented cross-section context accumulator to prevent redundant questioning
+  - Rewrote all discovery prompts to be neutral (removed Eric-specific bias)
+- **Build b**: Serverless proxy architecture
+  - Created `/api/discover` route for discovery conversations
+  - Created `/api/synthesize` route for lens generation
+  - Moved all system prompts to server-side (`app/api/_prompts/`)
+  - Refactored client to use proxy routes (prompts no longer in browser)
+- **Build c**: Opus code review fixes
+  - Created `/api/merge` route with server-side merge prompt
+  - Fixed error sanitization in `/api/chat` (no internal details leaked)
+  - Restored `prompt` field to client-side SECTIONS for UI display
+
+### Security
+- System prompts (IP) now protected server-side, never sent to client
+- API key validation errors return generic "Service temporarily unavailable"
+
+---
+
 ## [2026-04-03] Documentation Update
 
 ### docs/SCORING-ENGINE.md
