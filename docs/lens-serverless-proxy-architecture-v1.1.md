@@ -1,6 +1,25 @@
-# Lens Serverless Proxy Architecture v1.0
+# Lens Serverless Proxy Architecture v1.1
 
 *April 3, 2026 — Post-testing deployment spec*
+*Updated April 5, 2026 — Implementation complete for discovery/synthesis flows*
+
+---
+
+## Implementation Status
+
+| Route | Status | Notes |
+|-------|--------|-------|
+| `/api/discover` | **Implemented** | 8-section discovery conversations |
+| `/api/synthesize` | **Implemented** | Lens document generation |
+| `/api/merge` | **Implemented** | Re-discovery section merging |
+| `/api/score` | Planned | C→R opportunity scoring |
+| `/api/score-role` | Planned | R→C candidate scoring |
+
+Server-side prompts live in `app/api/_prompts/`:
+- `discovery.js` — 8 section prompts + SYSTEM_BASE
+- `synthesis.js` — Lens document generation prompt
+
+**Architecture Diagram:** [FigJam - Lens Serverless Proxy Architecture](https://www.figma.com/online-whiteboard/create-diagram/40314acf-c55d-4c35-a59e-7ba9199424b4)
 
 ---
 
