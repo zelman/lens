@@ -94,6 +94,8 @@
       <div class="q-num">Question 4</div>
       <div class="q-label">Which section of the lens felt most valuable?</div>
       <textarea data-field="mostValuable" placeholder="e.g. Values, Disqualifiers, Energy..."></textarea>
+      <div class="q-label" style="margin-top: 16px;">Why?</div>
+      <textarea data-field="mostValuableWhy" placeholder="What made it resonate?"></textarea>
     </div>
 
     <!-- Q5 -->
@@ -101,6 +103,8 @@
       <div class="q-num">Question 5</div>
       <div class="q-label">Which section felt weakest or least accurate?</div>
       <textarea data-field="weakest" placeholder="What didn't land?"></textarea>
+      <div class="q-label" style="margin-top: 16px;">Why?</div>
+      <textarea data-field="weakestWhy" placeholder="What was off or missing?"></textarea>
     </div>
 
     <!-- Q6 -->
@@ -232,7 +236,9 @@
       wouldShare: state.wouldShare || null,
       surfacedInsights: state.surfacedInsights || null,
       mostValuable: state.mostValuable || null,
+      mostValuableWhy: state.mostValuableWhy || null,
       weakest: state.weakest || null,
+      weakestWhy: state.weakestWhy || null,
       missing: state.missing || null,
       feelsLikeYou: state.feelsLikeYou ? parseInt(state.feelsLikeYou) : null,
       pricingReaction: state.pricingReaction || null,
