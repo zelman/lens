@@ -126,11 +126,12 @@
       <textarea data-field="pricingReaction" placeholder="Your honest reaction..."></textarea>
     </div>
 
-    <!-- Name (optional) -->
+    <!-- Name (required) -->
     <div class="q">
-      <div class="q-num">Optional</div>
+      <div class="q-num">Required</div>
       <div class="q-label">Your name</div>
-      <input type="text" data-field="name" placeholder="Anonymous is fine" />
+      <input type="text" data-field="name" placeholder="First and last name" required />
+      <span class="error" id="name-error" style="margin-top: 8px;">Please enter your name.</span>
     </div>
 
     <div class="submit-row">
@@ -141,7 +142,7 @@
 
   <div class="thanks" id="thanks-view">
     <h2>Thank you.</h2>
-    <p>Your feedback helps shape what this becomes.<br>We'll be in touch if you left your name.</p>
+    <p>Your feedback helps shape what this becomes.<br>We'll be in touch.</p>
   </div>
 </div>
 
@@ -208,7 +209,16 @@
   document.getElementById('submit-btn').addEventListener('click', async () => {
     const btn = document.getElementById('submit-btn');
     const errEl = document.getElementById('error-msg');
+    const nameErrEl = document.getElementById('name-error');
     if (!btn.classList.contains('active')) return;
+
+    // Validate name is required
+    nameErrEl.classList.remove('visible');
+    if (!state.name || !state.name.trim()) {
+      nameErrEl.classList.add('visible');
+      document.querySelector('input[data-field="name"]').focus();
+      return;
+    }
 
     errEl.classList.remove('visible');
     btn.disabled = true;

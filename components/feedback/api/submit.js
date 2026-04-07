@@ -11,6 +11,11 @@ export default async function handler(req, res) {
   const BASE_ID = 'appFO5zLT7ZehXaBo';
   const TABLE_ID = 'tblUAyulKOKXiRoOx';
 
+  // Extract IP from Vercel request headers
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || req.headers['x-real-ip']
+    || 'unknown';
+
   const {
     name,
     betterThanResume,
@@ -34,6 +39,7 @@ export default async function handler(req, res) {
     'Feels Like You (1-10)': feelsLikeYou != null ? Number(feelsLikeYou) : null,
     'Pricing Reaction': pricingReaction || null,
     'Submitted At': new Date().toISOString(),
+    'IP Address': ip,
   };
 
   try {
