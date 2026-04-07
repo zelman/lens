@@ -10,7 +10,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.05-c";
+const BUILD_ID = "2026.04.07-b";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -726,6 +726,13 @@ function DiscoveryPhase({
   const [viewMode, setViewMode] = useState("report"); // 'report' | 'markdown'
   const [sectionComplete, setSectionComplete] = useState(savedDiscoveryState?.sectionComplete || false);
 
+  // ── Timing instrumentation state ──
+  const [sessionRecordId, setSessionRecordId] = useState(null);
+  const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [sectionTimings, setSectionTimings] = useState({});
+  const [currentSectionStart, setCurrentSectionStart] = useState(null);
+  const [totalMessageCount, setTotalMessageCount] = useState(0);
+
   // Parse lens document for the report renderer
   const parsedLens = useMemo(() => {
     if (!lensDoc) return null;
@@ -765,8 +772,8 @@ function DiscoveryPhase({
     }
   }, [reentryMode, reentrySection]);
 
-  // Build file context string from uploaded files
-  const fileContext = (() => {
+  // Build file context string from uploaded files (memoized for performance)
+  const fileContext = useMemo(() => {
     const parts = [];
     for (const [cat, arr] of Object.entries(files)) {
       for (const f of arr) {
@@ -776,9 +783,62 @@ function DiscoveryPhase({
       }
     }
     return parts.length > 0 ? parts.join("\n\n---\n\n") : "";
-  })();
+  }, [files]);
 
   const parsedCount = Object.values(files).flat().filter(f => f._textContent).length;
+
+  // ── Timing instrumentation: create session ──
+  async function createSession() {
+    try {
+      const res = await fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ buildId: BUILD_ID }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSessionRecordId(data.recordId);
+        setSessionStartTime(Date.now());
+        return data.recordId;
+      }
+    } catch (err) {
+      console.warn("Failed to create session:", err);
+    }
+    return null;
+  }
+
+  // ── Timing instrumentation: update session ──
+  async function updateSession(updates) {
+    if (!sessionRecordId) return;
+    try {
+      await fetch("/api/session", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: sessionRecordId, ...updates }),
+      });
+    } catch (err) {
+      console.warn("Failed to update session:", err);
+    }
+  }
+
+  // ── Timing instrumentation: beforeunload handler ──
+  useEffect(() => {
+    const handleUnload = () => {
+      if (sessionRecordId && subPhase === "conversation") {
+        // Use sendBeacon with Blob for correct Content-Type
+        const blob = new Blob([JSON.stringify({
+          recordId: sessionRecordId,
+          abandoned: true,
+          dropOffSection: currentSection,
+          sectionTimings,
+          totalMessages: totalMessageCount,
+        })], { type: "application/json" });
+        navigator.sendBeacon("/api/session", blob);
+      }
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [sessionRecordId, subPhase, currentSection, sectionTimings, totalMessageCount]);
 
   // Call the discover API (system prompts are server-side)
   async function callDiscover(sectionId, messages, action = null, extraContext = {}) {
@@ -822,6 +882,15 @@ function DiscoveryPhase({
     setApiError(null);
     setLoading(true);
 
+    // ── Timing: record section entry ──
+    const sectionStart = Date.now();
+    setCurrentSectionStart(sectionStart);
+
+    // Create session on first section (only for non-reentry mode)
+    if (idx === 0 && !reentryMode && !sessionRecordId) {
+      await createSession();
+    }
+
     try {
       const sec = SECTIONS[idx];
       const data = await callDiscover(sec.id, [], "greeting");
@@ -848,6 +917,10 @@ function DiscoveryPhase({
 
   async function sendMessage() {
     if (!input.trim() || loading) return;
+
+    // ── Timing: increment message count ──
+    const newMessageCount = totalMessageCount + 1;
+    setTotalMessageCount(newMessageCount);
 
     // DEV: Skip to synthesis with test data
     if (input.trim().toLowerCase() === "/skip") {
@@ -970,6 +1043,30 @@ SIGNALS:
   }
 
   function advanceSection() {
+    // ── Timing: record section completion ──
+    if (currentSectionStart) {
+      const sectionEnd = Date.now();
+      const duration = (sectionEnd - currentSectionStart) / 1000; // seconds
+      const sec = SECTIONS[currentSection];
+      const newTimings = {
+        ...sectionTimings,
+        [sec.id]: {
+          entryTime: currentSectionStart,
+          completionTime: sectionEnd,
+          duration,
+          messageCount: messages.filter(m => m.role === "user").length,
+        },
+      };
+      setSectionTimings(newTimings);
+
+      // Update session in Airtable
+      updateSession({
+        currentSection,
+        sectionTimings: newTimings,
+        totalMessages: totalMessageCount,
+      });
+    }
+
     if (reentryMode && existingLens) {
       // Re-entry mode: merge the updated section into existing lens
       mergeUpdatedSection();
@@ -1051,6 +1148,16 @@ SIGNALS:
       const data = await res.json();
       setLensDoc(data.lens);
       setSubPhase("done");
+
+      // ── Timing: mark session as complete ──
+      if (sessionRecordId) {
+        updateSession({
+          isComplete: true,
+          currentSection: SECTIONS.length - 1,
+          sectionTimings,
+          totalMessages: totalMessageCount,
+        });
+      }
     } catch (err) {
       console.error("generateLens error:", err);
       setApiError(err.message || "Failed to generate lens. Please try again.");
@@ -1336,6 +1443,35 @@ SIGNALS:
                 </button>
               </div>
             </>
+          )}
+
+          {/* Feedback link */}
+          {!reentryMode && (
+            <div style={{
+              marginTop: "24px", padding: "16px 20px", background: "#fafafa",
+              border: `1px solid ${RULE}`, marginBottom: "16px",
+            }} className="no-print">
+              <p style={{ fontSize: "13px", color: BLK, margin: "0 0 10px", fontWeight: 500 }}>
+                Help us improve
+              </p>
+              <p style={{ fontSize: "12px", color: GRY, margin: "0 0 12px", lineHeight: 1.6 }}>
+                Your feedback shapes what this becomes. Takes 2 minutes.
+              </p>
+              <a
+                href={`https://lens-feedback.vercel.app${sessionRecordId ? `?session=${sessionRecordId}` : ""}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block", padding: "10px 20px", fontFamily: FONT,
+                  fontSize: "12px", fontWeight: 600, letterSpacing: "0.08em",
+                  textTransform: "uppercase", background: "#fff", color: RED,
+                  border: `1.5px solid ${RED}`, cursor: "pointer", borderRadius: 0,
+                  textDecoration: "none",
+                }}
+              >
+                Give feedback
+              </a>
+            </div>
           )}
 
           {reentryMode ? (

@@ -154,6 +154,10 @@
   const state = {};
   let answeredCount = 0;
 
+  // Parse session ID from URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionId = urlParams.get('session');
+
   // Option buttons
   document.querySelectorAll('.opts').forEach(group => {
     const field = group.dataset.field;
@@ -231,6 +235,7 @@
 
     // Gather all fields
     const payload = {
+      sessionId: sessionId || null,
       name: state.name || null,
       betterThanResume: state.betterThanResume || null,
       wouldShare: state.wouldShare || null,

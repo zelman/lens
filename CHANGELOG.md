@@ -2,6 +2,50 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-07] Timing & Drop-off Instrumentation
+
+### lens-app 2026.04.07-b
+- **Opus code review fixes**:
+  - Fixed sendBeacon Content-Type (use Blob with application/json)
+  - Memoized fileContext computation for performance
+  - Added recordId format validation (rec + 14 alphanumeric)
+  - Added isComplete/abandoned conflict rejection
+  - Added sectionTimings type validation
+  - Added empty fields short-circuit in PATCH
+  - Added recordId existence check in POST response
+
+### lens-app 2026.04.07-a
+- **Timing instrumentation**: Added session tracking to measure user progress through discovery
+  - Creates Airtable session record when discovery starts
+  - Tracks per-section timing (entry, completion, duration, message count)
+  - Records drop-off section when user abandons mid-flow (via beforeunload)
+  - Marks completion when lens is generated
+- **Feedback integration**: Added feedback link in "done" phase with session ID
+  - Links feedback responses to same Airtable record as timing data
+  - Enables correlation between engagement metrics and qualitative feedback
+
+### lens-feedback
+- **Session linking**: Feedback form now parses `?session=` URL param
+  - Updates existing session record instead of creating new one
+  - Preserves timing data while adding feedback fields
+
+### Airtable Schema
+Added 9 fields to `Lens Feedback` table:
+- Session Started At (dateTime)
+- Session Completed At (dateTime)
+- Is Complete (checkbox)
+- Last Section Visited (number)
+- Drop-off Section (number)
+- Section Timings (multilineText - JSON)
+- Total Duration Sec (number)
+- Total Messages (number)
+- Build ID (singleLineText)
+
+### New API Route
+- `/api/session` - POST to create session, PATCH to update timing data
+
+---
+
 ## [2026-04-05] Serverless Proxy & Tester Feedback Fixes
 
 ### lens-app 2026.04.05-c

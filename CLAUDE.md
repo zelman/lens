@@ -273,6 +273,8 @@ All artifacts use semantic versioning (v1.0, v1.1, v2.0). Track in filenames or 
 
 - **Git (this repo):** Code, components, specs, config, strategy docs
 - **Airtable Artifact Registry:** Row for every versioned artifact with location and git status
+- **Airtable Competitive Intelligence:** Competitor analysis, market research, feature comparisons (NOT specs/competitive-landscape.md)
+- **Airtable Lens Feedback:** Session timing data, drop-off tracking, user feedback responses
 - **Claude.ai CONTEXT files:** Living state summaries, updated via session wrap-up
 - **Claude.ai memory:** Stable personal facts, tool configs, project structure (slow-changing)
 - **Local only (gitignored):** Signed legal documents, credentials, API keys

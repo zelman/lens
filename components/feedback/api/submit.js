@@ -17,6 +17,7 @@ export default async function handler(req, res) {
     || 'unknown';
 
   const {
+    sessionId,
     name,
     betterThanResume,
     wouldShare,
@@ -47,17 +48,35 @@ export default async function handler(req, res) {
   };
 
   try {
-    const response = await fetch(
-      `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ records: [{ fields }] }),
-      }
-    );
+    let response;
+
+    if (sessionId) {
+      // Update existing record (from timing instrumentation)
+      response = await fetch(
+        `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}/${sessionId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ fields }),
+        }
+      );
+    } else {
+      // Create new record (no session ID)
+      response = await fetch(
+        `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ records: [{ fields }] }),
+        }
+      );
+    }
 
     if (!response.ok) {
       const err = await response.text();
