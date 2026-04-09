@@ -265,6 +265,18 @@ At the end of any substantive session, generate a wrap-up before the user discon
    `Profile updates: form.md — add [bug name] to Known Bugs; scoring.md — update dimension weights`
    Triggers: new bug discovered, bug fixed (move to Previously Fixed), component version bump, scoring dimension or weight change, coach persona added/modified, API integration pattern changed.
 
+7. **Claude Code Sessions:** Write a row to Airtable (base `appFO5zLT7ZehXaBo`, table `tblLgWUHElcbKABKF`) with:
+   - Summary: 2-4 sentences of what was accomplished
+   - Session Date: ISO timestamp
+   - Commits: List of commit hashes + messages
+   - Files Changed: Key files created/modified
+   - Build ID: If a build was created
+   - Open Items: Unfinished work or blockers
+   - Decisions Made: Architectural/strategic decisions
+   - Context for AI: What Claude AI needs to continue
+   - Agent: `Claude Code`
+   - Status: `Complete`, `Interrupted`, or `Handoff`
+
 ### Versioning
 
 All artifacts use semantic versioning (v1.0, v1.1, v2.0). Track in filenames or internal version constants. Bump on every meaningful change.
@@ -275,6 +287,7 @@ All artifacts use semantic versioning (v1.0, v1.1, v2.0). Track in filenames or 
 - **Airtable Artifact Registry:** Row for every versioned artifact with location and git status
 - **Airtable Competitive Intelligence:** Competitor analysis, market research, feature comparisons (NOT specs/competitive-landscape.md)
 - **Airtable Lens Feedback:** Session timing data, drop-off tracking, user feedback responses
+- **Airtable Claude Code Sessions:** Session summaries for context sync between Claude Code and Claude AI
 - **Claude.ai CONTEXT files:** Living state summaries, updated via session wrap-up
 - **Claude.ai memory:** Stable personal facts, tool configs, project structure (slow-changing)
 - **Local only (gitignored):** Signed legal documents, credentials, API keys
