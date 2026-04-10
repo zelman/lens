@@ -10,7 +10,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.07-b";
+const BUILD_ID = "2026.04.10-b";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -160,8 +160,8 @@ function TypewriterText({ text, speed = 16 }) {
 }
 
 function FileChip({ name, size, parsed, onRemove }) {
-  const kb = (size / 1024).toFixed(0);
-  const display = kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
+  const kb = size / 1024;
+  const display = kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.round(kb)} KB`;
   return (
     <div style={{
       display: "inline-flex", alignItems: "center", gap: "8px",
@@ -361,6 +361,15 @@ function IntroPhase({ onContinue }) {
           You can pause and return anytime. Your progress is saved.
         </div>
       </div>
+
+      {/* "I don't know" is valid guidance */}
+      <div style={{
+        padding: "14px 20px", background: "#fffaf5", marginBottom: "16px",
+        fontSize: "12px", color: GRY, lineHeight: 1.6, border: `1px solid ${ORANGE}33`,
+      }}>
+        <span style={{ fontWeight: 600, color: BLK }}>Good to know:</span> You don't have to answer every question in depth. If something doesn't resonate or you're unsure, just say so — the AI will move on. There are no wrong answers, and "I don't know" is always valid.
+      </div>
+
       <div style={{
         padding: "12px 20px", background: "#fafafa", marginBottom: "32px",
         fontSize: "12px", color: GRY, lineHeight: 1.6,
@@ -578,6 +587,259 @@ const PRONOUN_OPTIONS = [
   { id: "they/them", label: "They/Them" },
 ];
 
+// ════════════════════════════════════════
+// Context Reflection Phase (between Status and Discovery)
+// ════════════════════════════════════════
+
+function ContextReflectionPhase({ files, userName, status, onContinue, onBack, onSkip }) {
+  const [loading, setLoading] = useState(true);
+  const [reflection, setReflection] = useState("");
+  const [userCorrection, setUserCorrection] = useState("");
+  const [hasContext, setHasContext] = useState(false);
+  const [apiError, setApiError] = useState(null);
+  const [confirmed, setConfirmed] = useState(false);
+
+  // Use ref for onSkip to avoid stale closure in auto-skip effect
+  const onSkipRef = useRef(onSkip);
+  onSkipRef.current = onSkip;
+
+  // Build file context string from uploaded files
+  const fileContext = useMemo(() => {
+    const parts = [];
+    for (const [cat, arr] of Object.entries(files)) {
+      for (const f of arr) {
+        if (f._textContent) {
+          parts.push(`[${CATEGORIES.find(c => c.id === cat)?.label}: ${f.name}]\n${f._textContent}`);
+        }
+      }
+    }
+    return parts.length > 0 ? parts.join("\n\n---\n\n") : "";
+  }, [files]);
+
+  // Generate reflection on mount
+  useEffect(() => {
+    async function generateReflection() {
+      if (!fileContext || fileContext.length < 100) {
+        // No meaningful context - skip this phase
+        setHasContext(false);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/discover", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            section: "essence", // Use essence section as placeholder
+            messages: [],
+            action: "reflect",
+            context: {
+              status,
+              uploadSummary: fileContext,
+              userName,
+            },
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to generate reflection");
+        }
+
+        const data = await res.json();
+        setReflection(data.response);
+        setHasContext(data.hasContext);
+      } catch (err) {
+        console.error("Context reflection error:", err);
+        setApiError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    generateReflection();
+  }, [fileContext, status, userName]);
+
+  // If no context, skip automatically after brief delay
+  useEffect(() => {
+    if (!loading && !hasContext && !apiError) {
+      const timeout = setTimeout(() => {
+        onSkipRef.current();
+      }, 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [loading, hasContext, apiError]);
+
+  // Handle continuation
+  const handleContinue = () => {
+    // Combine reflection with user corrections
+    const finalContext = userCorrection.trim()
+      ? `${reflection}\n\nUser corrections/additions: ${userCorrection.trim()}`
+      : reflection;
+    onContinue(finalContext);
+  };
+
+  if (loading) {
+    return (
+      <div style={containerStyle}>
+        <div style={{ textAlign: "center", padding: "80px 20px" }}>
+          <div style={{ width: "48px", height: "2px", background: RED, margin: "0 auto 24px" }} />
+          <h2 style={{ fontFamily: FONT, fontSize: "20px", fontWeight: 600, color: BLK, margin: "0 0 12px" }}>
+            Reading your materials
+          </h2>
+          <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7 }}>
+            Processing your resume, LinkedIn, and other uploads...
+          </p>
+          <div style={{ marginTop: "28px" }}>
+            <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} style={{
+                  width: "6px", height: "6px", background: RED, borderRadius: "50%",
+                  animation: `bar 0.8s ease-in-out ${i * 0.2}s infinite alternate`,
+                }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasContext && !apiError) {
+    return (
+      <div style={containerStyle}>
+        <div style={{ textAlign: "center", padding: "60px 20px" }}>
+          <div style={{ width: "48px", height: "2px", background: RED, margin: "0 auto 24px" }} />
+          <h2 style={{ fontFamily: FONT, fontSize: "20px", fontWeight: 600, color: BLK, margin: "0 0 12px" }}>
+            Starting from scratch
+          </h2>
+          <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, maxWidth: "400px", margin: "0 auto" }}>
+            No materials to review — I'll learn about you through our conversation.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (apiError) {
+    return (
+      <div style={containerStyle}>
+        <div style={{ textAlign: "center", padding: "40px 20px" }}>
+          <div style={{
+            padding: "16px 20px", background: "#FEF2F2", border: `1px solid ${RED}`,
+            marginBottom: "20px",
+          }}>
+            <div style={{ fontSize: "13px", color: RED, fontWeight: 600, marginBottom: "8px" }}>
+              Couldn't process materials
+            </div>
+            <div style={{ fontSize: "12px", color: "#7F1D1D", marginBottom: "16px" }}>
+              {apiError}
+            </div>
+            <button
+              onClick={onSkip}
+              style={{
+                padding: "10px 20px", fontFamily: FONT, fontSize: "12px", fontWeight: 600,
+                background: RED, color: "#fff", border: "none", cursor: "pointer", borderRadius: 0,
+              }}
+            >
+              Continue without context
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={containerStyle}>
+      {/* Header */}
+      <div style={{ marginBottom: "28px" }}>
+        <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
+                Before we begin
+              </div>
+              <h1 style={{ fontFamily: FONT, fontSize: "26px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
+                Here's what I see
+              </h1>
+            </div>
+            <button onClick={onBack} style={{
+              background: "none", border: "none", color: GRY, fontFamily: FONT,
+              fontSize: "12px", cursor: "pointer", padding: "4px 0", marginTop: "6px",
+            }}>
+              &larr; Back
+            </button>
+          </div>
+        </div>
+        <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, maxWidth: "500px", margin: 0 }}>
+          Based on your uploaded materials, here's my understanding of who you are. Let me know if anything needs correcting before we dive deeper.
+        </p>
+      </div>
+
+      {/* AI Reflection */}
+      <div style={{
+        padding: "20px 24px", background: "#fafafa", border: `1px solid ${RULE}`,
+        marginBottom: "20px",
+      }}>
+        <div style={{ fontSize: "14px", color: "#444", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
+          {reflection}
+        </div>
+      </div>
+
+      {/* User correction input */}
+      {!confirmed && (
+        <div style={{ marginBottom: "24px" }}>
+          <label style={{
+            fontSize: "12px", fontWeight: 600, color: BLK, letterSpacing: "0.06em",
+            textTransform: "uppercase", display: "block", marginBottom: "8px",
+          }}>
+            Anything to add or correct? <span style={{ fontWeight: 400, color: GRY }}>(optional)</span>
+          </label>
+          <textarea
+            value={userCorrection}
+            onChange={(e) => setUserCorrection(e.target.value)}
+            placeholder="E.g., 'I'm actually looking to transition into product management...' or 'The CS leadership role was more recent than shown...'"
+            rows={3}
+            style={{
+              width: "100%", padding: "12px 14px", fontFamily: FONT, fontSize: "14px",
+              border: `1.5px solid #ddd`, borderRadius: 0, color: BLK,
+              outline: "none", background: "#fff", resize: "vertical",
+              lineHeight: 1.6, minHeight: "72px", boxSizing: "border-box",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Guidelines reminder */}
+      <div style={{
+        padding: "14px 18px", background: "#fffaf5", border: `1px solid ${ORANGE}33`,
+        marginBottom: "24px", fontSize: "12px", color: GRY, lineHeight: 1.6,
+      }}>
+        <strong style={{ color: BLK }}>Good to know:</strong> During discovery, you don't have to answer every question in depth. If something doesn't resonate or you're unsure, just say so — the AI will move on. There are no wrong answers, and "I don't know" is always valid.
+      </div>
+
+      {/* Continue button */}
+      <div style={{ borderTop: `2px solid ${BLK}`, paddingTop: "20px" }}>
+        <button onClick={handleContinue} style={{
+          width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
+          letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
+          border: `1.5px solid ${RED}`, cursor: "pointer", borderRadius: 0,
+        }}>
+          {userCorrection.trim() ? "Continue with my corrections" : "This looks right — let's go"}
+        </button>
+        <button onClick={() => onSkip()} style={{
+          width: "100%", padding: "12px", fontFamily: FONT, fontSize: "12px", fontWeight: 500,
+          letterSpacing: "0.06em", background: "transparent", color: GRY,
+          border: "none", cursor: "pointer", marginTop: "8px",
+        }}>
+          Skip and start discovery
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function StatusPhase({ status, setStatus, userName, setUserName, pronouns, setPronouns, onContinue, onBack }) {
   const canContinue = status && userName.trim();
 
@@ -699,6 +961,7 @@ function DiscoveryPhase({
   pronouns,
   totalFiles,
   files,
+  contextReflection,
   onBack,
   onStartOver,
   // Session persistence props
@@ -732,6 +995,9 @@ function DiscoveryPhase({
   const [sectionTimings, setSectionTimings] = useState({});
   const [currentSectionStart, setCurrentSectionStart] = useState(null);
   const [totalMessageCount, setTotalMessageCount] = useState(0);
+
+  // Ref for startSection to avoid stale closures in re-entry useEffect
+  const startSectionRef = useRef(null);
 
   // Parse lens document for the report renderer
   const parsedLens = useMemo(() => {
@@ -768,9 +1034,9 @@ function DiscoveryPhase({
   // Handle re-entry mode — start conversation for the specific section
   useEffect(() => {
     if (reentryMode && reentrySection !== null && subPhase === "preview") {
-      startSection(reentrySection);
+      startSectionRef.current(reentrySection);
     }
-  }, [reentryMode, reentrySection]);
+  }, [reentryMode, reentrySection, subPhase]);
 
   // Build file context string from uploaded files (memoized for performance)
   const fileContext = useMemo(() => {
@@ -857,8 +1123,10 @@ function DiscoveryPhase({
           status,
           establishedContext: prevContext || null,
           uploadSummary: fileContext || null,
+          contextReflection: contextReflection || null,
           reentryMode: reentryMode || false,
           existingLens: existingLens || null,
+          userName,
           ...extraContext,
         },
       }),
@@ -902,6 +1170,9 @@ function DiscoveryPhase({
       setLoading(false);
     }
   }
+
+  // Keep ref updated for re-entry useEffect
+  startSectionRef.current = startSection;
 
   useEffect(() => {
     if (aiGreeting && !greetingDone) {
@@ -1646,14 +1917,15 @@ SIGNALS:
                 // Retry last action - re-trigger the greeting or re-send last message
                 if (messages.length === 0 && !greetingDone) {
                   // Retry initial greeting
-                  startSection(currentSection);
+                  startSectionRef.current(currentSection);
                 } else if (messages.length > 0) {
                   // Re-send the last user message by putting it back in input
-                  const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
-                  if (lastUserMsg) {
-                    // Remove the last user message from history and put it back in input
-                    setMessages(messages.slice(0, -1));
-                    setInput(lastUserMsg.content);
+                  // Find the index of the last user message and remove from there onward
+                  const lastUserIdx = messages.map(m => m.role).lastIndexOf("user");
+                  if (lastUserIdx !== -1) {
+                    const lastUserContent = messages[lastUserIdx].content;
+                    setMessages(messages.slice(0, lastUserIdx));
+                    setInput(lastUserContent);
                   }
                 }
               }}
@@ -2195,6 +2467,9 @@ export default function LensIntake() {
   const [previousFiles, setPreviousFiles] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
+  // Context Reflection state (new phase between status and discovery)
+  const [contextReflection, setContextReflection] = useState(null);
+
   // New session persistence state
   const [savedSession, setSavedSession] = useState(null);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
@@ -2238,6 +2513,7 @@ export default function LensIntake() {
     if (session.pronouns) setPronouns(session.pronouns);
     if (session.fileMeta) setPreviousFiles(session.fileMeta);
     if (session.fileContext) setFileContext(session.fileContext);
+    if (session.contextReflection) setContextReflection(session.contextReflection);
     if (session.discoveryState) setDiscoveryState(session.discoveryState);
     if (session.lensOutput) setLensOutput(session.lensOutput);
     setShowRecoveryPrompt(false);
@@ -2270,6 +2546,7 @@ export default function LensIntake() {
       pronouns,
       fileMeta: Object.keys(fileMeta).length > 0 ? fileMeta : null,
       fileContext: Object.keys(fileCtx).length > 0 ? fileCtx : (Object.keys(fileContext).length > 0 ? fileContext : null),
+      contextReflection,
       discoveryState,
       lensOutput,
     };
@@ -2284,7 +2561,7 @@ export default function LensIntake() {
     } else {
       setStorageWarning(null);
     }
-  }, [phase, status, userName, pronouns, files, discoveryState, lensOutput, loaded, showRecoveryPrompt, fileContext]);
+  }, [phase, status, userName, pronouns, files, discoveryState, lensOutput, loaded, showRecoveryPrompt, fileContext, contextReflection]);
 
   // ── Clear saved progress ──
   const handleStartOver = () => {
@@ -2296,6 +2573,7 @@ export default function LensIntake() {
     setPreviousFiles(null);
     setDiscoveryState(null);
     setFileContext({});
+    setContextReflection(null);
     setLensOutput(null);
     setReentryMode(false);
     setReentrySection(null);
@@ -2454,7 +2732,7 @@ export default function LensIntake() {
   const totalFiles = Object.values(files).reduce((sum, arr) => sum + arr.length, 0);
 
   // Top progress indicator
-  const phaseIndex = ["intro", "upload", "status", "discovery"].indexOf(phase);
+  const phaseIndex = ["intro", "upload", "status", "reflect", "discovery"].indexOf(phase);
 
   // Show nothing while loading saved state (prevents flash)
   if (!loaded) {
@@ -2518,7 +2796,7 @@ export default function LensIntake() {
         <div style={{ position: "sticky", top: 0, zIndex: 10, background: "#fff", borderBottom: `1px solid ${RULE}` }}>
           <div style={{ maxWidth: "560px", margin: "0 auto", padding: "0 32px" }}>
             <div style={{ display: "flex", gap: "4px", padding: "12px 0", alignItems: "flex-start" }}>
-              {["Materials", "Status", "Discovery"].map((label, i) => (
+              {["Materials", "Status", "Context", "Discovery"].map((label, i) => (
                 <div key={label} style={{ flex: 1 }}>
                   <div style={{
                     height: "2px", marginBottom: "4px",
@@ -2614,7 +2892,24 @@ export default function LensIntake() {
           status={status} setStatus={setStatus}
           userName={userName} setUserName={setUserName}
           pronouns={pronouns} setPronouns={setPronouns}
-          onContinue={() => setPhase("discovery")} onBack={() => setPhase("upload")}
+          onContinue={() => setPhase("reflect")} onBack={() => setPhase("upload")}
+        />
+      )}
+
+      {phase === "reflect" && (
+        <ContextReflectionPhase
+          files={files}
+          userName={userName}
+          status={status}
+          onContinue={(reflection) => {
+            setContextReflection(reflection);
+            setPhase("discovery");
+          }}
+          onBack={() => setPhase("status")}
+          onSkip={() => {
+            setContextReflection(null);
+            setPhase("discovery");
+          }}
         />
       )}
 
@@ -2625,7 +2920,8 @@ export default function LensIntake() {
           pronouns={pronouns}
           totalFiles={totalFiles}
           files={files}
-          onBack={() => setPhase("status")}
+          contextReflection={contextReflection}
+          onBack={() => setPhase("reflect")}
           onStartOver={handleStartOver}
           savedDiscoveryState={discoveryState}
           onDiscoveryStateChange={handleDiscoveryStateChange}

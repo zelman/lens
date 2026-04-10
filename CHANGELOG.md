@@ -2,6 +2,58 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-10] Discovery Flow Improvements (Ravi/Brendan Feedback)
+
+### lens-app 2026.04.10-a
+Based on tester feedback from Ravi Katam (4/10/26) and Brendan McCarthy (early April):
+
+**New: Context Reflection Phase**
+- Added new phase between Status and Discovery
+- AI summarizes uploaded materials before conversation begins
+- User confirms/corrects the summary before discovery starts
+- Demonstrates AI has "read" their materials (addresses "uploaded into a void" feedback)
+- If no materials uploaded, skips automatically
+
+**Section Timing Guardrails**
+- Hard cap of 4 questions per section (prevents psychoanalysis mode)
+- Question counter in route.js enforces limit
+- Warning at 3 questions, forced completion at 4
+- Target: 4-5 minutes per section, hard cap at 8 minutes
+- Reduced total session target from 2+ hours to 25-35 minutes
+
+**Context-Aware Questioning**
+- Updated all 8 section systemContext strings to reference prior answers
+- Essence section now references uploaded materials in opener
+- Each section opener demonstrates continuity with prior sections
+- Prevents re-asking information already covered
+
+**"I Don't Know" Handling**
+- Added system prompt rules for handling uncertainty gracefully
+- AI acknowledges and moves on without pushing for examples
+- Added user-facing guidance in IntroPhase and ContextReflectionPhase
+
+**Redundancy Prevention**
+- Added explicit rules to prevent cross-section redundancy
+- AI checks conversation history before asking questions
+- Immediate acknowledgment if user says "I already mentioned this"
+
+### API Changes
+- `/api/discover` now accepts `action: "reflect"` for context reflection
+- Added `contextReflection` to context object passed to discovery
+- Greeting action now includes uploaded materials and context reflection
+
+### lens-app 2026.04.10-b (Opus Review Fixes)
+- **Security fix**: Moved `establishedContext` to AFTER system instructions in prompt building (prevents prompt injection)
+- **Bug fix**: Retry logic now correctly removes user message and any following assistant response (was removing wrong message)
+- **Bug fix**: Re-entry useEffect now uses ref pattern to avoid stale closures, added `subPhase` to deps
+- **Bug fix**: ContextReflectionPhase auto-skip uses ref pattern for `onSkip` callback
+- **Bug fix**: FileChip size calculation uses numeric types instead of string coercion
+- **Validation**: Empty message content now rejected (non-empty string required)
+- **Validation**: Payload size check now uses accurate byte count (TextEncoder)
+- **Fix**: [SECTION_COMPLETE] marker removal now uses `replaceAll` (handles multiple occurrences)
+
+---
+
 ## [2026-04-07] Timing & Drop-off Instrumentation
 
 ### lens-app 2026.04.07-b
