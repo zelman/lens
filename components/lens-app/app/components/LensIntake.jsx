@@ -10,7 +10,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.10-b";
+const BUILD_ID = "2026.04.10-c";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -1011,6 +1011,17 @@ function DiscoveryPhase({
   }, [lensDoc]);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Update document title for PDF export when viewing completed lens
+  useEffect(() => {
+    if (subPhase === "done" && lensDoc && userName) {
+      const originalTitle = document.title;
+      document.title = `Lens Profile — ${userName}`;
+      return () => {
+        document.title = originalTitle;
+      };
+    }
+  }, [subPhase, lensDoc, userName]);
 
   // Persist discovery state on changes
   useEffect(() => {

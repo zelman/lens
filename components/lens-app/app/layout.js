@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Tide Pool — Build Your Lens",
+  title: "Lens — Professional Identity Discovery",
   description: "AI-coached professional identity discovery",
 };
 
