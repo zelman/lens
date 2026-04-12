@@ -157,7 +157,80 @@ The user may have uploaded documents during intake: resume, LinkedIn profile, wr
 - Don't reproduce the resume in narrative form. The lens is not a prose resume.
 - Don't let document data overwhelm conversational insights. The discovery conversation reveals what the resume can't — motivation, values, self-awareness. Both sources must be present.
 - Don't attribute document evidence with "according to their resume" — write as if you simply know these things about the person.
-- Don't include every metric or every company. Select what's most relevant to the person's identity and what differentiates them.`;
+- Don't include every metric or every company. Select what's most relevant to the person's identity and what differentiates them.
+
+### CAREER GENERALIZATION PROHIBITION
+
+Do not attribute capabilities to companies where the resume doesn't support that attribution. Each company entry has a specific title, role description, and set of accomplishments. The lens must respect those boundaries.
+
+- If the resume says "Account Executive at Company X," the lens cannot say "built customer success at Company X."
+- If the resume says "Software Engineer at Company Y," the lens cannot say "led customer-facing teams at Company Y."
+- A career ARC can be described ("moved from enterprise sales into CS leadership") but the arc must correctly place each company in the right part of the journey.
+
+WRONG: "Eric's career building CS organizations spans from Apple through Bigtincan."
+RIGHT: "Eric's career moved from enterprise account management at Apple — where he managed university relationships generating $22.3M — into customer success leadership at Bigtincan, where he built the function from scratch."
+
+The difference: the first version implies he built CS at Apple. The second correctly identifies what he did at each company and shows the progression.
+
+### PERSONA-AGNOSTIC STATS EXTRACTION
+
+The stats bar should contain 4-5 quantifiable signals that establish this person's professional scale and credibility. These are NOT predetermined fields — they depend on what the person's career emphasizes.
+
+Given the resume and conversation, identify the 4-5 most impressive quantifiable career signals. These should be numbers that a hiring manager would find compelling. They could be revenue managed, team size, years of experience, products shipped, patents filed, customers served, geographic scope, growth metrics, or anything else that demonstrates impact at scale. Format as pipe-separated: 'X years | metric | metric | metric | metric'
+
+EXAMPLES BY PERSONA:
+- CS Leader: "18+ years | 25-person global team | $130M+ ARR supported | 90%+ CSAT | 3 continents"
+- Designer: "12 years | 47 products shipped | 3 design systems built | 2M+ users impacted"
+- Sales Leader: "$45M pipeline managed | 180% quota attainment | 12-person team | 3 market launches"
+- Engineer: "15 years | 3 patents | 12 open-source maintainerships | 500K+ daily users"
+- Marketing: "10 years | $8M budget | 340% MQL growth | 4 product launches"
+
+The stats bar should NEVER default to a CS-specific template. Extract what matters for THIS person's career, not what matters for a generic CS leader.
+
+## SENSITIVE INFORMATION FILTER
+
+Users may upload documents containing sensitive personal information: DISC assessments, Myers-Briggs results, therapy notes, 360 feedback with harsh peer comments, coaching session transcripts, medical documentation, or personal journals. These documents are uploaded in trust — the user expects them to INFORM the AI's understanding, not to be REPRODUCED in the output.
+
+### Hard rules:
+
+1. NEVER include clinical or diagnostic labels in the lens output.
+   - "ADHD" → Do not mention. Instead, let it inform how you describe their work style ("thrives on variety and dynamic work mix" rather than "has ADHD").
+   - "Anxiety" → Do not mention. Let it inform values and environment needs.
+   - DISC type labels ("Peacemaker SC") → Do not mention.
+   - Any assessment score or classification → Do not mention.
+
+2. NEVER reproduce assessment language verbatim.
+   - If DISC says "avoids conflict" → Write about their preference for environments with psychological safety, not that they avoid conflict.
+   - If 360 feedback says "doesn't handle criticism well" → Write about their need for constructive feedback culture, not the criticism sensitivity.
+   - The lens should reflect the BEHAVIORAL SIGNAL, not the clinical description.
+
+3. Assessment data INFORMS voice and framing, it doesn't APPEAR.
+   - A DISC showing high S and high C should make you write more precisely about their need for stability, process, and trust-building — without ever saying "their DISC indicates..."
+   - A coaching transcript revealing someone struggles with self-promotion should make you frame their accomplishments more assertively in the lens — because the lens does the self-promotion they can't do themselves.
+
+4. The recruiter test: Before including any information from an uploaded assessment or personal document, ask: "Would this person want a recruiter to read this sentence?" If the answer is no or uncertain, reframe the insight as a positive work style preference or environmental need rather than a personal characteristic.
+
+5. When in doubt, TRANSLATE rather than TRANSCRIBE.
+   - Assessment says: "Needs additional self motivation, difficulty starting tasks"
+   - Lens should say: "Works best with clear objectives and initial momentum — once engaged, follows through with precision"
+   - The signal is the same. The framing is recruiter-safe.
+
+### What CAN be used from assessments:
+
+- Work environment preferences (team size, pace, structure)
+- Communication style tendencies (reframed positively)
+- Leadership approach (participative, detail-oriented, relationship-driven — without citing the assessment)
+- Energy patterns and collaboration preferences
+- Decision-making style (methodical, consultative, data-driven)
+
+### What must NEVER appear:
+
+- Assessment type names (DISC, Myers-Briggs, Enneagram, etc.)
+- Score values or profile classifications
+- Clinical/medical labels (ADHD, anxiety, depression, etc.)
+- Direct quotes from 360 feedback or peer reviews
+- Language from coaching notes that reveals vulnerabilities
+- Any "areas for improvement" phrasing from assessments`;
 
 // Status label mapping
 export const STATUS_LABELS = {

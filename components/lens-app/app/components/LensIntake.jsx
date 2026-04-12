@@ -10,7 +10,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.12-d";
+const BUILD_ID = "2026.04.12-f";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -1190,6 +1190,72 @@ function DiscoveryPhase({
       }
     }
     if (tools.length > 0) ctx.tools = tools.slice(0, 6);
+
+    // Extract per-company role data (prevents career generalization hallucinations)
+    // Look for patterns like: "Title at Company (dates)" or "Company | Title | dates"
+    const companyRoles = [];
+    const companyPatterns = [
+      // "VP Customer Support at Bigtincan" or "Director of CS at Showpad"
+      /(?:^|\n)([A-Z][^,\n]{5,40}?)\s+(?:at|@)\s+([A-Z][A-Za-z0-9\s&.]+?)(?:\s*[,|\-–—(]\s*((?:19|20)\d{2})\s*[-–—to]+\s*(present|(?:19|20)\d{2}))?/gim,
+      // "Bigtincan | VP Customer Support | 2012-2025"
+      /(?:^|\n)([A-Z][A-Za-z0-9\s&.]+?)\s*[|]\s*([A-Z][^|\n]{5,40}?)\s*[|]\s*((?:19|20)\d{2})\s*[-–—to]+\s*(present|(?:19|20)\d{2})/gim,
+      // "Company Name\nTitle\n2020-Present" (resume format)
+      /(?:^|\n)([A-Z][A-Za-z0-9\s&.]{3,30})\s*\n\s*([A-Z][^,\n]{5,40}?)\s*\n\s*((?:19|20)\d{2})\s*[-–—to]+\s*(present|(?:19|20)\d{2})/gim,
+    ];
+
+    // Common role function keywords for classification
+    const roleFunctions = {
+      sales: ['sales', 'account executive', 'ae', 'business development', 'bdr', 'sdr', 'quota', 'revenue'],
+      cs: ['customer success', 'cs', 'csm', 'customer experience', 'cx', 'retention', 'renewal'],
+      support: ['support', 'technical support', 'help desk', 'customer service'],
+      engineering: ['engineer', 'developer', 'architect', 'swe', 'sde', 'devops'],
+      product: ['product manager', 'product owner', 'pm', 'product lead'],
+      marketing: ['marketing', 'demand gen', 'content', 'brand', 'communications'],
+      leadership: ['vp', 'director', 'head of', 'chief', 'ceo', 'coo', 'cto', 'cmo', 'cro']
+    };
+
+    const classifyRole = (title) => {
+      const lower = title.toLowerCase();
+      for (const [func, keywords] of Object.entries(roleFunctions)) {
+        if (keywords.some(k => lower.includes(k))) return func;
+      }
+      return 'other';
+    };
+
+    for (const pattern of companyPatterns) {
+      let match;
+      while ((match = pattern.exec(fileContext)) !== null) {
+        const [, part1, part2, startYear, endYear] = match;
+        // Determine which is company vs title based on pattern
+        let company, title;
+        if (pattern.source.includes('at|@')) {
+          // "Title at Company" format
+          title = part1.trim();
+          company = part2.trim();
+        } else {
+          // "Company | Title" format
+          company = part1.trim();
+          title = part2.trim();
+        }
+
+        // Skip if company name is too short or looks like a date
+        if (company.length < 3 || /^\d{4}/.test(company)) continue;
+
+        // Skip duplicates
+        if (companyRoles.some(r => r.company.toLowerCase() === company.toLowerCase())) continue;
+
+        companyRoles.push({
+          company,
+          title,
+          years: startYear && endYear ? `${startYear}-${endYear}` : null,
+          function: classifyRole(title)
+        });
+      }
+    }
+
+    if (companyRoles.length > 0) {
+      ctx.company_roles = companyRoles.slice(0, 10); // Limit to 10 most recent
+    }
 
     return Object.keys(ctx).length > 0 ? ctx : null;
   }, [fileContext]);

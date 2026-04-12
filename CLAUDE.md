@@ -1,5 +1,20 @@
 # Claude Code Project Instructions
 
+## CRITICAL: Deployment Rules
+
+**NEVER push to main or deploy without explicit user confirmation.**
+
+The workflow is:
+1. Make changes locally
+2. Run build to verify
+3. Stage changes with `git add`
+4. **ASK USER** before committing and pushing
+5. Only push after user says "deploy", "push", "ship it", or similar explicit approval
+
+Commits to main auto-deploy to Vercel. Pushing without approval wastes the user's time if changes need revision.
+
+---
+
 ## Repository Overview
 
 This is the Lens Project product repo. It contains the Next.js intake app, JSX scorers, scoring configuration, schemas, documentation, and deliverables. This is the product being built for other users.

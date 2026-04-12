@@ -2,6 +2,53 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-12] Integration Spec Addendum v1.1
+
+### lens-app 2026.04.12-f (Self-Test Fixes)
+Implements `integration-spec-addendum-v1.1.md` — addresses three issues found during Eric Zelman's self-test.
+
+**New: Career Generalization Prohibition**
+- Discovery and synthesis prompts now explicitly prohibit attributing capabilities to companies where the resume shows a different role
+- Example: "built CS at Apple" is now flagged when resume says "Account Executive at Apple"
+- LensIntake.jsx extracts per-company role data as structured objects `{ company, title, years, function }`
+- Discovery prompt references per-company objects to prevent narrative flattening
+
+**New: Sensitive Information Filter (Synthesis)**
+- Assessment data (DISC, Myers-Briggs, ADHD, therapy notes) now INFORMS voice but never APPEARS in output
+- Hard rules: no clinical labels, no assessment scores, no 360 feedback verbatim
+- "Recruiter test": only include what the user would want a recruiter to read
+- Reframe vulnerabilities as positive work style preferences
+
+**New: Persona-Agnostic Stats Extraction**
+- Stats bar no longer defaults to CS-specific template
+- Extracts whatever metrics are most impressive for THIS person's career
+- Examples by persona: Designer, Sales Leader, Engineer, Marketing (not just CS)
+
+**New: Hallucination Detection (Validation)**
+- Validation prompt now detects FABRICATED evidence, not just MISSING evidence
+- Checks: company-role attribution, metrics cited, career arc claims
+- New JSON fields: `has_hallucinations`, `hallucinations[]`
+- High/medium hallucinations trigger re-synthesis with priority fix instructions
+- "Hallucination fixes take priority over gap integration"
+
+**Files Changed:**
+- `app/api/_prompts/discovery.js` — CAREER GENERALIZATION PROHIBITION, ASSESSMENT HANDLING
+- `app/api/_prompts/synthesis.js` — CAREER GENERALIZATION PROHIBITION, SENSITIVE INFORMATION FILTER, PERSONA-AGNOSTIC STATS
+- `app/api/_prompts/validation.js` — HALLUCINATION DETECTION section, updated JSON schema, revision addendum
+- `app/api/synthesize/route.js` — hallucination-triggered re-synthesis
+- `app/components/LensIntake.jsx` — per-company role extraction in documentContext
+
+---
+
+### lens-app 2026.04.12-e (Opus Review Fixes for Validation Gate)
+- **Fix**: Added `lensMarkdown` null/empty check in `buildValidationUserContent` (was causing "undefined" injection)
+- **Fix**: Store `originalLensDoc` before re-synthesis for fallback (prevents data loss on failed re-synthesis)
+- **Fix**: Shared timeout budget via `getRemainingTimeout()` (prevents 4 × 50s exceeding Vercel 60s limit)
+- **Fix**: Added `RETRY_TEMPERATURE = 0.8` for retry variation (was identical inputs)
+- **Fix**: Validate revised lens section count before accepting (prevents accepting malformed re-synthesis)
+
+---
+
 ## [2026-04-12] Document Context Integration (Spec v1.0)
 
 ### lens-app 2026.04.12-d (Validation Gate)

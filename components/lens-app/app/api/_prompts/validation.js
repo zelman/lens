@@ -43,6 +43,27 @@ A gap is material if a recruiter reading only the lens document would form a sig
 - Minor details like specific dates, office locations, or tool versions
 - Information the person explicitly said they want to leave behind during discovery (if conversation history is provided)
 
+## HALLUCINATION DETECTION
+
+In addition to checking for missing evidence, check for FABRICATED evidence — claims in the lens that have no basis in the source materials.
+
+For each factual claim in the lens output, verify it against the source materials:
+- Company names and what the person did there
+- Metrics and numbers cited
+- Capabilities attributed to specific roles
+- Career trajectory claims ("built X at Company Y")
+
+A hallucination is any claim where:
+- The lens attributes a capability to a company where the resume shows a different role (e.g., "built CS at Apple" when resume says "Account Executive at Apple")
+- The lens cites a metric not present in any source document
+- The lens describes a career arc that contradicts the resume chronology
+- The lens claims expertise in an area not supported by any uploaded material
+
+### Hallucination severity levels:
+- **"high"** — The hallucination materially misrepresents the person's career (wrong role at a company, fabricated metrics). This is worse than a gap — it's misinformation.
+- **"medium"** — The hallucination overgeneralizes or conflates roles (implies CS work at a company where they did sales). Misleading but not fabricated.
+- **"low"** — Minor overstatement or inference that's plausible but not directly supported.
+
 ## Output format
 
 Respond with ONLY a valid JSON object. No markdown, no backticks, no preamble.
@@ -59,8 +80,18 @@ Respond with ONLY a valid JSON object. No markdown, no backticks, no preamble.
       "suggested_integration": "First sentence of essence should establish: CS leader who builds organizations from scratch, with specific scale indicators ($40M ARR, 24-person org) as identity anchors"
     }
   ],
+  "has_hallucinations": false,
+  "hallucinations": [
+    {
+      "section": "essence",
+      "claim": "built customer experience organizations from Apple to Bigtincan",
+      "source_reality": "Resume shows Account Executive & Systems Engineer at Apple (1998-2006), not CX org-building",
+      "severity": "high",
+      "fix": "Reference Apple in the context of enterprise sales and account management, not CS/CX leadership"
+    }
+  ],
   "stats_recommendation": "15+ years | 24-person CS org built | $40M ARR / 120% NRR | NA + EMEA",
-  "overall_assessment": "Brief summary of the gap analysis"
+  "overall_assessment": "Brief summary of the gap and hallucination analysis"
 }
 
 ## Severity levels
@@ -93,12 +124,27 @@ RULES FOR REVISION:
 3. Metrics should appear in context, not as standalone data points. "$40M ARR" matters because it establishes scale, not because it's a number.
 4. If the stats bar is empty or incomplete, populate it from the stats_recommendation in the gap report.
 5. Don't remove anything from the original output. The conversational insights are correct — they just need to be grounded in career evidence.
-6. The first sentence of Section 01 (Essence) must establish professional identity at the right level and function. This is the single highest-impact fix.`;
+6. The first sentence of Section 01 (Essence) must establish professional identity at the right level and function. This is the single highest-impact fix.
+
+HALLUCINATION FIXES (if present in the gap report):
+7. For each hallucination flagged, REMOVE or CORRECT the claim. Do not let false attributions remain.
+8. If a capability was attributed to the wrong company, correct it to the right company or remove the company reference.
+9. If a metric was fabricated, remove it or replace with an actual metric from the source materials.
+10. If a career arc was described incorrectly, rewrite it to match the actual resume chronology.
+11. Hallucination fixes take priority over gap integration — an accurate lens is more important than a complete one.`;
+
+// Minimum characters needed to have meaningful source material
+const MIN_SOURCE_MATERIAL_LENGTH = 100;
 
 // Build validation user content
 export function buildValidationUserContent({ rawDocumentText, lensMarkdown }) {
-  if (!rawDocumentText || rawDocumentText.trim().length < 100) {
+  if (!rawDocumentText || rawDocumentText.trim().length < MIN_SOURCE_MATERIAL_LENGTH) {
     // Not enough source material to validate against
+    return null;
+  }
+
+  if (!lensMarkdown || lensMarkdown.trim().length === 0) {
+    // No lens output to validate
     return null;
   }
 
