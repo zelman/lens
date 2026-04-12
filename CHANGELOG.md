@@ -4,6 +4,29 @@ All notable changes to deployed apps and schemas are documented here.
 
 ## [2026-04-12] Document Context Integration (Spec v1.0)
 
+### lens-app 2026.04.12-d (Validation Gate)
+Implements `lens-validation-prompt-v1.0.md` — post-synthesis QA gate that catches gaps and triggers re-synthesis.
+
+**New: Post-Synthesis Validation**
+- Added `app/api/_prompts/validation.js` with validation system prompt and revision addendum
+- Validation runs after synthesis if source materials exist
+- Checks for identity gaps, evidence gaps, scope gaps, stats gaps
+- Returns structured JSON gap report with severity (none/low/medium/high)
+- If high/medium severity: triggers re-synthesis with revision instructions
+- If validation fails or no source materials: gracefully continues with original lens
+
+**Pipeline Flow:**
+```
+Discovery → Synthesis → Validation → [Re-synthesis if gaps] → Render
+```
+
+**Cost/Latency:**
+- Validation call: ~1500 input tokens, ~500-800 output tokens (fast)
+- Re-synthesis: same as original synthesis, adds 5-10s when triggered
+- Expected to decrease as upstream prompts improve
+
+---
+
 ### lens-app 2026.04.12-b (Opus Review Fixes)
 - **Fix**: Added null check on `startSectionRef.current` before calling (prevents TypeError on re-entry)
 - **Security**: `/skip` dev command now guarded with `process.env.NODE_ENV === "development"`
