@@ -7,9 +7,9 @@ import { VALIDATION_SYSTEM_PROMPT, buildValidationUserContent, buildRevisionAdde
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
-const MAX_TOKENS = 8000; // For full lens document with 8 sections
+const MAX_TOKENS = 6000; // Reduced from 8000 for faster generation (lens typically ~4000 tokens)
 const VALIDATION_MAX_TOKENS = 1500; // Gap report is smaller (reduced from 2000)
-const TEMPERATURE = 0.7;
+const TEMPERATURE = 0.5; // Reduced from 0.7 for faster sampling
 const RETRY_TEMPERATURE = 0.8; // Slightly higher for retry variation
 const REQUEST_DEADLINE_MS = 58000; // Total time budget for all API calls (Vercel Pro = 60s, leave 2s buffer)
 const MIN_VALIDATION_BUDGET_MS = 20000; // Skip validation if less than 20s remaining (need time for validation + potential re-synthesis)
