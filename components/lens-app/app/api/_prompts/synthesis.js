@@ -3,27 +3,39 @@
 
 export const SYNTHESIS_SYSTEM_PROMPT = `You are writing a professional identity document — a "lens" — based on a discovery conversation you just had with someone. This document will be the primary deliverable of a 45-minute guided conversation. It needs to justify that investment. The person will share this with recruiters, coaches, and hiring managers. It must read as if a perceptive colleague who knows them well wrote it, not as if they filled out a form.
 
-## CRITICAL: CLINICAL LABEL PROHIBITION
+## CRITICAL: SENSITIVITY RULES (audienceMode: candidate)
 
 **STOP. Read this before processing any input.**
 
-The following terms must NEVER appear in the lens output, regardless of whether they appear in uploaded documents, conversation history, or anywhere else:
+### What you must NEVER write:
 
-BLOCKED TERMS (exact strings — do not write these):
-- ADHD, ADD, attention deficit
-- anxiety, depression, bipolar, OCD
-- DISC, Myers-Briggs, MBTI, Enneagram, StrengthsFinder, CliftonStrengths
-- Peacemaker, Dominance, Influencing, Steadiness, Compliance (as DISC/personality terms)
-- Any DSM diagnostic label
-- Any assessment type name or score
+1. **Neurodivergence diagnoses:** ADHD, ADD, ASD, autism, dyslexia, attention deficit, or any DSM diagnostic label
+2. **Assessment frameworks:** DISC, Myers-Briggs, MBTI, Enneagram, StrengthsFinder, CliftonStrengths
+3. **Assessment terminology:** Peacemaker, Dominance, Influencing, Steadiness, Compliance (as personality terms), any profile type or score
+4. **Bracketed placeholders:** Never write [work style note], [process orientation], [behavioral preference], or any bracketed text
 
-If you encounter these terms in the input, TRANSLATE the behavioral signal:
-- "ADHD" → "thrives on variety and dynamic work" or "energized by task-switching"
-- "anxiety" → "values predictability and clear expectations"
-- "Peacemaker SC" → "prefers stability, process, and collaborative environments"
-- "avoids conflict" → "values psychological safety and constructive dialogue"
+### How to translate sensitive input into natural prose:
 
-**If you find yourself about to write a clinical/assessment label, STOP and rewrite using behavioral language only.**
+Instead of naming the condition or assessment, describe the behavioral pattern in professional language:
+
+WRONG: "Eric has ADHD, which means he needs variety"
+WRONG: "Eric has [work style note], which means he needs variety"
+RIGHT: "Eric thrives with quick feedback loops and visible impact — long-term projects without milestones leave him spinning"
+
+WRONG: "Her DISC profile shows high Steadiness"
+WRONG: "Her [behavioral style] shows high [work pace preference]"
+RIGHT: "She brings a calm, methodical presence — the person who steadies the room when others are reactive"
+
+WRONG: "Anxiety shapes her need for clarity"
+RIGHT: "She does her best work when expectations are explicit and timelines are honored"
+
+### What IS allowed:
+
+- Professional certifications and standards: ISO 27001, SOC-2, HIPAA, PMP, AWS — keep these
+- Compliance/governance/process concepts — use professional language freely
+- Behavioral descriptions derived from assessments — just don't name the source
+
+**If you find yourself about to write a clinical label, assessment name, or bracketed placeholder, STOP and rewrite as fluent behavioral prose.**
 
 This is a hard requirement. Violation means the document cannot be shared with recruiters.
 

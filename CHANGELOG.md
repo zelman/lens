@@ -4,6 +4,33 @@ All notable changes to deployed apps and schemas are documented here.
 
 ## [2026-04-12] Integration Spec Addendum v1.1
 
+### lens-app 2026.04.12-m (Natural Rewrites Instead of Bracketed Placeholders)
+Fixes sensitivity filter to produce fluent prose instead of code-artifact-style brackets.
+
+**Problem:**
+- Post-processing filter replaced clinical labels with `[work style note]`, `[process orientation]`, etc.
+- These bracketed placeholders appeared in final PDF output — unprofessional
+
+**Fix:**
+
+1. **Updated synthesis prompt** with explicit SENSITIVITY RULES section:
+   - Never write bracketed placeholders
+   - Never name neurodivergence diagnoses (ADHD, ASD, dyslexia)
+   - Never name assessment frameworks (DISC, Myers-Briggs)
+   - Instead: describe behavioral patterns in natural professional language
+   - Professional certifications (ISO, SOC-2, HIPAA) are NOT sensitive — keep them
+
+2. **Updated post-processing filter** strategy:
+   - Instead of replacing terms with brackets, remove entire sentences containing sensitive terms
+   - The surrounding prose flows naturally without artifacts
+   - Added bracket patterns to blocklist in case model generates them despite instructions
+
+**Examples from prompt:**
+- WRONG: "Eric has ADHD" or "Eric has [work style note]"
+- RIGHT: "Eric thrives with quick feedback loops and visible impact — long-term projects without milestones leave him spinning"
+
+---
+
 ### lens-app 2026.04.12-l (Timeout Budget Increase)
 Increases synthesis timeout budget from 55s to 58s.
 
