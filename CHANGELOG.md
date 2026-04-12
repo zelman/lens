@@ -4,6 +4,29 @@ All notable changes to deployed apps and schemas are documented here.
 
 ## [2026-04-12] Integration Spec Addendum v1.1
 
+### lens-app 2026.04.12-j (Synthesis Timeout Fix)
+Fixes synthesis timeout errors by adding time budget checks before validation/re-synthesis.
+
+**Root Cause (from Vercel logs):**
+- 3 timeout errors on `/api/synthesize` (500 status)
+- Chain of synthesis → validation → re-synthesis exceeds 55s budget
+- Initial synthesis can take 30-40s, validation 10-15s, re-synthesis another 30-40s
+- Total: 70-95s, exceeding Vercel Pro's 60s limit
+
+**Fixes:**
+1. **Added `MIN_VALIDATION_BUDGET_MS` (20s)** — Skip validation if less than 20s remaining after synthesis
+2. **Added re-synthesis budget check (15s)** — Skip re-synthesis if not enough time remaining
+3. **Reduced `VALIDATION_MAX_TOKENS`** — From 2000 to 1500 (gap report doesn't need as many tokens)
+4. **Added timing logs** — Logs remaining budget at each decision point for debugging
+
+**Behavior:**
+- If synthesis takes <35s: full validation + re-synthesis if needed
+- If synthesis takes 35-40s: validation runs but re-synthesis skipped if issues found
+- If synthesis takes >35s: validation skipped entirely, returns original lens
+- This graceful degradation prevents timeouts while preserving quality when time permits
+
+---
+
 ### lens-app 2026.04.12-i (Context Acknowledgment Sensitivity Fix + Opus Fixes)
 Fixes DISC/assessment labels appearing in "Here's what I see" overview page, plus Opus review fixes.
 

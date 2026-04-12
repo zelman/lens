@@ -8,10 +8,11 @@ import { VALIDATION_SYSTEM_PROMPT, buildValidationUserContent, buildRevisionAdde
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
 const MAX_TOKENS = 8000; // For full lens document with 8 sections
-const VALIDATION_MAX_TOKENS = 2000; // Gap report is smaller
+const VALIDATION_MAX_TOKENS = 1500; // Gap report is smaller (reduced from 2000)
 const TEMPERATURE = 0.7;
 const RETRY_TEMPERATURE = 0.8; // Slightly higher for retry variation
 const REQUEST_DEADLINE_MS = 55000; // Total time budget for all API calls (Vercel Pro = 60s)
+const MIN_VALIDATION_BUDGET_MS = 20000; // Skip validation if less than 20s remaining (need time for validation + potential re-synthesis)
 
 export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -146,12 +147,19 @@ export async function POST(request) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // PHASE 2: Validation Gate (only if we have source materials)
+    // PHASE 2: Validation Gate (only if we have source materials AND time budget)
     // ═══════════════════════════════════════════════════════════════════════
-    const validationContent = buildValidationUserContent({
+    const remainingBudget = getRemainingTimeout();
+    const hasTimeBudget = remainingBudget >= MIN_VALIDATION_BUDGET_MS;
+
+    if (!hasTimeBudget) {
+      console.log(`Skipping validation - only ${Math.round(remainingBudget / 1000)}s remaining (need ${MIN_VALIDATION_BUDGET_MS / 1000}s)`);
+    }
+
+    const validationContent = hasTimeBudget ? buildValidationUserContent({
       rawDocumentText: rawDocumentText || null,
       lensMarkdown: lensDoc,
-    });
+    }) : null;
 
     if (validationContent) {
       try {
@@ -181,30 +189,34 @@ export async function POST(request) {
           if (hasSensitivityViolations) reasons.push("sensitivity violations");
           if (hasHallucinations) reasons.push("hallucinations");
           if (hasSignificantGaps) reasons.push("gaps");
-          console.log(`Validation found issues: ${reasons.join(", ")}, triggering re-synthesis`);
 
-          // Store original for fallback
-          const originalLensDoc = lensDoc;
+          // Check if we have enough time budget for re-synthesis (~15s minimum)
+          const resynthBudget = getRemainingTimeout();
+          if (resynthBudget < 15000) {
+            console.log(`Validation found issues (${reasons.join(", ")}) but only ${Math.round(resynthBudget / 1000)}s remaining - skipping re-synthesis`);
+          } else {
+            console.log(`Validation found issues: ${reasons.join(", ")}, triggering re-synthesis (${Math.round(resynthBudget / 1000)}s remaining)`);
 
-          // Build revision addendum and append to original synthesis prompt
-          const revisionAddendum = buildRevisionAddendum(gapReport);
-          const revisedSystemPrompt = SYNTHESIS_SYSTEM_PROMPT + revisionAddendum;
+            // Build revision addendum and append to original synthesis prompt
+            const revisionAddendum = buildRevisionAddendum(gapReport);
+            const revisedSystemPrompt = SYNTHESIS_SYSTEM_PROMPT + revisionAddendum;
 
-          // Re-run synthesis with gap instructions
-          try {
-            const revisedLens = await callAnthropic(revisedSystemPrompt, userContent);
+            // Re-run synthesis with gap instructions
+            try {
+              const revisedLens = await callAnthropic(revisedSystemPrompt, userContent);
 
-            // Validate revised output before accepting it
-            const revisedSectionCount = (revisedLens.match(/^##\s+/gm) || []).length;
-            if (revisedSectionCount < 4) {
-              console.warn(`Re-synthesis produced only ${revisedSectionCount} sections, keeping original`);
-              // Keep original lensDoc (don't overwrite)
-            } else {
-              lensDoc = revisedLens;
+              // Validate revised output before accepting it
+              const revisedSectionCount = (revisedLens.match(/^##\s+/gm) || []).length;
+              if (revisedSectionCount < 4) {
+                console.warn(`Re-synthesis produced only ${revisedSectionCount} sections, keeping original`);
+                // Keep original lensDoc (don't overwrite)
+              } else {
+                lensDoc = revisedLens;
+              }
+            } catch (resynthErr) {
+              console.warn("Re-synthesis failed, keeping original:", resynthErr.message);
+              // Keep original lensDoc
             }
-          } catch (resynthErr) {
-            console.warn("Re-synthesis failed, keeping original:", resynthErr.message);
-            // Keep original lensDoc
           }
         } else {
           console.log(`Validation passed with severity: ${gapReport.gap_severity || "none"}`);
