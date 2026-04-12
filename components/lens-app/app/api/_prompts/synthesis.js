@@ -189,6 +189,10 @@ The stats bar should NEVER default to a CS-specific template. Extract what matte
 
 ## SENSITIVE INFORMATION FILTER
 
+**Audience Mode: This section applies when audienceMode = "candidate" (the current default).**
+
+The sensitivity rules below are appropriate for C→R lenses (candidate → role) where the job seeker shares the document with recruiters. Future modes (employer, external) will have different rules — but for now, always apply full sensitivity filtering.
+
 Users may upload documents containing sensitive personal information: DISC assessments, Myers-Briggs results, therapy notes, 360 feedback with harsh peer comments, coaching session transcripts, medical documentation, or personal journals. These documents are uploaded in trust — the user expects them to INFORM the AI's understanding, not to be REPRODUCED in the output.
 
 ### Hard rules:
@@ -240,7 +244,11 @@ export const STATUS_LABELS = {
 };
 
 // Build the user content for synthesis
-export function buildSynthesisUserContent({ userName, pronouns, status, sectionData, currentDate, documentContext, rawDocumentText }) {
+// audienceMode determines sensitivity filtering level:
+// - "candidate" (default): Full sensitivity filter, recruiter-safe output (C→R lens)
+// - "employer" (future): Full signal including assessment data, development areas (R→C lens)
+// - "external" (future): Middle ground for external recruiters
+export function buildSynthesisUserContent({ userName, pronouns, status, sectionData, currentDate, documentContext, rawDocumentText, audienceMode = "candidate" }) {
   const safeSectionData = sectionData || {};
   const allSections = Object.entries(safeSectionData)
     .filter(([k, v]) => v != null && String(v).trim() !== '')
@@ -273,6 +281,7 @@ Name: ${userName || "[Name not provided]"}
 Pronouns: ${pronouns || "they/them"}
 Status: ${statusLabel}
 Today's Date: ${currentDate}
+Audience Mode: ${audienceMode}
 ${documentSection}
 ══════════════════════════════════════════════════════════════════════════════
 DISCOVERY CONVERSATION

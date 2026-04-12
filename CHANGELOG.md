@@ -4,6 +4,20 @@ All notable changes to deployed apps and schemas are documented here.
 
 ## [2026-04-12] Integration Spec Addendum v1.1
 
+### lens-app 2026.04.12-g (Audience Mode Architecture)
+Adds `audienceMode` parameter to synthesis — architectural hook for future enterprise tiers.
+
+**Audience Mode Config:**
+- `audienceMode` parameter added to `buildSynthesisUserContent()` (default: "candidate")
+- Sensitivity filter section now explicitly states it applies in "candidate" mode
+- Future modes documented: "employer" (full signal), "external" (middle ground)
+- No behavior change — always uses "candidate" mode currently
+
+**Purpose:**
+Sets up architecture for enterprise product tiers where internal recruiters get full assessment signal (DISC scores, development areas) while self-service users get sanitized output. The flag exists; the employer-mode rules will be written when that product phase begins.
+
+---
+
 ### lens-app 2026.04.12-f (Self-Test Fixes)
 Implements `integration-spec-addendum-v1.1.md` — addresses three issues found during Eric Zelman's self-test.
 
