@@ -4,6 +4,15 @@ All notable changes to deployed apps and schemas are documented here.
 
 ## [2026-04-12] Integration Spec Addendum v1.1
 
+### lens-app 2026.04.12-l (Timeout Budget Increase)
+Increases synthesis timeout budget from 55s to 58s.
+
+**Problem:** Synthesis taking 45-55s, hitting the 55s budget limit and causing timeouts.
+
+**Fix:** Push REQUEST_DEADLINE_MS from 55000 to 58000 (Vercel Pro allows 60s).
+
+---
+
 ### lens-app 2026.04.12-k (Hard Post-Processing Filter)
 Adds code-level filter to catch clinical labels that slip through prompt-based filtering.
 
