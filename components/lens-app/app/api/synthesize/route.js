@@ -11,7 +11,7 @@ const MAX_TOKENS = 8000; // For full lens document with 8 sections
 const VALIDATION_MAX_TOKENS = 1500; // Gap report is smaller (reduced from 2000)
 const TEMPERATURE = 0.7;
 const RETRY_TEMPERATURE = 0.8; // Slightly higher for retry variation
-const REQUEST_DEADLINE_MS = 55000; // Total time budget for all API calls (Vercel Pro = 60s)
+const REQUEST_DEADLINE_MS = 58000; // Total time budget for all API calls (Vercel Pro = 60s, leave 2s buffer)
 const MIN_VALIDATION_BUDGET_MS = 20000; // Skip validation if less than 20s remaining (need time for validation + potential re-synthesis)
 
 // ═══════════════════════════════════════════════════════════════════════
