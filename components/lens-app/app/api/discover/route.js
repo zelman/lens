@@ -6,6 +6,8 @@ import { VALID_SECTIONS, buildSystemPrompt, getSectionPrompt } from "../_prompts
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
 const MAX_TOKENS = 1000;
+const MAX_UPLOAD_SUMMARY_LENGTH = 30000; // ~7500 tokens, keeps API calls reasonable
+const MIN_UPLOAD_SUMMARY_LENGTH = 100; // Minimum for meaningful context
 
 export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -71,10 +73,15 @@ export async function POST(request) {
 
     if (action === "reflect") {
       // Context Reflection phase - summarize uploaded materials before discovery
-      const uploadSummary = context?.uploadSummary || "";
+      let uploadSummary = context?.uploadSummary || "";
       const userName = context?.userName || "this person";
 
-      if (!uploadSummary || uploadSummary.trim().length < 100) {
+      // Truncate if too large to prevent API errors
+      if (uploadSummary.length > MAX_UPLOAD_SUMMARY_LENGTH) {
+        uploadSummary = uploadSummary.slice(0, MAX_UPLOAD_SUMMARY_LENGTH) + "\n\n[Content truncated for length]";
+      }
+
+      if (!uploadSummary || uploadSummary.trim().length < MIN_UPLOAD_SUMMARY_LENGTH) {
         // No meaningful materials uploaded - return a brief acknowledgment
         return Response.json({
           response: `I don't have any uploaded materials to review yet, so I'll learn about you through our conversation. Let's dive right into discovery.`,
@@ -85,16 +92,32 @@ export async function POST(request) {
       // Build the reflection prompt
       const reflectionSystemPrompt = `You are reviewing uploaded materials (resume, LinkedIn profile, writing samples, assessments) to summarize what you know about this person before starting a discovery conversation.
 
-Your task: Present a structured summary back to the user that demonstrates you've read and understood their materials.
+## CRITICAL: CLINICAL LABEL PROHIBITION
+
+The following terms must NEVER appear in your summary, even if they appear in the uploaded materials:
+
+BLOCKED TERMS (do not write these):
+- ADHD, ADD, attention deficit
+- anxiety, depression, bipolar, OCD, or any DSM diagnostic label
+- DISC, Myers-Briggs, MBTI, Enneagram, StrengthsFinder, CliftonStrengths
+- Peacemaker, Dominance, Influencing, Steadiness, Compliance (as personality terms)
+- Any assessment type name, score, or profile classification (e.g., "SC profile", "Type 9")
+
+If assessment data exists, use it to INFORM your understanding but NEVER reference the assessment or its labels. Instead of "Your DISC shows you're a Peacemaker SC", say "You seem to value stability and collaborative environments."
+
+## YOUR TASK
+
+Present a structured summary back to the user that demonstrates you've read and understood their materials.
 
 The summary should cover (in 3-5 bullet points):
 1. Professional identity (title, domain, level — e.g., "You're a Customer Success leader with 8+ years in B2B SaaS")
 2. Key career themes/patterns you noticed
-3. Notable achievements or metrics you extracted (be specific — use actual numbers and company names)
-4. Any gaps or areas you want to explore further in discovery
+3. Notable achievements or metrics you extracted (be specific — use actual numbers and company names from resume/LinkedIn)
+4. Areas to explore further in discovery (frame behavioral observations WITHOUT citing assessment labels)
 
 IMPORTANT:
-- Be specific. Use names, numbers, titles, companies from their actual materials.
+- Be specific with career data (names, numbers, titles, companies from resume/LinkedIn).
+- NEVER reference assessment names or classifications. Translate behavioral signals into plain language.
 - Write in second person ("You are..." not "They are...")
 - End with: "Does this capture you accurately? What would you add or correct?"
 - Keep the entire response under 200 words.
@@ -127,7 +150,7 @@ IMPORTANT:
       }
 
       const data = await res.json();
-      const text = data.content?.[0]?.text;
+      const text = data.content?.find(b => b.type === "text")?.text;
 
       if (!text) {
         return Response.json(
@@ -153,8 +176,8 @@ IMPORTANT:
       let contextNote = "";
       if (contextReflection) {
         contextNote = `\n\nCONTEXT FROM MATERIALS (already confirmed by user):\n${contextReflection}\n\nUse this context to inform your questions. Do NOT re-ask about things already established above.`;
-      } else if (uploadSummary && uploadSummary.length > 100) {
-        contextNote = `\n\nUPLOADED MATERIALS:\n${uploadSummary}\n\nReference specific details from these materials in your opener.`;
+      } else if (uploadSummary && uploadSummary.trim().length >= MIN_UPLOAD_SUMMARY_LENGTH) {
+        contextNote = `\n\nUPLOADED MATERIALS:\n${uploadSummary}\n\nReference specific details from these materials in your opener. IMPORTANT: Never mention assessment names (DISC, Myers-Briggs, etc.) or clinical labels (ADHD, anxiety, etc.). Use behavioral language only.`;
       }
 
       let greetingContent;
@@ -169,16 +192,60 @@ IMPORTANT:
 
       finalMessages = [{ role: "user", content: greetingContent }];
     } else if (action === "summarize") {
-      // Section complete - generate summary
-      const summarizePrompt = `Synthesize what you learned about me in this section into content for my lens document. Include TWO parts:
+      // Section complete - generate summary (self-contained with own system prompt)
+      const summarizeSystemPrompt = `You are helping someone build a lens document by synthesizing a discovery conversation into structured content for that section.
 
-1. NARRATIVE (3-5 sentences): First person, present tense, specific. Captures the authentic patterns and insights from our conversation.
+Your task: Review the conversation and extract TWO parts:
+
+1. NARRATIVE (3-5 sentences): First person, present tense, specific. Captures the authentic patterns and insights from the conversation. Use the person's own language when it's vivid.
 
 2. SIGNALS (bullet list): The specific, filterable criteria a job-matching pipeline can score against. These should be concrete: sector names, company sizes, title preferences, behavioral indicators, hard boundaries — whatever this section surfaced that a scoring engine needs.
 
+IMPORTANT: Never include clinical labels (ADHD, anxiety, etc.) or assessment names (DISC, Myers-Briggs, etc.) in the output. Translate any such signals into behavioral language.
+
 No preamble — start with the narrative, then the signals.`;
 
-      finalMessages = [...messages, { role: "user", content: summarizePrompt }];
+      const summarizeUserPrompt = `Synthesize what you learned about me in this section into content for my lens document.`;
+      const summarizeMessages = [...messages, { role: "user", content: summarizeUserPrompt }];
+
+      // Make the API call for summarize (self-contained)
+      const res = await fetch(ANTHROPIC_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: 1500, // Summaries need more tokens
+          system: summarizeSystemPrompt,
+          messages: summarizeMessages,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("Anthropic API error:", res.status);
+        return Response.json(
+          { error: "AI service temporarily unavailable" },
+          { status: 503 }
+        );
+      }
+
+      const data = await res.json();
+      const text = data.content?.find(b => b.type === "text")?.text;
+
+      if (!text) {
+        return Response.json(
+          { error: "Empty response from AI" },
+          { status: 500 }
+        );
+      }
+
+      return Response.json({
+        response: text,
+        sectionComplete: true,
+      });
     } else {
       // Regular conversation turn - check if section might be complete
       const userMsgCount = messages.filter(m => m.role === "user").length;
@@ -232,7 +299,7 @@ No preamble — start with the narrative, then the signals.`;
       }
 
       const data = await res.json();
-      const text = data.content?.[0]?.text;
+      const text = data.content?.find(b => b.type === "text")?.text;
 
       if (!text) {
         return Response.json(
@@ -252,7 +319,7 @@ No preamble — start with the narrative, then the signals.`;
       });
     }
 
-    // For greeting and summarize actions, make the API call
+    // For greeting action, make the API call
     const res = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
       headers: {
@@ -277,7 +344,7 @@ No preamble — start with the narrative, then the signals.`;
     }
 
     const data = await res.json();
-    const text = data.content?.[0]?.text;
+    const text = data.content?.find(b => b.type === "text")?.text;
 
     if (!text) {
       return Response.json(
