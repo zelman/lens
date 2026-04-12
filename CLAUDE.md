@@ -184,7 +184,7 @@ The Next.js app deploys to Vercel. When Claude Code receives a JSX component to 
 3. If it has API dependencies (Claude API calls), add the route in `app/api/`
 4. Commit, push, and Vercel auto-deploys from the `main` branch
 
-Active deployments: `lens-red-two.vercel.app`, `lens-feedback.vercel.app`
+Active deployments: `lens-app-five.vercel.app`, `lens-feedback.vercel.app`
 
 ### Ideal Workflow
 
