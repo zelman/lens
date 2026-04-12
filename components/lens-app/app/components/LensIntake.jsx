@@ -10,7 +10,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.12-b";
+const BUILD_ID = "2026.04.12-c";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -1336,8 +1336,8 @@ function DiscoveryPhase({
     const newMessageCount = totalMessageCount + 1;
     setTotalMessageCount(newMessageCount);
 
-    // DEV: Skip to synthesis with test data (development only)
-    if (process.env.NODE_ENV === "development" && input.trim().toLowerCase() === "/skip") {
+    // Skip to synthesis with test data (used for demos)
+    if (input.trim().toLowerCase() === "/skip") {
       setInput("");
       const testData = {
         "Essence": `NARRATIVE: I'm a builder who thrives in early-stage chaos. I've spent my career taking customer success functions from zero to scale, and I'm at my best when there's no playbook yet. I need ownership and autonomy — being handed someone else's process to maintain drains me.
