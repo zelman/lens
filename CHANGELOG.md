@@ -4,6 +4,36 @@ All notable changes to deployed apps and schemas are documented here.
 
 ## [2026-04-12] Integration Spec Addendum v1.1
 
+### lens-app 2026.04.12-k (Hard Post-Processing Filter)
+Adds code-level filter to catch clinical labels that slip through prompt-based filtering.
+
+**Problem:**
+- Build 2026.04.12-j's timeout fix caused validation to be skipped
+- Without validation, ADHD label appeared in lens output: "Eric has ADHD, which means..."
+- Model-based prohibition in synthesis prompt is not 100% reliable
+
+**Solution: Belt-and-suspenders approach**
+Added `sanitizeLensOutput()` function that runs AFTER synthesis, BEFORE returning:
+
+1. **Sentence blockers** — Removes entire sentences that reference clinical labels:
+   - "Eric has ADHD, which means..." → [removed entirely]
+   - "Their ADHD shapes..." → [removed entirely]
+
+2. **Term replacements** — Catches any remaining blocked terms:
+   - ADHD, ADD, attention deficit
+   - anxiety, depression, bipolar, OCD
+   - DISC, Myers-Briggs, MBTI, Enneagram
+   - Peacemaker, Dominance, Influencing, Steadiness, Compliance
+
+3. **Logging** — Console warns when filter catches violations for debugging
+
+**Why this works:**
+- Regex-based filtering is deterministic, unlike model-based instructions
+- Runs regardless of timeout budget (validation can be skipped, this cannot)
+- Violations are logged so we can track model compliance over time
+
+---
+
 ### lens-app 2026.04.12-j (Synthesis Timeout Fix)
 Fixes synthesis timeout errors by adding time budget checks before validation/re-synthesis.
 

@@ -14,6 +14,81 @@ const RETRY_TEMPERATURE = 0.8; // Slightly higher for retry variation
 const REQUEST_DEADLINE_MS = 55000; // Total time budget for all API calls (Vercel Pro = 60s)
 const MIN_VALIDATION_BUDGET_MS = 20000; // Skip validation if less than 20s remaining (need time for validation + potential re-synthesis)
 
+// ═══════════════════════════════════════════════════════════════════════
+// HARD POST-PROCESSING FILTER - catches clinical labels that slip through
+// This is a belt-and-suspenders approach: even if the model ignores prompt
+// instructions, this code catches it before the lens is returned.
+// ═══════════════════════════════════════════════════════════════════════
+const SENSITIVITY_PATTERNS = [
+  // Clinical labels - match as whole words, case-insensitive
+  { pattern: /\bADHD\b/gi, replacement: "[work style note]" },
+  { pattern: /\bADD\b/gi, replacement: "[work style note]" },
+  { pattern: /\battention deficit\b/gi, replacement: "[work style note]" },
+  { pattern: /\banxiety\b/gi, replacement: "[environment preference]" },
+  { pattern: /\bdepression\b/gi, replacement: "[wellbeing note]" },
+  { pattern: /\bbipolar\b/gi, replacement: "[energy pattern]" },
+  { pattern: /\bOCD\b/gi, replacement: "[detail orientation]" },
+  // Assessment names
+  { pattern: /\bDISC\b/gi, replacement: "[behavioral style]" },
+  { pattern: /\bMyers-Briggs\b/gi, replacement: "[personality framework]" },
+  { pattern: /\bMBTI\b/gi, replacement: "[personality framework]" },
+  { pattern: /\bEnneagram\b/gi, replacement: "[personality framework]" },
+  { pattern: /\bStrengthsFinder\b/gi, replacement: "[strengths assessment]" },
+  { pattern: /\bCliftonStrengths\b/gi, replacement: "[strengths assessment]" },
+  // DISC profile terms (as personality descriptors)
+  { pattern: /\bPeacemaker\b/gi, replacement: "[collaborative style]" },
+  { pattern: /\bSC profile\b/gi, replacement: "[behavioral preference]" },
+  { pattern: /\bDominance\b/gi, replacement: "[leadership style]" },
+  { pattern: /\bInfluencing\b/gi, replacement: "[communication style]" },
+  { pattern: /\bSteadiness\b/gi, replacement: "[work pace preference]" },
+  { pattern: /\bCompliance\b/gi, replacement: "[process orientation]" },
+];
+
+// Sentences that reference clinical labels need full rewrite, not just word replacement
+const SENTENCE_BLOCKERS = [
+  /[^.]*\bhas ADHD\b[^.]*\./gi,
+  /[^.]*\bwith ADHD\b[^.]*\./gi,
+  /[^.]*\btheir ADHD\b[^.]*\./gi,
+  /[^.]*\bhis ADHD\b[^.]*\./gi,
+  /[^.]*\bher ADHD\b[^.]*\./gi,
+  /[^.]*\bADHD means\b[^.]*\./gi,
+  /[^.]*\bADHD shapes\b[^.]*\./gi,
+];
+
+function sanitizeLensOutput(text) {
+  let sanitized = text;
+  let violations = [];
+
+  // First pass: remove entire sentences that reference clinical labels
+  for (const blocker of SENTENCE_BLOCKERS) {
+    const matches = sanitized.match(blocker);
+    if (matches) {
+      for (const match of matches) {
+        violations.push({ type: "sentence", original: match.trim() });
+        // Remove the sentence entirely - the behavioral insight will be elsewhere
+        sanitized = sanitized.replace(match, "");
+      }
+    }
+  }
+
+  // Second pass: replace individual terms that slipped through
+  for (const { pattern, replacement } of SENSITIVITY_PATTERNS) {
+    const matches = sanitized.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        violations.push({ type: "term", original: match, replacement });
+      }
+      sanitized = sanitized.replace(pattern, replacement);
+    }
+  }
+
+  // Clean up any double spaces or empty lines left by sentence removal
+  sanitized = sanitized.replace(/\n\s*\n\s*\n/g, "\n\n");
+  sanitized = sanitized.replace(/  +/g, " ");
+
+  return { sanitized, violations };
+}
+
 export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -229,10 +304,21 @@ export async function POST(request) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // PHASE 3: Return final lens document
+    // PHASE 3: Hard post-processing filter (catches anything that slipped through)
+    // ═══════════════════════════════════════════════════════════════════════
+    const { sanitized, violations } = sanitizeLensOutput(lensDoc);
+
+    if (violations.length > 0) {
+      console.warn(`Sensitivity filter caught ${violations.length} violations:`,
+        violations.map(v => v.type === "sentence" ? `[sentence removed]` : v.original).join(", ")
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PHASE 4: Return final lens document
     // ═══════════════════════════════════════════════════════════════════════
     return Response.json({
-      lens: lensDoc,
+      lens: sanitized,
     });
 
   } catch (err) {
