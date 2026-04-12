@@ -4,6 +4,17 @@ All notable changes to deployed apps and schemas are documented here.
 
 ## [2026-04-12] Integration Spec Addendum v1.1
 
+### lens-app 2026.04.12-n (Faster Synthesis Settings)
+Reduces MAX_TOKENS and temperature to speed up synthesis and avoid timeouts.
+
+**Changes:**
+- MAX_TOKENS: 8000 → 6000 (lens typically uses ~4000 tokens)
+- TEMPERATURE: 0.7 → 0.5 (faster sampling)
+
+Should reduce synthesis time by 10-15s to stay under Vercel's 60s limit.
+
+---
+
 ### lens-app 2026.04.12-m (Natural Rewrites Instead of Bracketed Placeholders)
 Fixes sensitivity filter to produce fluent prose instead of code-artifact-style brackets.
 
