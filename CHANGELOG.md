@@ -4,6 +4,26 @@ All notable changes to deployed apps and schemas are documented here.
 
 ## [2026-04-12] Integration Spec Addendum v1.1
 
+### lens-app 2026.04.12-h (Clinical Label Filter Fix)
+Fixes ADHD label leaking through sensitivity filter.
+
+**Root Cause:**
+- Sensitivity filter was positioned at line 190, after all structure guidance
+- No explicit blocklist format for model to pattern-match
+- Validation didn't detect clinical labels in output
+
+**Fixes:**
+1. **Moved blocklist to TOP of system prompt** — "CRITICAL: CLINICAL LABEL PROHIBITION" section now appears immediately after the intro, before any structure guidance
+2. **Explicit blocklist format** — Exact strings that must never appear: ADHD, ADD, anxiety, depression, DISC, Myers-Briggs, etc.
+3. **Added sensitivity violation detection to validation** — Scans output for blocked terms, flags as critical severity
+4. **Re-synthesis triggers on sensitivity violations** — Priority higher than gaps or hallucinations
+5. **Revision addendum includes sensitivity fix instructions** — Rules 12-16 for translating clinical labels
+
+**Acceptance Test:**
+Regenerate lens with same inputs. Search for: ADHD, ADD, DISC, Peacemaker, SC. None should appear. Behavioral signals should still be present in work-style language.
+
+---
+
 ### lens-app 2026.04.12-g (Audience Mode Architecture)
 Adds `audienceMode` parameter to synthesis — architectural hook for future enterprise tiers.
 

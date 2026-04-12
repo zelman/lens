@@ -171,13 +171,17 @@ export async function POST(request) {
           gapReport = { gap_severity: "none" };
         }
 
-        // Check if re-synthesis is needed (gaps OR hallucinations)
+        // Check if re-synthesis is needed (gaps OR hallucinations OR sensitivity violations)
         const hasSignificantGaps = gapReport.gap_severity === "high" || gapReport.gap_severity === "medium";
         const hasHallucinations = gapReport.has_hallucinations && gapReport.hallucinations?.some(h => h.severity === "high" || h.severity === "medium");
+        const hasSensitivityViolations = gapReport.has_sensitivity_violations && gapReport.sensitivity_violations?.length > 0;
 
-        if (hasSignificantGaps || hasHallucinations) {
-          const reason = hasHallucinations ? "hallucinations" : "gaps";
-          console.log(`Validation found ${gapReport.gap_severity || "none"} severity gaps and ${hasHallucinations ? "hallucinations" : "no hallucinations"}, triggering re-synthesis (${reason})`);
+        if (hasSignificantGaps || hasHallucinations || hasSensitivityViolations) {
+          const reasons = [];
+          if (hasSensitivityViolations) reasons.push("sensitivity violations");
+          if (hasHallucinations) reasons.push("hallucinations");
+          if (hasSignificantGaps) reasons.push("gaps");
+          console.log(`Validation found issues: ${reasons.join(", ")}, triggering re-synthesis`);
 
           // Store original for fallback
           const originalLensDoc = lensDoc;

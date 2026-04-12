@@ -64,6 +64,32 @@ A hallucination is any claim where:
 - **"medium"** — The hallucination overgeneralizes or conflates roles (implies CS work at a company where they did sales). Misleading but not fabricated.
 - **"low"** — Minor overstatement or inference that's plausible but not directly supported.
 
+## SENSITIVITY VIOLATION DETECTION
+
+Scan the lens output for clinical/diagnostic labels and assessment terminology that should NEVER appear in candidate-mode output. These are privacy violations that make the document unshareable.
+
+### Blocked terms to detect (exact string match, case-insensitive):
+- ADHD, ADD, attention deficit
+- anxiety, depression, bipolar, OCD, or any DSM diagnostic label
+- DISC, Myers-Briggs, MBTI, Enneagram, StrengthsFinder, CliftonStrengths
+- Peacemaker, Dominance, Influencing, Steadiness, Compliance (as personality terms)
+- Any assessment score or profile classification (e.g., "SC profile", "Type 9", "ENFP")
+
+If ANY blocked term appears in the lens output, flag it as a sensitivity violation with severity "critical". This ALWAYS triggers re-synthesis.
+
+### Sensitivity violation output:
+Add to the JSON response:
+- "has_sensitivity_violations": true/false
+- "sensitivity_violations": array of { term, section, context, replacement }
+
+Example:
+{
+  "term": "ADHD",
+  "section": "work_style",
+  "context": "His ADHD shapes his optimal work patterns",
+  "replacement": "He thrives on variety and dynamic work — task-switching energizes rather than depletes him"
+}
+
 ## Output format
 
 Respond with ONLY a valid JSON object. No markdown, no backticks, no preamble.
@@ -90,8 +116,17 @@ Respond with ONLY a valid JSON object. No markdown, no backticks, no preamble.
       "fix": "Reference Apple in the context of enterprise sales and account management, not CS/CX leadership"
     }
   ],
+  "has_sensitivity_violations": true,
+  "sensitivity_violations": [
+    {
+      "term": "ADHD",
+      "section": "work_style",
+      "context": "His ADHD shapes his optimal work patterns",
+      "replacement": "He thrives on variety and dynamic work — task-switching energizes rather than depletes him"
+    }
+  ],
   "stats_recommendation": "15+ years | 24-person CS org built | $40M ARR / 120% NRR | NA + EMEA",
-  "overall_assessment": "Brief summary of the gap and hallucination analysis"
+  "overall_assessment": "Brief summary of the gap, hallucination, and sensitivity analysis"
 }
 
 ## Severity levels
@@ -131,7 +166,17 @@ HALLUCINATION FIXES (if present in the gap report):
 8. If a capability was attributed to the wrong company, correct it to the right company or remove the company reference.
 9. If a metric was fabricated, remove it or replace with an actual metric from the source materials.
 10. If a career arc was described incorrectly, rewrite it to match the actual resume chronology.
-11. Hallucination fixes take priority over gap integration — an accurate lens is more important than a complete one.`;
+11. Hallucination fixes take priority over gap integration — an accurate lens is more important than a complete one.
+
+SENSITIVITY VIOLATION FIXES (CRITICAL — if present in the gap report):
+12. For each sensitivity violation, find the EXACT sentence containing the blocked term and REWRITE it completely.
+13. Replace clinical labels with behavioral language:
+    - "ADHD" → "thrives on variety" or "energized by task-switching"
+    - "anxiety" → "values predictability" or "prefers clear expectations"
+    - DISC terms → describe behavioral preference without naming the assessment
+14. Do NOT just delete the sentence — the behavioral insight is valuable. Translate it to recruiter-safe language.
+15. Sensitivity fixes have HIGHEST priority. A lens with clinical labels cannot be shared with recruiters.
+16. After fixing, scan the entire output one more time to ensure no blocked terms remain.`;
 
 // Minimum characters needed to have meaningful source material
 const MIN_SOURCE_MATERIAL_LENGTH = 100;
