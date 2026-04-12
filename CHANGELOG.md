@@ -4,6 +4,15 @@ All notable changes to deployed apps and schemas are documented here.
 
 ## [2026-04-12] Document Context Integration (Spec v1.0)
 
+### lens-app 2026.04.12-b (Opus Review Fixes)
+- **Fix**: Added null check on `startSectionRef.current` before calling (prevents TypeError on re-entry)
+- **Security**: `/skip` dev command now guarded with `process.env.NODE_ENV === "development"`
+- **Fix**: Enterprise/tool name matching now uses word boundaries (prevents "ford" matching "afford")
+- **Fix**: `buildSynthesisUserContent` now handles null/undefined sectionData gracefully
+- **Fix**: Increased MAX_TOKENS from 4000 to 8000 (prevents lens truncation)
+- **Fix**: Added 50s timeout on Anthropic fetch (prevents Vercel timeout)
+- **Fix**: Retry logic now validates second attempt quality (returns 502 if still malformed)
+
 ### lens-app 2026.04.12-a
 Implements `lens-context-integration-spec-v1.0.md` — uploaded documents (resume, LinkedIn, assessments) now flow into synthesis for evidence-grounded lens output.
 

@@ -5,7 +5,7 @@ import { SYNTHESIS_SYSTEM_PROMPT, buildSynthesisUserContent } from "../_prompts/
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
-const MAX_TOKENS = 4000;
+const MAX_TOKENS = 8000; // Increased for full lens document with 8 sections
 const TEMPERATURE = 0.75;
 
 export async function POST(request) {
@@ -73,10 +73,11 @@ export async function POST(request) {
       rawDocumentText: rawDocumentText || null,
     });
 
-    // Call Anthropic API
+    // Call Anthropic API with timeout
     const callAnthropic = async () => {
       const res = await fetch(ANTHROPIC_API_URL, {
         method: "POST",
+        signal: AbortSignal.timeout(50000), // 50s timeout (Vercel Pro has 60s limit)
         headers: {
           "Content-Type": "application/json",
           "x-api-key": apiKey,
@@ -99,9 +100,15 @@ export async function POST(request) {
 
       const data = await res.json();
       const text = data.content?.[0]?.text;
+      const stopReason = data.stop_reason;
 
       if (!text) {
         throw new Error("Empty response from AI");
+      }
+
+      // Warn if response was truncated due to max_tokens
+      if (stopReason === "max_tokens") {
+        console.warn("Synthesis response was truncated due to max_tokens limit");
       }
 
       return text;
@@ -115,6 +122,16 @@ export async function POST(request) {
     if (sectionHeadingCount < 4) {
       console.warn(`Synthesis produced only ${sectionHeadingCount} sections, retrying...`);
       lensDoc = await callAnthropic();
+
+      // Validate retry attempt
+      const retryCount = (lensDoc.match(/^##\s+/gm) || []).length;
+      if (retryCount < 4) {
+        console.error(`Retry also produced only ${retryCount} sections`);
+        return Response.json(
+          { error: "Synthesis quality check failed. Please try again." },
+          { status: 502 }
+        );
+      }
     }
 
     // Return the lens document (no API metadata)

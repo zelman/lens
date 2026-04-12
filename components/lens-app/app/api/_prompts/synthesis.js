@@ -168,8 +168,10 @@ export const STATUS_LABELS = {
 
 // Build the user content for synthesis
 export function buildSynthesisUserContent({ userName, pronouns, status, sectionData, currentDate, documentContext, rawDocumentText }) {
-  const allSections = Object.entries(sectionData)
-    .map(([k, v]) => `## ${k}\n${v}`)
+  const safeSectionData = sectionData || {};
+  const allSections = Object.entries(safeSectionData)
+    .filter(([k, v]) => v != null && String(v).trim() !== '')
+    .map(([k, v]) => `## ${k}\n${String(v)}`)
     .join("\n\n");
 
   const statusLabel = STATUS_LABELS[status] || status;

@@ -10,7 +10,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.12-a";
+const BUILD_ID = "2026.04.12-b";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -1044,7 +1044,7 @@ function DiscoveryPhase({
 
   // Handle re-entry mode — start conversation for the specific section
   useEffect(() => {
-    if (reentryMode && reentrySection !== null && subPhase === "preview") {
+    if (reentryMode && reentrySection !== null && subPhase === "preview" && startSectionRef.current) {
       startSectionRef.current(reentrySection);
     }
   }, [reentryMode, reentrySection, subPhase]);
@@ -1162,7 +1162,12 @@ function DiscoveryPhase({
       'toyota', 'ford', 'gm', 'tesla', 'boeing', 'lockheed',
       'red cross', 'cedars sinai', 'mayo clinic', 'cleveland clinic'
     ];
-    const foundClients = enterpriseNames.filter(name => text.includes(name));
+    // Use word boundary matching to avoid false positives (e.g., "ford" in "afford")
+    const wordBoundaryMatch = (str, term) => {
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp('\\b' + escaped + '\\b', 'i').test(str);
+    };
+    const foundClients = enterpriseNames.filter(name => wordBoundaryMatch(fileContext, name));
     if (foundClients.length > 0) {
       // Capitalize properly
       ctx.enterprise_clients = foundClients.slice(0, 5).map(name =>
@@ -1180,7 +1185,7 @@ function DiscoveryPhase({
       'aws', 'azure', 'gcp', 'kubernetes', 'docker'
     ];
     for (const tool of toolPatterns) {
-      if (text.includes(tool)) {
+      if (wordBoundaryMatch(fileContext, tool)) {
         tools.push(tool.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
       }
     }
@@ -1331,8 +1336,8 @@ function DiscoveryPhase({
     const newMessageCount = totalMessageCount + 1;
     setTotalMessageCount(newMessageCount);
 
-    // DEV: Skip to synthesis with test data
-    if (input.trim().toLowerCase() === "/skip") {
+    // DEV: Skip to synthesis with test data (development only)
+    if (process.env.NODE_ENV === "development" && input.trim().toLowerCase() === "/skip") {
       setInput("");
       const testData = {
         "Essence": `NARRATIVE: I'm a builder who thrives in early-stage chaos. I've spent my career taking customer success functions from zero to scale, and I'm at my best when there's no playbook yet. I need ownership and autonomy — being handed someone else's process to maintain drains me.
