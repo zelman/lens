@@ -20,7 +20,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { sectionData, userName, pronouns, status } = body;
+    const { sectionData, userName, pronouns, status, documentContext, rawDocumentText } = body;
 
     // Validate section data
     if (!sectionData || typeof sectionData !== "object") {
@@ -28,6 +28,16 @@ export async function POST(request) {
         { error: "Missing or invalid sectionData" },
         { status: 400 }
       );
+    }
+
+    // Validate documentContext if provided (optional but must be valid shape)
+    if (documentContext !== undefined && documentContext !== null) {
+      if (typeof documentContext !== "object" || Array.isArray(documentContext)) {
+        return Response.json(
+          { error: "documentContext must be an object" },
+          { status: 400 }
+        );
+      }
     }
 
     // Check that we have at least some sections
@@ -52,13 +62,15 @@ export async function POST(request) {
     const now = new Date();
     const currentDate = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
-    // Build user content server-side
+    // Build user content server-side (including document context if available)
     const userContent = buildSynthesisUserContent({
       userName,
       pronouns,
       status,
       sectionData,
       currentDate,
+      documentContext: documentContext || null,
+      rawDocumentText: rawDocumentText || null,
     });
 
     // Call Anthropic API

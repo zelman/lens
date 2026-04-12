@@ -10,7 +10,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.10-c";
+const BUILD_ID = "2026.04.12-a";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -1062,6 +1062,133 @@ function DiscoveryPhase({
     return parts.length > 0 ? parts.join("\n\n---\n\n") : "";
   }, [files]);
 
+  // Extract structured document context for synthesis (memoized)
+  const documentContext = useMemo(() => {
+    if (!fileContext || fileContext.length < 100) return null;
+
+    const ctx = {};
+    const text = fileContext.toLowerCase();
+
+    // Extract years of experience (look for patterns like "18+ years", "18 years")
+    const yearsMatch = fileContext.match(/(\d{1,2})\+?\s*years?\s*(of\s*)?(experience|in)/i);
+    if (yearsMatch) {
+      ctx.years_experience = `${yearsMatch[1]}+ years`;
+    } else {
+      // Fallback: estimate from date ranges (e.g., "2008 - present" or "2010-2024")
+      const dateRanges = fileContext.match(/20\d{2}\s*[-–—]\s*(present|20\d{2})/gi);
+      if (dateRanges && dateRanges.length > 0) {
+        // Find earliest year
+        const years = dateRanges.flatMap(r => r.match(/20\d{2}/g) || []).map(Number);
+        if (years.length > 0) {
+          const earliest = Math.min(...years);
+          const current = new Date().getFullYear();
+          const experience = current - earliest;
+          if (experience > 0) ctx.years_experience = `${experience}+ years`;
+        }
+      }
+    }
+
+    // Extract team size (look for patterns like "team of 24", "25-person team", "managed 15 people")
+    const teamPatterns = [
+      /team\s*(?:of\s*)?(\d{1,3})\b/i,
+      /(\d{1,3})[-\s]?person\s*team/i,
+      /(?:led|managed|built|scaled\s+(?:to)?)\s*(?:a\s+)?(?:team\s+(?:of\s+)?)?(\d{1,3})\s*(?:people|csms?|employees|reports|reps)/i,
+      /(\d{1,3})\s*direct\s*reports/i,
+      /from\s*(\d{1,2})\s*to\s*(\d{1,3})\s*(?:people|csms?|employees)/i,
+    ];
+    for (const pattern of teamPatterns) {
+      const match = fileContext.match(pattern);
+      if (match) {
+        const size = match[2] ? match[2] : match[1]; // Use larger number if range (e.g., "from 2 to 24")
+        if (parseInt(size) > 1) {
+          ctx.largest_team = `${size}-person team`;
+          break;
+        }
+      }
+    }
+
+    // Extract ARR/revenue (look for patterns like "$40M ARR", "$10M to $70M", "40 million")
+    const arrPatterns = [
+      /\$(\d{1,3}(?:\.\d)?)\s*(?:mm?|million|m)\s*arr/i,
+      /(\d{1,3}(?:\.\d)?)\s*(?:mm?|million|m)\s*arr/i,
+      /arr\s*(?:of\s*)?\$?(\d{1,3}(?:\.\d)?)\s*(?:mm?|million)/i,
+      /\$(\d{1,3}(?:\.\d)?)\s*(?:mm?|million|m)\s*(?:book|portfolio|revenue)/i,
+      /(?:grew|scaled|managed)\s*(?:to\s*)?\$?(\d{1,3}(?:\.\d)?)\s*(?:mm?|million)/i,
+    ];
+    for (const pattern of arrPatterns) {
+      const match = fileContext.match(pattern);
+      if (match) {
+        ctx.arr_managed = `$${match[1]}M ARR`;
+        break;
+      }
+    }
+
+    // Extract NRR/retention (look for patterns like "120% NRR", "net retention 120%")
+    const nrrPatterns = [
+      /(\d{2,3})%?\s*(?:net\s*)?(?:revenue\s*)?retention/i,
+      /nrr\s*(?:of\s*)?(\d{2,3})%?/i,
+      /retention\s*(?:rate\s*)?(?:of\s*)?(\d{2,3})%/i,
+    ];
+    for (const pattern of nrrPatterns) {
+      const match = fileContext.match(pattern);
+      if (match && parseInt(match[1]) >= 80) {
+        ctx.nrr_achieved = `${match[1]}% NRR`;
+        break;
+      }
+    }
+
+    // Extract geographic scope (look for regions, countries)
+    const geoIndicators = [];
+    if (text.includes('north america') || text.includes(' na ') || text.includes('(na)')) geoIndicators.push('NA');
+    if (text.includes('emea') || text.includes('europe')) geoIndicators.push('EMEA');
+    if (text.includes('apac') || text.includes('asia') || text.includes('pacific')) geoIndicators.push('APAC');
+    if (text.includes('latam') || text.includes('latin america')) geoIndicators.push('LATAM');
+    if (text.includes('global') || geoIndicators.length >= 3) {
+      ctx.geographic_scope = 'Global';
+    } else if (geoIndicators.length > 0) {
+      ctx.geographic_scope = geoIndicators.join(' + ');
+    }
+
+    // Extract enterprise clients (look for well-known company names)
+    const enterpriseNames = [
+      'cisco', 'ibm', 'microsoft', 'google', 'amazon', 'apple', 'meta', 'facebook',
+      'salesforce', 'oracle', 'sap', 'adobe', 'vmware', 'dell', 'hp', 'intel',
+      'thomson reuters', 'bloomberg', 'harvard', 'stanford', 'mit',
+      'jpmorgan', 'goldman sachs', 'morgan stanley', 'bank of america',
+      'pfizer', 'johnson & johnson', 'merck', 'novartis', 'roche',
+      'walmart', 'target', 'home depot', 'costco',
+      'at&t', 'verizon', 'comcast', 't-mobile',
+      'disney', 'netflix', 'spotify', 'uber', 'lyft', 'airbnb',
+      'toyota', 'ford', 'gm', 'tesla', 'boeing', 'lockheed',
+      'red cross', 'cedars sinai', 'mayo clinic', 'cleveland clinic'
+    ];
+    const foundClients = enterpriseNames.filter(name => text.includes(name));
+    if (foundClients.length > 0) {
+      // Capitalize properly
+      ctx.enterprise_clients = foundClients.slice(0, 5).map(name =>
+        name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+      );
+    }
+
+    // Extract tools/platforms
+    const tools = [];
+    const toolPatterns = [
+      'salesforce', 'gainsight', 'hubspot', 'zendesk', 'intercom', 'freshdesk',
+      'tableau', 'looker', 'power bi', 'snowflake', 'databricks',
+      'jira', 'asana', 'monday.com', 'notion', 'confluence',
+      'slack', 'teams', 'zoom', 'webex',
+      'aws', 'azure', 'gcp', 'kubernetes', 'docker'
+    ];
+    for (const tool of toolPatterns) {
+      if (text.includes(tool)) {
+        tools.push(tool.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+      }
+    }
+    if (tools.length > 0) ctx.tools = tools.slice(0, 6);
+
+    return Object.keys(ctx).length > 0 ? ctx : null;
+  }, [fileContext]);
+
   const parsedCount = Object.values(files).flat().filter(f => f._textContent).length;
 
   // ── Timing instrumentation: create session ──
@@ -1411,6 +1538,7 @@ SIGNALS:
 
     try {
       // Call the synthesize API (system prompt is server-side)
+      // Include document context for evidence-grounded synthesis
       const res = await fetch("/api/synthesize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1419,6 +1547,9 @@ SIGNALS:
           userName,
           pronouns,
           status,
+          // Pass document data for evidence integration
+          documentContext: documentContext || null,
+          rawDocumentText: fileContext || null,
         }),
       });
 

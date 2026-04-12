@@ -102,7 +102,62 @@ Include compensation expectations, title expectations, and any strong interview-
 - **The vagueness trap:** "Passionate about making a difference." Delete and replace with specifics.
 - **The repetition trap:** Saying the same thing in Essence, Values, and Mission with different words. Each section earns its existence by saying something the others don't.
 - **The bullet-point trap:** Formatting as a list with periods instead of dashes. Bullets-as-sentences is not prose.
-- **The length trap:** More is not better. Each section should be 2-4 paragraphs. The entire document should be readable in 5-7 minutes. Cut anything that doesn't earn its space.`;
+- **The length trap:** More is not better. Each section should be 2-4 paragraphs. The entire document should be readable in 5-7 minutes. Cut anything that doesn't earn its space.
+
+## DOCUMENT CONTEXT INTEGRATION
+
+The user may have uploaded documents during intake: resume, LinkedIn profile, writing samples, assessments. These are NOT filler — they contain structured career evidence that MUST appear in the lens document. The discovery conversation reveals motivation, values, and identity. The documents provide proof. Both sources must be present in the final output.
+
+### Rules for integrating document evidence:
+
+1. **Essence must include professional identity, not just behavioral patterns.**
+   The essence captures WHO this person is. If they're a CS leader who managed $40M ARR, that's identity — not just a metric. If they have an engineering background that makes them a different kind of CS leader, that's essence. The first sentence should establish professional identity; the subsequent paragraphs can explore operating style and behavioral patterns.
+
+   WEAK: "Ravi creates alignment across systems by translating shared missions into terms that connect with what drives each person."
+   STRONG: "Ravi is a customer success leader who builds CS organizations from the ground up — he scaled Bigtincan's function from 2 people to 24 while growing the portfolio from $10M to $70M ARR. What makes him unusual isn't the metrics but how he gets there: by creating alignment across entire systems and translating shared missions into terms that connect with what already drives each person."
+
+2. **Skills & Experience must be grounded in resume evidence.**
+   This section should name specific companies, specific scale, specific achievements. The narrative voice should weave these naturally, not list them:
+
+   WEAK: "His strength lies in creating order from chaos — running daily escalation cadences when stakes are high."
+   STRONG: "His career arc moves from technical architecture (solutions engineering at InsideSales, CMS implementations at Percussion Software for clients like Cedars Sinai and the Red Cross) to customer success leadership at Bigtincan, where he oversaw a $40M ARR book achieving 120% NRR. What he carries from the technical side is rare: he can sit in a room with engineering, understand the architecture, and translate it into customer value — most CS leaders can't."
+
+3. **Metrics belong in the narrative, not in a separate data section.**
+   Don't create a "Key Metrics" subsection. Weave numbers into the prose where they demonstrate scale, impact, or differentiation:
+   - Book of business size → establishes credibility and scope
+   - NRR percentage → proves retention/expansion capability
+   - Team scaling numbers → proves builder trajectory
+   - Enterprise client names → proves ability to operate at enterprise level
+
+4. **Technical skills and tools appear when they differentiate.**
+   If the person has Salesforce, Gainsight, and health scoring framework experience, mention these in Skills & Experience when they distinguish this person from generic CS leaders. Don't list tools; explain what they enabled.
+
+5. **Career trajectory tells a story.**
+   Use resume chronology to establish the arc in Skills & Experience. Not as a timeline, but as a narrative:
+   "He started as an engineer, moved into solutions architecture, and discovered that his real skill was translating between technical and business stakeholders. That translation ability became the foundation for everything he's built in customer success."
+
+6. **The stats bar must be populated from extracted document data.**
+   If documentContext is provided in the input, use those pre-extracted stats. Format them as:
+   '[years] | [team size] | [revenue metric] | [geographic scope]'
+   Example: "15+ years | 24-person CS org built | $40M ARR / 120% NRR | NA + EMEA"
+   Only fall back to conversational extraction if documentContext is missing or incomplete.
+
+### Per-section document integration:
+
+**Essence:** The first sentence must establish professional identity with enough specificity that a recruiter knows what level and function this person operates at. If they manage $40M ARR and 24 CSMs, that's not a detail — it's the frame. The behavioral/operating style description follows and gives depth to the professional identity. Without the professional identity anchor, the essence reads as a personality description that could apply to anyone.
+
+**Skills & Experience:** This section has the highest document-dependency. The career arc narrative should reference specific companies and roles to establish credibility. Metrics (ARR, NRR, team size, client names) should be woven in where they demonstrate capability at scale. The carry-forward / leave-behind framing should reference actual skills from the resume, not generic categories. If the person has an unusual background combination (e.g., engineering + CS leadership), name it explicitly — it's a differentiator.
+
+**Mission & Direction:** If the person's resume shows sector consistency (e.g., all B2B SaaS, or all healthcare), reference that pattern. If their resume shows sector diversity, note whether the next chapter continues the pattern or breaks it. This grounds mission statements in career evidence rather than pure aspiration.
+
+**Non-Negotiables:** If the person's tenure patterns or career transitions suggest disqualifiers (e.g., short stints at PE-backed companies, consistent departures from large orgs), the synthesis should connect these patterns to the stated non-negotiables. "He specifically asks how many CS people have left in the past two years" becomes more powerful when preceded by "Having built a 24-person CS org, he knows what healthy team retention looks like."
+
+### What NOT to do with document evidence:
+
+- Don't reproduce the resume in narrative form. The lens is not a prose resume.
+- Don't let document data overwhelm conversational insights. The discovery conversation reveals what the resume can't — motivation, values, self-awareness. Both sources must be present.
+- Don't attribute document evidence with "according to their resume" — write as if you simply know these things about the person.
+- Don't include every metric or every company. Select what's most relevant to the person's identity and what differentiates them.`;
 
 // Status label mapping
 export const STATUS_LABELS = {
@@ -112,7 +167,7 @@ export const STATUS_LABELS = {
 };
 
 // Build the user content for synthesis
-export function buildSynthesisUserContent({ userName, pronouns, status, sectionData, currentDate }) {
+export function buildSynthesisUserContent({ userName, pronouns, status, sectionData, currentDate, documentContext, rawDocumentText }) {
   const allSections = Object.entries(sectionData)
     .map(([k, v]) => `## ${k}\n${v}`)
     .join("\n\n");
@@ -122,12 +177,31 @@ export function buildSynthesisUserContent({ userName, pronouns, status, sectionD
     ? `Use ${pronouns} pronouns throughout the document.`
     : "Use they/them pronouns if gender is unclear.";
 
+  // Build document context section if available
+  let documentSection = "";
+  if (rawDocumentText || documentContext) {
+    documentSection = "\n\n══════════════════════════════════════════════════════════════════════════════\nUPLOADED DOCUMENTS\n══════════════════════════════════════════════════════════════════════════════\n";
+
+    if (rawDocumentText) {
+      documentSection += `\nRAW DOCUMENT TEXT:\n${rawDocumentText}\n`;
+    }
+
+    if (documentContext && Object.keys(documentContext).length > 0) {
+      documentSection += `\nEXTRACTED DOCUMENT DATA:\n${JSON.stringify(documentContext, null, 2)}\n`;
+      documentSection += `\nUse this extracted data to populate the stats field in the frontmatter and to ground the narrative with specific metrics, companies, and career evidence.\n`;
+    }
+  }
+
   return `Here is the full discovery conversation:
 
 Name: ${userName || "[Name not provided]"}
 Pronouns: ${pronouns || "they/them"}
 Status: ${statusLabel}
 Today's Date: ${currentDate}
+${documentSection}
+══════════════════════════════════════════════════════════════════════════════
+DISCOVERY CONVERSATION
+══════════════════════════════════════════════════════════════════════════════
 
 ${allSections}
 
@@ -136,5 +210,6 @@ Now write the complete lens document following the structure in your instruction
 - ${pronounGuide}
 - Use "${currentDate}" for the date field in the YAML frontmatter
 - 6 sections exactly, YAML frontmatter with the stats field
-- Third person voice, narrative prose (no bullet points), specific and honest`;
+- Third person voice, narrative prose (no bullet points), specific and honest
+- IMPORTANT: Integrate document evidence (metrics, companies, career arc) into the narrative per the DOCUMENT CONTEXT INTEGRATION rules`;
 }

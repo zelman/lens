@@ -2,6 +2,37 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-12] Document Context Integration (Spec v1.0)
+
+### lens-app 2026.04.12-a
+Implements `lens-context-integration-spec-v1.0.md` — uploaded documents (resume, LinkedIn, assessments) now flow into synthesis for evidence-grounded lens output.
+
+**New: Document Context Extraction**
+- Added `documentContext` extraction from uploaded files (memoized)
+- Extracts structured data: years of experience, team size, ARR/revenue, NRR, geographic scope, enterprise clients, tools
+- Pattern-based extraction with multiple fallback patterns per field
+- Extraction runs client-side for performance
+
+**New: Synthesis Document Integration**
+- Updated synthesis prompt with DOCUMENT CONTEXT INTEGRATION section
+- Per-section guidance for integrating document evidence (Essence, Skills, Mission, Non-Negotiables)
+- Stats bar now populated from extracted documentContext
+- Raw document text included for Claude to reference specific companies/metrics
+- Added weak/strong examples for each section
+
+**API Changes**
+- `/api/synthesize` now accepts `documentContext` (object) and `rawDocumentText` (string)
+- Both optional — graceful fallback when no documents uploaded
+- Validation added for documentContext shape
+
+**Impact**
+- Essence section now includes professional identity with scale (not just behavioral patterns)
+- Skills & Experience grounds career arc in specific companies, metrics, enterprise clients
+- Stats bar populates from document data: `15+ years | 24-person CS org | $40M ARR / 120% NRR | NA + EMEA`
+- Addresses "resume ignored in synthesis" feedback from Ravi Katam test
+
+---
+
 ## [2026-04-10] Discovery Flow Improvements (Ravi/Brendan Feedback)
 
 ### lens-app 2026.04.10-a
