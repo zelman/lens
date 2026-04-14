@@ -6,7 +6,7 @@ import { VALID_SECTIONS, buildSystemPrompt, getSectionPrompt } from "../_prompts
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
 const MAX_TOKENS = 1000;
-const MAX_UPLOAD_SUMMARY_LENGTH = 30000; // ~7500 tokens, keeps API calls reasonable
+const MAX_UPLOAD_SUMMARY_LENGTH = 60000; // ~15K tokens, client applies priority-based budget
 const MIN_UPLOAD_SUMMARY_LENGTH = 100; // Minimum for meaningful context
 
 export async function POST(request) {
@@ -55,9 +55,10 @@ export async function POST(request) {
       }
     }
 
-    // Check payload size (50KB limit) - use byte count for UTF-8 accuracy
+    // Check payload size (80KB limit) - increased to accommodate 60K content budget + JSON overhead
     const payloadSize = new TextEncoder().encode(JSON.stringify(body)).length;
-    if (payloadSize > 50000) {
+    if (payloadSize > 80000) {
+      console.log(`[Discover] Payload rejected: ${payloadSize} bytes exceeds 80KB limit`);
       return Response.json(
         { error: "Request too large" },
         { status: 400 }
@@ -76,9 +77,14 @@ export async function POST(request) {
       let uploadSummary = context?.uploadSummary || "";
       const userName = context?.userName || "this person";
 
-      // Truncate if too large to prevent API errors
+      // Log content size for debugging
+      const originalLength = uploadSummary.length;
+      console.log(`[Reflection] Received uploadSummary: ${originalLength} chars`);
+
+      // Truncate if too large to prevent API errors (belt-and-suspenders with client budget)
       if (uploadSummary.length > MAX_UPLOAD_SUMMARY_LENGTH) {
         uploadSummary = uploadSummary.slice(0, MAX_UPLOAD_SUMMARY_LENGTH) + "\n\n[Content truncated for length]";
+        console.log(`[Reflection] Truncated from ${originalLength} to ${uploadSummary.length} chars`);
       }
 
       if (!uploadSummary || uploadSummary.trim().length < MIN_UPLOAD_SUMMARY_LENGTH) {
@@ -142,7 +148,9 @@ IMPORTANT:
       });
 
       if (!res.ok) {
-        console.error("Anthropic API error:", res.status);
+        const errorBody = await res.text().catch(() => "unknown");
+        console.error(`[Reflection] Anthropic API error: ${res.status}`, errorBody);
+        console.error(`[Reflection] Content length was: ${reflectionUserContent.length} chars`);
         return Response.json(
           { error: "AI service temporarily unavailable" },
           { status: 503 }

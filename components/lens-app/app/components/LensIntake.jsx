@@ -10,7 +10,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.12-n";
+const BUILD_ID = "2026.04.14-e";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -44,7 +44,7 @@ async function loadPdfJs() {
 
 async function extractText(file) {
   const name = file.name.toLowerCase();
-  const MAX_CHARS = 30000; // Keep context window manageable
+  const MAX_CHARS = 50000; // Per-file limit; content budget handles total across files
 
   try {
     // Plain text formats
@@ -119,6 +119,107 @@ const CATEGORIES = [
     multiple: true,
   },
 ];
+
+// ── Content budget for uploaded materials ──
+// Total cap ~60K chars (~15K tokens), leaving room for system prompt + instructions
+const TOTAL_CONTENT_BUDGET = 60000;
+// Priority order: resume densest signal, linkedin last (redundant with resume)
+const CATEGORY_PRIORITY = ["resume", "assessments", "writing", "other", "linkedin"];
+
+/**
+ * Build file context string with priority-based budget allocation.
+ * Fills budget in priority order, truncating large files rather than dropping.
+ * Returns { text, stats } where stats contains metrics for telemetry.
+ */
+function buildFileContextWithBudget(files, categories) {
+  const parts = [];
+  let remainingBudget = TOTAL_CONTENT_BUDGET;
+  let totalChars = 0;
+  let preTruncationTotal = 0;
+  const perFileStats = [];
+  const TRUNCATION_MARKER = "\n\n[content truncated for length]";
+  const MIN_USEFUL_CHARS = 200; // Don't include files if we can only fit < 200 chars
+  let fileCount = 0;
+
+  // Process categories in priority order
+  for (const catId of CATEGORY_PRIORITY) {
+    const arr = files[catId] || [];
+    const catLabel = categories.find(c => c.id === catId)?.label || catId;
+
+    for (const f of arr) {
+      // Count all files with content (even if skipped)
+      if (f._textContent) {
+        fileCount++;
+        preTruncationTotal += f._textContent.length;
+      }
+
+      // Skip if no content or budget exhausted
+      if (!f._textContent) continue;
+      if (remainingBudget < MIN_USEFUL_CHARS) {
+        console.log(`[Content Budget] Skipping ${f.name}: only ${remainingBudget} chars remaining`);
+        perFileStats.push({
+          category: catId,
+          filename: f.name,
+          size_kb: Math.round(f.size / 1024),
+          extracted_chars: f._textContent.length,
+          truncated_to: 0,
+        });
+        continue;
+      }
+
+      const originalLength = f._textContent.length;
+      let content = f._textContent;
+      let truncated = false;
+
+      // If content exceeds remaining budget, truncate with marker
+      if (content.length > remainingBudget) {
+        const truncateAt = Math.max(0, remainingBudget - TRUNCATION_MARKER.length);
+        content = content.slice(0, truncateAt) + TRUNCATION_MARKER;
+        truncated = true;
+      }
+
+      parts.push(`[${catLabel}: ${f.name}]\n${content}`);
+      const usedChars = content.length;
+      remainingBudget -= usedChars;
+      totalChars += usedChars;
+
+      perFileStats.push({
+        category: catId,
+        filename: f.name,
+        size_kb: Math.round(f.size / 1024),
+        extracted_chars: originalLength,
+        truncated_to: truncated ? usedChars : null,
+      });
+    }
+  }
+
+  // Log stats for debugging (visible in browser console)
+  if (perFileStats.length > 0) {
+    console.log(`[Content Budget] Total: ${totalChars}/${TOTAL_CONTENT_BUDGET} chars used`);
+    console.log(`[Content Budget] Files:`, perFileStats);
+  }
+
+  const text = parts.length > 0 ? parts.join("\n\n---\n\n") : "";
+  const stats = {
+    fileCount,
+    preTruncationTotalChars: preTruncationTotal,
+    totalExtractedChars: totalChars,
+    charsTruncated: preTruncationTotal - totalChars,
+    contentBudgetApplied: preTruncationTotal > totalChars,
+    fileBreakdown: perFileStats,
+  };
+
+  return { text, stats };
+}
+
+// Generate UUID for session tracking
+function generateSessionId() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 // ── Discovery sections (UI display only - actual coaching prompts are server-side) ──
 const SECTIONS = [
@@ -535,7 +636,17 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, savedFileCont
         </div>
       )}
 
-      <div style={{ height: "1px", background: RULE, marginBottom: "28px" }} />
+      <div style={{ height: "1px", background: RULE, marginBottom: "20px" }} />
+
+      {/* Upload guidance */}
+      <div style={{ marginBottom: "24px" }}>
+        <p style={{ fontSize: "12px", color: GRY, lineHeight: 1.7, margin: "0 0 8px", fontStyle: "italic" }}>
+          The AI reads your materials closely — a focused selection of 15–20 pages of text works better than uploading everything. Your resume plus one or two of your strongest pieces is plenty.
+        </p>
+        <p style={{ fontSize: "12px", color: GRY, lineHeight: 1.7, margin: 0, fontStyle: "italic" }}>
+          Working with images or visual portfolios? The AI extracts text, not visuals — keep image files under 5MB each. You'll have a chance to describe your creative work during the conversation.
+        </p>
+      </div>
 
       {/* Upload slots */}
       {CATEGORIES.map((cat, i) => (
@@ -591,7 +702,7 @@ const PRONOUN_OPTIONS = [
 // Context Reflection Phase (between Status and Discovery)
 // ════════════════════════════════════════
 
-function ContextReflectionPhase({ files, userName, status, onContinue, onBack, onSkip }) {
+function ContextReflectionPhase({ files, userName, status, onContinue, onBack, onSkip, onReflectionResult }) {
   const [loading, setLoading] = useState(true);
   const [reflection, setReflection] = useState("");
   const [userCorrection, setUserCorrection] = useState("");
@@ -603,17 +714,9 @@ function ContextReflectionPhase({ files, userName, status, onContinue, onBack, o
   const onSkipRef = useRef(onSkip);
   onSkipRef.current = onSkip;
 
-  // Build file context string from uploaded files
-  const fileContext = useMemo(() => {
-    const parts = [];
-    for (const [cat, arr] of Object.entries(files)) {
-      for (const f of arr) {
-        if (f._textContent) {
-          parts.push(`[${CATEGORIES.find(c => c.id === cat)?.label}: ${f.name}]\n${f._textContent}`);
-        }
-      }
-    }
-    return parts.length > 0 ? parts.join("\n\n---\n\n") : "";
+  // Build file context string from uploaded files (with content budget)
+  const { text: fileContext } = useMemo(() => {
+    return buildFileContextWithBudget(files, CATEGORIES);
   }, [files]);
 
   // Generate reflection on mount
@@ -623,6 +726,7 @@ function ContextReflectionPhase({ files, userName, status, onContinue, onBack, o
         // No meaningful context - skip this phase
         setHasContext(false);
         setLoading(false);
+        if (onReflectionResult) onReflectionResult("Skipped");
         return;
       }
 
@@ -649,16 +753,18 @@ function ContextReflectionPhase({ files, userName, status, onContinue, onBack, o
         const data = await res.json();
         setReflection(data.response);
         setHasContext(data.hasContext);
+        if (onReflectionResult) onReflectionResult(data.hasContext ? "Success" : "Skipped");
       } catch (err) {
         console.error("Context reflection error:", err);
         setApiError(err.message);
+        if (onReflectionResult) onReflectionResult("Failed");
       } finally {
         setLoading(false);
       }
     }
 
     generateReflection();
-  }, [fileContext, status, userName]);
+  }, [fileContext, status, userName, onReflectionResult]);
 
   // If no context, skip automatically after brief delay
   useEffect(() => {
@@ -974,6 +1080,12 @@ function DiscoveryPhase({
   onReentryComplete,
   onSelectAnotherSection,
   onSaveAndExit,
+  // Telemetry props
+  onFileStats,
+  onDiscoverySectionTiming,
+  onSynthesisStart,
+  onSynthesisEnd,
+  onApiError,
 }) {
   const [subPhase, setSubPhase] = useState(savedDiscoveryState?.subPhase || "preview");
   const [currentSection, setCurrentSection] = useState(savedDiscoveryState?.currentSection || 0);
@@ -1049,18 +1161,37 @@ function DiscoveryPhase({
     }
   }, [reentryMode, reentrySection, subPhase]);
 
-  // Build file context string from uploaded files (memoized for performance)
-  const fileContext = useMemo(() => {
-    const parts = [];
-    for (const [cat, arr] of Object.entries(files)) {
-      for (const f of arr) {
-        if (f._textContent) {
-          parts.push(`[${CATEGORIES.find(c => c.id === cat)?.label}: ${f.name}]\n${f._textContent}`);
-        }
-      }
-    }
-    return parts.length > 0 ? parts.join("\n\n---\n\n") : "";
+  // Build file context string from uploaded files (with content budget)
+  const { text: fileContext, stats: fileStats } = useMemo(() => {
+    return buildFileContextWithBudget(files, CATEGORIES);
   }, [files]);
+
+  // Report file stats to parent for telemetry
+  useEffect(() => {
+    if (fileStats && onFileStats) {
+      onFileStats(fileStats);
+    }
+  }, [fileStats, onFileStats]);
+
+  // Report section timing to parent for telemetry
+  useEffect(() => {
+    if (onDiscoverySectionTiming && Object.keys(sectionTimings).length > 0) {
+      // Convert sectionTimings object to array format for telemetry
+      const timingArray = SECTIONS.map((sec, idx) => {
+        const timing = sectionTimings[sec.id];
+        if (!timing) return null;
+        return {
+          section: idx + 1,
+          name: sec.label,
+          start: timing.entryTime ? new Date(timing.entryTime).toISOString() : null,
+          end: timing.completionTime ? new Date(timing.completionTime).toISOString() : null,
+          duration_sec: Math.round(timing.duration || 0),
+          messages: timing.messageCount || 0,
+        };
+      }).filter(Boolean);
+      onDiscoverySectionTiming(timingArray);
+    }
+  }, [sectionTimings, onDiscoverySectionTiming]);
 
   // Extract structured document context for synthesis (memoized)
   const documentContext = useMemo(() => {
@@ -1604,6 +1735,9 @@ SIGNALS:
     setApiError(null);
     setLoading(true);
 
+    // Telemetry: mark synthesis start
+    if (onSynthesisStart) onSynthesisStart();
+
     // Use override data if provided (for /skip command), otherwise use state
     const dataToUse = overrideData || sectionData;
 
@@ -1626,12 +1760,18 @@ SIGNALS:
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `API error (${res.status})`);
+        const errorMsg = errorData.error || `API error (${res.status})`;
+        // Telemetry: log API error
+        if (onApiError) onApiError("/api/synthesize", res.status, errorMsg);
+        throw new Error(errorMsg);
       }
 
       const data = await res.json();
       setLensDoc(data.lens);
       setSubPhase("done");
+
+      // Telemetry: mark synthesis end (success)
+      if (onSynthesisEnd) onSynthesisEnd(true);
 
       // ── Timing: mark session as complete ──
       if (sessionRecordId) {
@@ -1646,6 +1786,7 @@ SIGNALS:
       console.error("generateLens error:", err);
       setApiError(err.message || "Failed to generate lens. Please try again.");
       setSubPhase("conversation"); // Go back so user can retry
+      // Telemetry: mark synthesis end (failure) - don't log here, user may retry
     } finally {
       setLoading(false);
     }
@@ -2699,6 +2840,192 @@ export default function LensIntake() {
   // Legacy alias for backward compatibility
   const showSectionSelector = showModeSelector || showSectionPicker;
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // SESSION TELEMETRY - tracks timing, file metrics, abandonment for Airtable
+  // ══════════════════════════════════════════════════════════════════════════
+  const telemetryRef = useRef({
+    sessionId: generateSessionId(),
+    sessionStart: new Date().toISOString(),
+    buildVersion: BUILD_ID,
+    userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    // Phase timestamps (filled as user progresses)
+    materialsStart: null,
+    materialsEnd: null,
+    statusStart: null,
+    statusEnd: null,
+    contextStart: null,
+    contextEnd: null,
+    discoveryStart: null,
+    discoveryEnd: null,
+    synthesisStart: null,
+    synthesisEnd: null,
+    // File metrics (filled from DiscoveryPhase callback)
+    fileCount: 0,
+    preTruncationTotalChars: 0,
+    totalExtractedChars: 0,
+    charsTruncated: 0,
+    contentBudgetApplied: false,
+    fileBreakdown: [],
+    // Discovery section timing (filled as sections complete)
+    discoverySectionTiming: [],
+    // Status
+    status: null, // Completed / Abandoned / Error
+    abandonmentPhase: null,
+    abandonmentSection: null,
+    // Errors
+    reflectionResult: null, // Success / Failed / Skipped
+    apiErrors: [],
+    // Logged flag to prevent double-logging
+    _logged: false,
+  });
+
+  // Track phase transitions
+  const prevPhaseRef = useRef(null);
+  useEffect(() => {
+    const t = telemetryRef.current;
+    const now = new Date().toISOString();
+    const prev = prevPhaseRef.current;
+
+    // Mark end of previous phase
+    if (prev === "upload" && phase !== "upload") t.materialsEnd = now;
+    if (prev === "status" && phase !== "status") t.statusEnd = now;
+    if (prev === "reflect" && phase !== "reflect") t.contextEnd = now;
+    if (prev === "discovery" && phase !== "discovery") t.discoveryEnd = now;
+
+    // Mark start of new phase
+    if (phase === "upload" && prev !== "upload" && !t.materialsStart) t.materialsStart = now;
+    if (phase === "status" && prev !== "status" && !t.statusStart) t.statusStart = now;
+    if (phase === "reflect" && prev !== "reflect" && !t.contextStart) t.contextStart = now;
+    if (phase === "discovery" && prev !== "discovery" && !t.discoveryStart) t.discoveryStart = now;
+
+    prevPhaseRef.current = phase;
+  }, [phase]);
+
+  // Telemetry callbacks for child components
+  const handleFileStats = useCallback((stats) => {
+    const t = telemetryRef.current;
+    t.fileCount = stats.fileCount;
+    t.preTruncationTotalChars = stats.preTruncationTotalChars;
+    t.totalExtractedChars = stats.totalExtractedChars;
+    t.charsTruncated = stats.charsTruncated;
+    t.contentBudgetApplied = stats.contentBudgetApplied;
+    t.fileBreakdown = stats.fileBreakdown;
+  }, []);
+
+  const handleDiscoverySectionTiming = useCallback((sectionTiming) => {
+    telemetryRef.current.discoverySectionTiming = sectionTiming;
+  }, []);
+
+  const handleSynthesisStart = useCallback(() => {
+    telemetryRef.current.synthesisStart = new Date().toISOString();
+  }, []);
+
+  const handleSynthesisEnd = useCallback((success) => {
+    const t = telemetryRef.current;
+    t.synthesisEnd = new Date().toISOString();
+    if (success) {
+      t.status = "Completed";
+      logTelemetry();
+    }
+  }, []);
+
+  const handleApiError = useCallback((route, statusCode, message) => {
+    telemetryRef.current.apiErrors.push({
+      timestamp: new Date().toISOString(),
+      route,
+      status_code: statusCode,
+      error_message: message,
+    });
+  }, []);
+
+  const handleReflectionResult = useCallback((result) => {
+    telemetryRef.current.reflectionResult = result; // "Success" | "Failed" | "Skipped"
+  }, []);
+
+  // Log telemetry to server (fire-and-forget)
+  const logTelemetry = useCallback(() => {
+    const t = telemetryRef.current;
+    if (t._logged) return; // Prevent double-logging
+    t._logged = true;
+
+    // Calculate total duration
+    const start = new Date(t.sessionStart).getTime();
+    const end = Date.now();
+    const totalDuration = Math.round((end - start) / 1000);
+
+    const payload = {
+      sessionId: t.sessionId,
+      name: userName || null,
+      buildVersion: t.buildVersion,
+      userAgent: t.userAgent,
+      sessionStart: t.sessionStart,
+      sessionEnd: new Date().toISOString(),
+      totalDuration,
+      status: t.status || "Abandoned",
+      abandonmentPhase: t.abandonmentPhase,
+      abandonmentSection: t.abandonmentSection,
+      materialsStart: t.materialsStart,
+      materialsEnd: t.materialsEnd,
+      statusStart: t.statusStart,
+      statusEnd: t.statusEnd,
+      contextStart: t.contextStart,
+      contextEnd: t.contextEnd,
+      discoveryStart: t.discoveryStart,
+      discoveryEnd: t.discoveryEnd,
+      synthesisStart: t.synthesisStart,
+      synthesisEnd: t.synthesisEnd,
+      fileCount: t.fileCount,
+      preTruncationTotalChars: t.preTruncationTotalChars,
+      totalExtractedChars: t.totalExtractedChars,
+      charsTruncated: t.charsTruncated,
+      contentBudgetApplied: t.contentBudgetApplied,
+      fileBreakdown: t.fileBreakdown,
+      discoverySectionTiming: t.discoverySectionTiming,
+      reflectionResult: t.reflectionResult,
+      apiErrors: t.apiErrors.length > 0 ? t.apiErrors : null,
+    };
+
+    // Use sendBeacon for reliability (works on page unload)
+    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    navigator.sendBeacon("/api/log-session", blob);
+  }, [userName]);
+
+  // Abandonment detection: beforeunload + visibilitychange
+  useEffect(() => {
+    const handleUnload = () => {
+      const t = telemetryRef.current;
+      if (t._logged) return;
+
+      // Determine abandonment phase
+      t.abandonmentPhase = phase === "upload" ? "Materials"
+        : phase === "status" ? "Status"
+        : phase === "reflect" ? "Context"
+        : phase === "discovery" ? "Discovery"
+        : null;
+
+      // Get section from discovery state if applicable
+      if (phase === "discovery" && discoveryState?.currentSection !== undefined) {
+        t.abandonmentSection = discoveryState.currentSection + 1; // 1-indexed
+      }
+
+      logTelemetry();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        handleUnload();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [phase, discoveryState, logTelemetry]);
+
   // ── Load saved progress on mount ──
   useEffect(() => {
     const session = loadSession();
@@ -3123,6 +3450,7 @@ export default function LensIntake() {
             setContextReflection(null);
             setPhase("discovery");
           }}
+          onReflectionResult={handleReflectionResult}
         />
       )}
 
@@ -3144,6 +3472,11 @@ export default function LensIntake() {
           onReentryComplete={handleReentryComplete}
           onSelectAnotherSection={handleSelectAnotherSection}
           onSaveAndExit={handleSaveAndExit}
+          onFileStats={handleFileStats}
+          onDiscoverySectionTiming={handleDiscoverySectionTiming}
+          onSynthesisStart={handleSynthesisStart}
+          onSynthesisEnd={handleSynthesisEnd}
+          onApiError={handleApiError}
         />
       )}
 

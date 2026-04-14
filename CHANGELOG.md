@@ -2,6 +2,110 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-14] Session Telemetry & Content Budget Fixes
+
+### lens-app 2026.04.14-e (Per-File Extraction Limit Increase)
+Increases per-file text extraction limit from 30K to 50K characters.
+
+**Problem:** DISC assessments and other text-heavy documents were being truncated at extraction (30K chars) before the content budget could prioritize them.
+
+**Fix:** Increased `MAX_CHARS` in `extractText()` from 30,000 to 50,000 characters per file. Content budget (60K total) still handles cross-file prioritization.
+
+---
+
+### lens-app 2026.04.14-d (Session Telemetry Instrumentation)
+Adds comprehensive session telemetry to Airtable for analytics on user behavior, timing, and abandonment.
+
+**New Airtable Table:** "Lens Sessions" (tblNJ7gBSIlAEhstI) with 30 fields:
+- Session identity: UUID, name, build version, user agent, IP address (server-side)
+- Lifecycle: start/end timestamps, total duration, status (Completed/Abandoned/Error)
+- Phase timestamps: Materials, Status, Context, Discovery, Synthesis (start/end each)
+- File metrics: count, pre-truncation chars, post-truncation chars, truncation flag, per-file breakdown
+- Discovery timing: per-section start/end/duration/message count
+- Error tracking: reflection result, API error log
+
+**New API Route:** `/api/log-session`
+- Server-side proxy for session telemetry
+- Captures IP address from request headers (x-forwarded-for, x-real-ip)
+- Fire-and-forget writes to Airtable
+
+**Client Instrumentation:**
+- Session UUID generated on mount
+- Phase transitions tracked automatically
+- File stats captured from content budget function
+- Discovery section timing reported as sections complete
+- Synthesis start/end tracked with success flag
+- Abandonment detection via beforeunload + visibilitychange
+- Uses sendBeacon for reliability on page unload
+
+**Files Changed:**
+- `LensIntake.jsx`: Telemetry state, phase tracking, callbacks, beforeunload handler
+- `api/log-session/route.js`: New route for Airtable writes
+- `buildFileContextWithBudget()`: Now returns { text, stats } for telemetry capture
+
+---
+
+### lens-app 2026.04.14-c (Synthesis Timeout Fix)
+Fixes synthesis timeout when users upload many files.
+
+**Problem:** Synthesis route times out (58s Vercel limit) when rawDocumentText from uploaded files is too large. Combined with sectionData from all 8 discovery sections, the model can't complete within timeout.
+
+**Fix:**
+- Truncate `rawDocumentText` to 8K chars before synthesis (sectionData already contains extracted insights)
+- Pass truncated text to validation as well so it only flags gaps from content synthesis actually saw
+- Without this consistency fix, validation could flag gaps that re-synthesis could never fix
+
+**Files Changed:**
+- `synthesize/route.js`: Added MAX_RAW_TEXT_FOR_SYNTHESIS = 8000, truncation logic at lines 130-138, validation asymmetry fix at line 224-227
+- `LensIntake.jsx`: BUILD_ID bump
+
+---
+
+### lens-app 2026.04.14-b (Content Budget Fix - Slice Bug)
+Fixes slice bug in content budget logic that allowed budget to be exceeded.
+
+**Bug:** `slice(0, negative)` doesn't truncate to zero - it removes chars from the end. When remaining budget was small (e.g., 18 chars), `slice(0, 18-50)` = `slice(0, -32)` returned 29968 chars instead of truncating.
+
+**Fix:**
+- Use `Math.max(0, remainingBudget - markerLength)` to prevent negative slice indices
+- Added 200-char minimum threshold - skip files entirely if budget nearly exhausted
+- Explicit truncation flag tracking
+- Console logging when files are skipped due to budget
+
+---
+
+### lens-app 2026.04.14-a (Content Budget for Heavy Uploads)
+Fixes API 400 errors when users upload large amounts of content (8+ files, coaching transcripts, assessments).
+
+**Problem:**
+- `/api/discover` reflection call sends all extracted file text concatenated with no size cap
+- Heavy uploaders blow past Claude's input token limit causing 400 errors
+- Confirmed repro: resume + DISC assessment + IAM framework + writing sample + 4 coaching transcripts
+
+**Root Cause:** Combined extracted text from uploaded files exceeds model context window. No content budget between file extraction and API call.
+
+**Fix Part 1 - Content Budget:**
+- Total cap: 60K characters (~15K tokens)
+- Priority order for budget allocation:
+  1. Resume (densest signal-per-character)
+  2. Assessments & frameworks (structured self-knowledge)
+  3. Writing samples (shows thinking and communication style)
+  4. Other (coaching transcripts, letters, decks)
+  5. LinkedIn (largely redundant with resume, fill last)
+- Files exceeding remaining budget are truncated with `[content truncated for length]` marker
+- Console logging shows per-file character counts for debugging
+
+**Fix Part 2 - Upload Guidance Copy:**
+Added two italicized guidance lines at top of Materials (Phase 2) upload step:
+- "The AI reads your materials closely — a focused selection of 15–20 pages of text works better than uploading everything. Your resume plus one or two of your strongest pieces is plenty."
+- "Working with images or visual portfolios? The AI extracts text, not visuals — keep image files under 5MB each. You'll have a chance to describe your creative work during the conversation."
+
+**Files Changed:**
+- `LensIntake.jsx`: Added `buildFileContextWithBudget()` helper, priority constants, upload guidance copy
+- `discover/route.js`: Increased MAX_UPLOAD_SUMMARY_LENGTH from 30K to 60K, added content size logging
+
+---
+
 ## [2026-04-12] Integration Spec Addendum v1.1
 
 ### lens-app 2026.04.12-n (Faster Synthesis Settings)
