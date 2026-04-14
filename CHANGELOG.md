@@ -2,6 +2,39 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-14] Recruiter Role Input Form (R→C POC Step 1)
+
+### lens-app 2026.04.14-f (Recruiter Role Form)
+Adds recruiter-facing role input form at `/recruiter` route — Step 1 of the R→C (Recruiter to Candidate) POC.
+
+**New Route:** `/recruiter`
+- 4-phase flow: Intro → Role Context → Document Upload → Review & Confirm
+- International Style design matching candidate intake form exactly
+- Session persistence to localStorage (separate key from candidate form)
+- Outputs structured role context object to sessionStorage for downstream consumption
+
+**Form Fields (Role Context):**
+- Required: Role title, Company, Stakeholders, 12-month objective, Top 3-5 priorities (ranked)
+- Optional: Compensation, Location, Company stage, Last person in seat, Failure mode, Recruiter-only notes
+
+**Document Upload Categories:**
+- Job description (single file)
+- Stakeholder notes (multiple)
+- Team/org context (multiple, including images)
+- Candidate materials to pre-load (multiple)
+- Anything else (multiple, any type)
+
+**Privacy Features:**
+- Expandable "How we handle your data" section
+- Clear messaging: no server storage, TLS encryption, session-scoped documents
+- Recruiter-only notes field (never injected to candidate AI)
+
+**Files Created:**
+- `app/recruiter/page.js`: Route entry point
+- `app/components/RecruiterRoleForm.jsx`: Main component (~950 lines)
+
+---
+
 ## [2026-04-14] Session Telemetry & Content Budget Fixes
 
 ### lens-app 2026.04.14-e (Per-File Extraction Limit Increase)
