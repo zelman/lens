@@ -128,6 +128,15 @@ export async function POST(request) {
       );
     }
 
+    // Check if response was truncated
+    if (stopReason === "max_tokens") {
+      console.error("[extract-dimensions] Response truncated - max_tokens reached");
+      return Response.json(
+        { error: "Dimension extraction truncated. Please try again with fewer documents." },
+        { status: 500 }
+      );
+    }
+
     // Parse JSON response with repair attempts
     let dimensionResult;
     let cleanText = fullText
