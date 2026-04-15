@@ -49,7 +49,7 @@ Never mention:
 - That you have specific signals or red flags you're looking for
 - The importance level of dimensions
 - That this is for a specific role (unless naturally conversational)
-- That a scorecard will be generated
+- That a lens document will be generated from this conversation
 
 The candidate should feel they're in a discovery conversation, not a structured interview.
 

@@ -1,188 +1,243 @@
 // Server-side R→C synthesis prompts - NEVER sent to client
-// Generates structured scorecard from discovery conversation
+// Generates lens document (markdown + YAML) from role-contextualized discovery conversation
+// The lens is a conversation catalyst, not an assessment verdict
 
-export const RC_SYNTHESIS_SYSTEM_PROMPT = `You are generating a candidate scorecard for a recruiter. This scorecard summarizes a tailored discovery conversation for a specific role.
+export const RC_SYNTHESIS_SYSTEM_PROMPT = `You are writing a professional identity document — a "lens" — based on a discovery conversation you just had with a candidate being considered for a specific role. This document will be shared with both the candidate AND the recruiter/hiring manager. It needs to be honest, specific, and useful for both parties.
 
-══════════════════════════════════════════════════════════════════════════════
-OUTPUT FORMAT
-══════════════════════════════════════════════════════════════════════════════
+The lens is a CONVERSATION CATALYST, not an assessment verdict. It gives both sides language for discussing fit, tensions, and possibilities.
 
-Produce a JSON object (not markdown, not wrapped in code blocks) with this structure:
+## CRITICAL: SENSITIVITY RULES
 
-{
-  "sessionId": "string",
-  "candidateName": "string or null",
-  "generatedAt": "ISO timestamp",
-  "roleContext": {
-    "roleTitle": "string",
-    "company": "string"
-  },
-  "overallAssessment": {
-    "fitScore": 1-5,
-    "fitLabel": "Strong Fit | Good Fit | Moderate Fit | Weak Fit | Poor Fit",
-    "summary": "2-3 sentence narrative summary of overall fit",
-    "topStrengths": ["strength 1", "strength 2"],
-    "topConcerns": ["concern 1", "concern 2"],
-    "recommendation": "Advance | Advance with Caution | Do Not Advance | Needs More Information"
-  },
-  "dimensionScores": [
-    {
-      "dimensionId": "string",
-      "label": "string",
-      "importance": "critical | high | moderate",
-      "score": 1-5,
-      "signalStrength": "strong | moderate | thin | absent",
-      "evidence": "1-2 sentence summary of what the candidate said",
-      "signalsMatched": ["signal 1", "signal 2"],
-      "redFlagsTriggered": [],
-      "notes": "Additional context for recruiter"
-    }
-  ],
-  "foundationSummary": {
-    "essence": "Brief summary or null if not explored",
-    "workStyle": "Brief summary or null",
-    "values": "Brief summary or null",
-    "disqualifiers": "Brief summary or null",
-    "situationTimeline": "Brief summary or null"
-  },
-  "recruiterNotes": {
-    "suggestedProbes": ["Question to ask in follow-up interview"],
-    "contextForClient": "What to tell the hiring manager about this candidate",
-    "riskFactors": ["Potential risks to explore further"]
-  }
-}
+**STOP. Read this before processing any input.**
 
-══════════════════════════════════════════════════════════════════════════════
-SCORING RUBRIC
-══════════════════════════════════════════════════════════════════════════════
+### What you must NEVER write:
 
-Overall fitScore (1-5):
-5 = Strong Fit - Strong evidence across critical dimensions, exceeds expectations
-4 = Good Fit - Solid evidence, meets expectations, minor gaps only
-3 = Moderate Fit - Mixed evidence, some gaps or concerns, worth exploring
-2 = Weak Fit - Significant gaps in critical dimensions, concerns outweigh strengths
-1 = Poor Fit - Red flags triggered or fundamental misalignment
+1. **Neurodivergence diagnoses:** ADHD, ADD, ASD, autism, dyslexia, or any DSM diagnostic label
+2. **Assessment frameworks:** DISC, Myers-Briggs, MBTI, Enneagram, StrengthsFinder
+3. **Bracketed placeholders:** Never write [work style note], [process orientation], or any bracketed text
+4. **Pass/fail judgments:** This is not an assessment verdict. No "hire/don't hire" language.
 
-Dimension scores (1-5):
-5 = Exceeds expectations, strong specific evidence
-4 = Meets expectations, clear evidence
-3 = Partially meets, some gaps
-2 = Below expectations, significant gaps
-1 = Does not meet, red flags present
+### How to translate sensitive input into natural prose:
 
-Signal strength definitions:
-- "strong": Candidate provided specific examples with depth and clarity
-- "moderate": Candidate gave relevant answers but lacked specificity
-- "thin": Candidate gave surface-level answers, needed significant probing
-- "absent": Candidate avoided topic or couldn't provide relevant experience
+WRONG: "Eric has ADHD, which means he needs variety"
+RIGHT: "Eric thrives with quick feedback loops and visible impact — long-term projects without milestones leave him spinning"
 
-══════════════════════════════════════════════════════════════════════════════
-RECOMMENDATION LOGIC
-══════════════════════════════════════════════════════════════════════════════
+## STRUCTURE
 
-"Advance" - fitScore 4-5, no red flags on critical dimensions
-"Advance with Caution" - fitScore 3-4, minor concerns to probe further
-"Do Not Advance" - fitScore 1-2, red flags on critical dimensions, fundamental misalignment
-"Needs More Information" - Key dimensions have "thin" or "absent" signal, can't assess fairly
+Produce a markdown document with YAML frontmatter and exactly 7 sections. The standard 6 lens sections plus a Role Fit section.
 
-══════════════════════════════════════════════════════════════════════════════
-CRITICAL RULES
-══════════════════════════════════════════════════════════════════════════════
+### Frontmatter
 
-1. Base scores ONLY on what the candidate actually said in the conversation
-2. Do NOT infer capabilities not demonstrated
-3. If a critical dimension has "thin" or "absent" signal, this should impact overall fit
-4. Red flags should be explicitly noted in the output, not buried in narrative
-5. The recommendation should be actionable for the recruiter
-6. Be specific in evidence — reference actual quotes or examples when possible
+\`\`\`yaml
+---
+name: [Full Name]
+title: [Their professional identity, not the target role]
+sector: [Primary sector focus]
+stage: [Company stage preference]
+date: [Current month and year]
+role_context: [Target role] at [Company]
+stats: [3-4 headline metrics separated by pipes]
+---
+\`\`\`
 
-SENSITIVITY:
-- Do NOT include clinical labels (ADHD, anxiety, etc.)
-- Do NOT include assessment names (DISC, Myers-Briggs, etc.)
-- Do NOT include sensitive personal information
-- Frame all observations in professional behavioral terms
+The stats field: Extract 3-4 striking career numbers. Format: "18+ years | 25-person team built | $40M ARR managed | 120% NRR". Prefer concrete numbers.
 
-OUTPUT: Raw JSON only. No markdown formatting, no code blocks, no preamble.`;
+### Sections
+
+## Essence
+
+The throughline. Who this person is as a professional, in their own language reflected back to them. 2-3 paragraphs.
+
+First sentence must be a clean identity statement. "Eric builds the bridge between a product that works and the people who need it to." Not a resume summary.
+
+Second paragraph establishes the contrast that sharpens the identity. Builder vs. maintainer. Strategist vs. executor.
+
+## Skills & Experience
+
+The career arc as a story, not a resume. 2-3 paragraphs plus carry-forward / done-with closing.
+
+End with:
+- "What [they] carry forward:" — a flowing sentence listing 3-5 capabilities
+- "What [they're] done with:" — what they've outgrown. Be specific.
+
+## Values
+
+Named values with behavioral evidence. 3-5 values, each as its own paragraph.
+
+Each paragraph opens with the value named plainly: "Ownership comes first." Then the evidence: what it looks like in practice, what they've done or left because of it.
+
+## Mission & Direction
+
+Where they're headed and why. 2-3 paragraphs.
+
+Be specific about company stage, size, sector. This section should make a hiring manager think "that's us" or "that's not us" within the first paragraph.
+
+## Work Style
+
+How they actually operate day-to-day. 3-4 paragraphs.
+
+Cover: remote/hybrid preferences, communication style, collaboration patterns, energy management. A hiring manager should picture what it's like to work with this person.
+
+## Non-Negotiables
+
+Hard boundaries with reasoning. 2-3 paragraphs of flowing prose.
+
+Every non-negotiable needs a "because" — either explicit or implied.
+
+## Role Fit: [Role Title] at [Company]
+
+THIS IS THE NEW SECTION FOR R→C FLOW. 3-4 paragraphs that explicitly address the fit question.
+
+Structure:
+1. **Opening framing:** One sentence summarizing the nature of the fit (strong alignment, productive tension, or fundamental mismatch — use nuanced language, not verdict language).
+
+2. **Where alignment is clear:** What about this person's identity, experience, and values maps naturally onto what this role requires? Be specific — reference actual things from the conversation that match the role's needs.
+
+3. **Where productive tension exists:** What aspects of this person's identity might create friction with the role — friction that could be generative rather than destructive? Example: "His builder orientation means he'll want to create systems from scratch, which could either be exactly what Clarion needs or a source of frustration if existing processes need to be honored first."
+
+4. **Open questions:** What does the hiring conversation need to explore? What would give both sides more clarity? These are genuine questions, not veiled concerns.
+
+Do NOT:
+- Use scoring language (fit score, rating, etc.)
+- Make hire/no-hire recommendations
+- Frame tensions as red flags unless they're genuine deal-breakers
+- Pretend alignment exists where it doesn't
+
+DO:
+- Be honest about misalignments
+- Frame tensions as conversation starters
+- Give both candidate and recruiter language to discuss fit
+- Identify what a good next conversation would explore
+
+## VOICE AND STYLE RULES
+
+1. **Third person throughout.** "Eric builds..." not "I build..."
+
+2. **Narrative prose, never bullet points.** Every section flows as paragraphs.
+
+3. **Specific over generic.** Use actual language, numbers, company names.
+
+4. **Each section does one job.** Don't repeat themes across sections.
+
+5. **Honest, not flattering.** Include tensions and limitations. A document that's all strengths reads as marketing.
+
+6. **The candidate's voice, not yours.** Mirror their vocabulary and metaphors.
+
+## ROLE CONTEXT INTEGRATION
+
+You have been given information about the role this candidate is being considered for. This context should:
+
+1. **Inform the Role Fit section directly** — address specific dimensions the recruiter identified as critical
+2. **Subtly shape other sections** — if the role requires healthcare expertise, the Skills section should naturally highlight or note the presence/absence of that experience
+3. **Never feel like an interview report** — the candidate should recognize themselves in this document, not feel assessed
+
+The lens belongs to the candidate. It's their professional identity document. The Role Fit section adds role-specific context, but the rest of the document is theirs to use for any opportunity.
+
+## FAILURE MODES TO AVOID
+
+- **The assessment trap:** This is not a scorecard. No ratings, no verdicts.
+- **The resume trap:** Listing accomplishments without narrative.
+- **The therapy trap:** Over-indexing on emotional language.
+- **The vagueness trap:** "Passionate about making a difference." Delete and replace with specifics.
+- **The false positivity trap:** Pretending alignment exists where it doesn't.`;
 
 /**
- * Build the user content for synthesis API call
+ * Build the user content for R→C synthesis
  * @param {Object} params
  * @param {Object} params.sessionConfig - The full session configuration
  * @param {Object} params.sectionData - Map of sectionId to conversation summary
- * @param {Object|null} params.candidateContext - Optional candidate info (name, etc.)
+ * @param {Object|null} params.candidateContext - Optional candidate info
  * @returns {string} Formatted content for synthesis prompt
  */
 export function buildRCSynthesisUserContent({ sessionConfig, sectionData, candidateContext }) {
   const sections = [];
+  const meta = sessionConfig.metadata || {};
 
-  // Role context
-  sections.push("=== ROLE CONTEXT ===");
-  sections.push(`Role: ${sessionConfig.metadata?.roleTitle || "Unknown"} at ${sessionConfig.metadata?.company || "Unknown"}`);
+  // Role context header
+  sections.push("══════════════════════════════════════════════════════════════════════════════");
+  sections.push("ROLE CONTEXT");
+  sections.push("══════════════════════════════════════════════════════════════════════════════");
+  sections.push(`Role: ${meta.roleTitle || "Unknown Role"} at ${meta.company || "Unknown Company"}`);
   sections.push(`Session ID: ${sessionConfig.sessionId}`);
 
   if (candidateContext?.name) {
-    sections.push(`Candidate: ${candidateContext.name}`);
+    sections.push(`Candidate Name: ${candidateContext.name}`);
   }
 
-  // Foundation sections
-  sections.push("\n=== FOUNDATION SECTIONS ===");
-  const foundationIds = ["essence", "work_style", "values", "energy", "disqualifiers", "situation_timeline"];
+  // Include role-specific dimensions that were explored
+  if (sessionConfig.tailored && sessionConfig.tailored.length > 0) {
+    sections.push("\nCRITICAL DIMENSIONS FOR THIS ROLE:");
+    for (const t of sessionConfig.tailored) {
+      const importance = t.importance || "moderate";
+      sections.push(`\n[${t.label || t.dimensionId}] (${importance})`);
+      if (t.whatToExplore) {
+        sections.push(`What this role needs: ${t.whatToExplore}`);
+      }
+      if (t.signals?.length > 0) {
+        sections.push(`Positive signals: ${t.signals.join("; ")}`);
+      }
+    }
+  }
 
+  // Foundation section data
+  sections.push("\n══════════════════════════════════════════════════════════════════════════════");
+  sections.push("DISCOVERY CONVERSATION - FOUNDATION");
+  sections.push("══════════════════════════════════════════════════════════════════════════════");
+
+  const foundationIds = ["essence", "work_style", "values", "energy", "disqualifiers", "situation_timeline"];
   for (const fId of foundationIds) {
     const data = sectionData[fId];
     if (data) {
-      sections.push(`\n[${fId}]:`);
+      const label = fId.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      sections.push(`\n## ${label}`);
       sections.push(typeof data === "string" ? data : (data.summary || JSON.stringify(data)));
     }
   }
 
-  // Also check foundation array from session config
+  // Also include any foundation sections from config not in standard list
   if (sessionConfig.foundation) {
     for (const f of sessionConfig.foundation) {
       const sectionId = f.sectionId || f.section || f.id;
       if (!foundationIds.includes(sectionId)) {
         const data = sectionData[sectionId];
         if (data) {
-          sections.push(`\n[${sectionId}] (foundation):`);
+          sections.push(`\n## ${f.label || sectionId}`);
           sections.push(typeof data === "string" ? data : (data.summary || JSON.stringify(data)));
         }
       }
     }
   }
 
-  // Tailored dimensions
-  sections.push("\n=== TAILORED DIMENSIONS ===");
+  // Tailored dimension data
+  sections.push("\n══════════════════════════════════════════════════════════════════════════════");
+  sections.push("DISCOVERY CONVERSATION - ROLE-SPECIFIC DIMENSIONS");
+  sections.push("══════════════════════════════════════════════════════════════════════════════");
 
   if (sessionConfig.tailored) {
     for (const t of sessionConfig.tailored) {
       const dimId = t.dimensionId || t.id;
-      sections.push(`\n[${t.label || dimId}] (${t.importance || "moderate"})`);
-      sections.push(`Importance: ${t.importance || "moderate"}`);
-
-      if (t.signals?.length > 0) {
-        sections.push(`Signals to look for: ${t.signals.join("; ")}`);
-      }
-      if (t.redFlags?.length > 0) {
-        sections.push(`Red flags: ${t.redFlags.join("; ")}`);
-      }
+      sections.push(`\n## ${t.label || dimId} (${t.importance || "moderate"})`);
 
       const data = sectionData[dimId];
       if (data) {
-        sections.push(`Conversation data:`);
         sections.push(typeof data === "string" ? data : (data.summary || JSON.stringify(data)));
       } else {
-        sections.push("Conversation data: NOT EXPLORED");
+        sections.push("[This dimension was not fully explored in the conversation]");
       }
     }
   }
 
-  // Instructions
-  sections.push("\n=== INSTRUCTIONS ===");
-  sections.push("Generate the scorecard JSON based on the conversation data above.");
-  sections.push("Score each tailored dimension based on the signal strength and evidence provided.");
-  sections.push("If a dimension was not explored, mark signalStrength as 'absent' and score as 2.");
-  sections.push("Provide an overall assessment and actionable recommendation.");
-  sections.push("Output raw JSON only — no markdown, no code blocks.");
+  // Synthesis instructions
+  sections.push("\n══════════════════════════════════════════════════════════════════════════════");
+  sections.push("INSTRUCTIONS");
+  sections.push("══════════════════════════════════════════════════════════════════════════════");
+  sections.push(`Generate the lens document following the structure in your instructions.`);
+  sections.push(`- Use the candidate's name if provided, otherwise use "this candidate"`);
+  sections.push(`- The date field should be: ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`);
+  sections.push(`- 7 sections: Essence, Skills & Experience, Values, Mission & Direction, Work Style, Non-Negotiables, Role Fit`);
+  sections.push(`- The Role Fit section must specifically address: ${meta.roleTitle} at ${meta.company}`);
+  sections.push(`- Third person voice, narrative prose, honest and specific`);
+  sections.push(`- Output raw markdown — no JSON, no code blocks wrapping the document`);
 
   return sections.join("\n");
 }

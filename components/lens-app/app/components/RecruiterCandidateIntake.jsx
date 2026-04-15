@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
-const BUILD_ID = "2026.04.15-m";
+const BUILD_ID = "2026.04.15-n";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
@@ -106,12 +106,12 @@ export default function RecruiterCandidateIntake() {
   const [greetingDone, setGreetingDone] = useState(false);
   const [sectionComplete, setSectionComplete] = useState(false);
 
-  // ── Section data for scorecard ──
+  // ── Section data for lens ──
   const [sectionData, setSectionData] = useState({}); // { sectionId: summary }
 
-  // ── Scorecard output ──
-  const [scorecard, setScorecard] = useState(null);
-  const [scorecardError, setScorecardError] = useState(null);
+  // ── Lens document output ──
+  const [lens, setLens] = useState(null);
+  const [lensError, setLensError] = useState(null);
 
   // ── Refs ──
   const messagesEndRef = useRef(null);
@@ -384,18 +384,18 @@ export default function RecruiterCandidateIntake() {
     if (currentSection < sections.length - 1) {
       startSection(currentSection + 1);
     } else {
-      generateScorecard();
+      generateLens();
     }
   }
 
   // ════════════════════════════════════════
-  // Scorecard Generation
+  // Lens Document Generation
   // ════════════════════════════════════════
 
-  async function generateScorecard() {
+  async function generateLens() {
     setPhase("synthesis");
     setApiError(null);
-    setScorecardError(null);
+    setLensError(null);
     setLoading(true);
 
     try {
@@ -416,18 +416,18 @@ export default function RecruiterCandidateIntake() {
 
       const data = await res.json();
 
-      if (data.scorecard) {
-        setScorecard(data.scorecard);
+      if (data.lens) {
+        setLens(data.lens);
         setPhase("complete");
         // Clear localStorage since session is complete
         localStorage.removeItem(RC_STORAGE_KEY);
       } else {
-        throw new Error(data.error || "Failed to generate scorecard");
+        throw new Error(data.error || "Failed to generate lens document");
       }
 
     } catch (err) {
-      console.error("generateScorecard error:", err);
-      setScorecardError(err.message || "Failed to generate scorecard. Please try again.");
+      console.error("generateLens error:", err);
+      setLensError(err.message || "Failed to generate lens document. Please try again.");
       setPhase("discovery"); // Go back so user can retry
     } finally {
       setLoading(false);
@@ -814,7 +814,7 @@ export default function RecruiterCandidateIntake() {
                 borderRadius: 0,
               }}
             >
-              {currentSection < sections.length - 1 ? "Next Section" : "Generate Scorecard"}
+              {currentSection < sections.length - 1 ? "Next Section" : "Generate Lens"}
             </button>
           </div>
         ) : (
@@ -883,10 +883,10 @@ export default function RecruiterCandidateIntake() {
         <div style={{ textAlign: "center", padding: "80px 20px" }}>
           <div style={{ width: "48px", height: "2px", background: RED, margin: "0 auto 24px" }} />
           <h2 style={{ fontFamily: FONT, fontSize: "20px", fontWeight: 600, color: BLK, margin: "0 0 12px" }}>
-            Generating Scorecard
+            Generating Lens Document
           </h2>
           <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7 }}>
-            Synthesizing discovery conversation into candidate assessment...
+            Synthesizing discovery conversation into your professional identity document...
           </p>
           <div style={{ marginTop: "28px" }}>
             <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
@@ -899,7 +899,7 @@ export default function RecruiterCandidateIntake() {
             </div>
           </div>
 
-          {scorecardError && (
+          {lensError && (
             <div style={{
               marginTop: "32px",
               padding: "14px 18px",
@@ -909,9 +909,9 @@ export default function RecruiterCandidateIntake() {
               color: RED,
               textAlign: "left",
             }}>
-              <strong>Error:</strong> {scorecardError}
+              <strong>Error:</strong> {lensError}
               <button
-                onClick={generateScorecard}
+                onClick={generateLens}
                 style={{
                   display: "block",
                   marginTop: "12px",
@@ -941,20 +941,166 @@ export default function RecruiterCandidateIntake() {
   }
 
   // ════════════════════════════════════════
-  // Render: Complete Phase (Scorecard Display)
+  // Render: Complete Phase (Lens Document Display)
   // ════════════════════════════════════════
 
-  if (phase === "complete" && scorecard) {
+  if (phase === "complete" && lens) {
     const meta = sessionConfig?.metadata || {};
-    const overall = scorecard.overallAssessment || {};
-    const dimensions = scorecard.dimensionScores || [];
 
-    const fitColors = {
-      5: "#2D6A2D", // Strong Fit
-      4: "#4A7C59", // Good Fit
-      3: ORANGE,    // Moderate Fit
-      2: "#CC4A00", // Weak Fit
-      1: RED,       // Poor Fit
+    // Simple markdown renderer for lens document
+    const renderMarkdown = (md) => {
+      if (!md) return null;
+
+      const lines = md.split("\n");
+      const elements = [];
+      let currentParagraph = [];
+      let inYamlFrontmatter = false;
+      let yamlContent = [];
+
+      // Render inline markdown (bold, italic)
+      const renderInlineMarkdown = (text) => {
+        // Split on bold (**text**) and italic (*text*) patterns
+        const parts = [];
+        let remaining = text;
+        let key = 0;
+
+        while (remaining.length > 0) {
+          // Bold first (greedy match for **)
+          const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+          // Italic (single *)
+          const italicMatch = remaining.match(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/);
+
+          if (boldMatch && (!italicMatch || boldMatch.index <= italicMatch.index)) {
+            if (boldMatch.index > 0) {
+              parts.push(<span key={key++}>{remaining.slice(0, boldMatch.index)}</span>);
+            }
+            parts.push(<strong key={key++}>{boldMatch[1]}</strong>);
+            remaining = remaining.slice(boldMatch.index + boldMatch[0].length);
+          } else if (italicMatch) {
+            if (italicMatch.index > 0) {
+              parts.push(<span key={key++}>{remaining.slice(0, italicMatch.index)}</span>);
+            }
+            parts.push(<em key={key++}>{italicMatch[1]}</em>);
+            remaining = remaining.slice(italicMatch.index + italicMatch[0].length);
+          } else {
+            parts.push(<span key={key++}>{remaining}</span>);
+            break;
+          }
+        }
+
+        return parts.length > 0 ? parts : text;
+      };
+
+      const flushParagraph = () => {
+        if (currentParagraph.length > 0) {
+          const text = currentParagraph.join(" ").trim();
+          if (text) {
+            elements.push(
+              <p key={elements.length} style={{ fontSize: "14px", color: "#333", lineHeight: 1.8, margin: "0 0 16px" }}>
+                {renderInlineMarkdown(text)}
+              </p>
+            );
+          }
+          currentParagraph = [];
+        }
+      };
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Handle YAML frontmatter
+        if (line.trim() === "---") {
+          if (!inYamlFrontmatter && yamlContent.length === 0) {
+            inYamlFrontmatter = true;
+            continue;
+          } else if (inYamlFrontmatter) {
+            inYamlFrontmatter = false;
+            // Render YAML as stats bar
+            const statsLine = yamlContent.find(l => l.startsWith("stats:"));
+            const roleLine = yamlContent.find(l => l.startsWith("role_context:"));
+            if (statsLine || roleLine) {
+              elements.push(
+                <div key={elements.length} style={{
+                  padding: "16px 20px",
+                  background: "#fafafa",
+                  border: `1px solid ${RULE}`,
+                  marginBottom: "24px",
+                  fontSize: "13px",
+                  color: GRY,
+                }}>
+                  {statsLine && (
+                    <div style={{ fontWeight: 500, color: BLK }}>
+                      {statsLine.replace("stats:", "").trim().replace(/"/g, "")}
+                    </div>
+                  )}
+                  {roleLine && (
+                    <div style={{ marginTop: "8px", fontSize: "12px" }}>
+                      Role context: {roleLine.replace("role_context:", "").trim().replace(/"/g, "")}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            yamlContent = [];
+            continue;
+          }
+        }
+
+        if (inYamlFrontmatter) {
+          yamlContent.push(line);
+          continue;
+        }
+
+        // H2 headers
+        if (line.startsWith("## ")) {
+          flushParagraph();
+          const headerText = line.replace("## ", "").trim();
+          const isRoleFit = headerText.toLowerCase().startsWith("role fit");
+          elements.push(
+            <h2 key={elements.length} style={{
+              fontFamily: FONT,
+              fontSize: "18px",
+              fontWeight: 700,
+              color: isRoleFit ? RED : BLK,
+              margin: "32px 0 16px",
+              paddingBottom: "8px",
+              borderBottom: isRoleFit ? `2px solid ${RED}` : `1px solid ${RULE}`,
+            }}>
+              {headerText}
+            </h2>
+          );
+          continue;
+        }
+
+        // H1 headers (usually just the name)
+        if (line.startsWith("# ")) {
+          flushParagraph();
+          elements.push(
+            <h1 key={elements.length} style={{
+              fontFamily: FONT,
+              fontSize: "24px",
+              fontWeight: 700,
+              color: BLK,
+              margin: "0 0 8px",
+            }}>
+              {line.replace("# ", "").trim()}
+            </h1>
+          );
+          continue;
+        }
+
+        // Empty line = paragraph break
+        if (line.trim() === "") {
+          flushParagraph();
+          continue;
+        }
+
+        // Regular text
+        currentParagraph.push(line);
+      }
+
+      flushParagraph();
+      return elements;
     };
 
     return (
@@ -962,192 +1108,26 @@ export default function RecruiterCandidateIntake() {
         {/* Header */}
         <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "28px" }}>
           <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
-            Candidate Scorecard
+            Candidate Lens
           </div>
           <h1 style={{ fontFamily: FONT, fontSize: "24px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
             {meta.roleTitle} at {meta.company}
           </h1>
           <div style={{ fontSize: "12px", color: GRY, marginTop: "8px" }}>
-            Generated {new Date(scorecard.generatedAt || Date.now()).toLocaleDateString()}
+            Generated {new Date().toLocaleDateString()}
           </div>
         </div>
 
-        {/* Overall Assessment */}
-        <div style={{
-          padding: "20px 24px",
-          background: "#fafafa",
-          border: `2px solid ${fitColors[overall.fitScore] || GRY}`,
-          marginBottom: "28px",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-            <div>
-              <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "4px" }}>
-                Overall Fit
-              </div>
-              <div style={{
-                fontSize: "28px",
-                fontWeight: 700,
-                color: fitColors[overall.fitScore] || BLK,
-              }}>
-                {overall.fitLabel || `${overall.fitScore}/5`}
-              </div>
-            </div>
-            <div style={{
-              padding: "8px 16px",
-              background: fitColors[overall.fitScore] || GRY,
-              color: "#fff",
-              fontSize: "12px",
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-            }}>
-              {overall.recommendation || "Assessment Complete"}
-            </div>
-          </div>
-
-          {overall.summary && (
-            <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.7, margin: "0 0 16px" }}>
-              {overall.summary}
-            </p>
-          )}
-
-          <div style={{ display: "flex", gap: "24px" }}>
-            {overall.topStrengths?.length > 0 && (
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "11px", color: "#2D6A2D", fontWeight: 600, marginBottom: "6px" }}>
-                  Top Strengths
-                </div>
-                <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "13px", color: "#444", lineHeight: 1.6 }}>
-                  {overall.topStrengths.map((s, i) => <li key={i}>{s}</li>)}
-                </ul>
-              </div>
-            )}
-            {overall.topConcerns?.length > 0 && (
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "11px", color: RED, fontWeight: 600, marginBottom: "6px" }}>
-                  Top Concerns
-                </div>
-                <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "13px", color: "#444", lineHeight: 1.6 }}>
-                  {overall.topConcerns.map((c, i) => <li key={i}>{c}</li>)}
-                </ul>
-              </div>
-            )}
-          </div>
+        {/* Lens Document */}
+        <div style={{ marginBottom: "28px" }}>
+          {renderMarkdown(lens)}
         </div>
-
-        {/* Dimension Scores */}
-        {dimensions.length > 0 && (
-          <div style={{ marginBottom: "28px" }}>
-            <div style={{ fontSize: "12px", color: GRY, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "14px" }}>
-              Dimension Scores
-            </div>
-
-            {dimensions.map((dim, i) => (
-              <div key={dim.dimensionId || i} style={{
-                padding: "16px 20px",
-                border: `1px solid ${RULE}`,
-                marginBottom: "12px",
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-                  <div>
-                    <span style={{ fontWeight: 600, color: BLK }}>{dim.label || dim.dimensionId}</span>
-                    {dim.importance && (
-                      <span style={{
-                        fontSize: "10px",
-                        color: dim.importance === "critical" ? RED : dim.importance === "high" ? ORANGE : GRY,
-                        marginLeft: "8px",
-                        fontWeight: 600,
-                      }}>
-                        {dim.importance.toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <span style={{
-                      fontSize: "10px",
-                      color: dim.signalStrength === "strong" ? "#2D6A2D" : dim.signalStrength === "moderate" ? ORANGE : RED,
-                      fontWeight: 600,
-                    }}>
-                      {dim.signalStrength?.toUpperCase() || "N/A"}
-                    </span>
-                    <span style={{
-                      fontSize: "18px",
-                      fontWeight: 700,
-                      color: fitColors[dim.score] || GRY,
-                    }}>
-                      {dim.score}/5
-                    </span>
-                  </div>
-                </div>
-
-                {dim.evidence && (
-                  <p style={{ fontSize: "13px", color: "#555", lineHeight: 1.6, margin: "0 0 8px" }}>
-                    {dim.evidence}
-                  </p>
-                )}
-
-                {dim.signalsMatched?.length > 0 && (
-                  <div style={{ fontSize: "11px", color: "#2D6A2D", marginTop: "6px" }}>
-                    Signals matched: {dim.signalsMatched.join(", ")}
-                  </div>
-                )}
-
-                {dim.redFlagsTriggered?.length > 0 && (
-                  <div style={{ fontSize: "11px", color: RED, marginTop: "4px" }}>
-                    Red flags: {dim.redFlagsTriggered.join(", ")}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Recruiter Notes */}
-        {scorecard.recruiterNotes && (
-          <div style={{
-            padding: "18px 22px",
-            background: "#fffaf5",
-            border: `1px solid ${ORANGE}33`,
-            marginBottom: "28px",
-          }}>
-            <div style={{ fontSize: "12px", color: ORANGE, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "12px" }}>
-              Recruiter Notes
-            </div>
-
-            {scorecard.recruiterNotes.suggestedProbes?.length > 0 && (
-              <div style={{ marginBottom: "12px" }}>
-                <div style={{ fontSize: "11px", color: GRY, marginBottom: "4px" }}>Suggested follow-up questions:</div>
-                <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "13px", color: "#444", lineHeight: 1.6 }}>
-                  {scorecard.recruiterNotes.suggestedProbes.map((q, i) => <li key={i}>{q}</li>)}
-                </ul>
-              </div>
-            )}
-
-            {scorecard.recruiterNotes.contextForClient && (
-              <div style={{ marginBottom: "12px" }}>
-                <div style={{ fontSize: "11px", color: GRY, marginBottom: "4px" }}>Context for hiring manager:</div>
-                <p style={{ margin: 0, fontSize: "13px", color: "#444", lineHeight: 1.6 }}>
-                  {scorecard.recruiterNotes.contextForClient}
-                </p>
-              </div>
-            )}
-
-            {scorecard.recruiterNotes.riskFactors?.length > 0 && (
-              <div>
-                <div style={{ fontSize: "11px", color: RED, marginBottom: "4px" }}>Risk factors:</div>
-                <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "13px", color: "#444", lineHeight: 1.6 }}>
-                  {scorecard.recruiterNotes.riskFactors.map((r, i) => <li key={i}>{r}</li>)}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Actions */}
         <div style={{ borderTop: `2px solid ${BLK}`, paddingTop: "20px" }}>
           <button
             onClick={() => {
-              const json = JSON.stringify(scorecard, null, 2);
-              navigator.clipboard.writeText(json);
+              navigator.clipboard.writeText(lens);
             }}
             style={{
               width: "100%",
@@ -1165,7 +1145,7 @@ export default function RecruiterCandidateIntake() {
               marginBottom: "12px",
             }}
           >
-            Copy Scorecard JSON
+            Copy Lens Markdown
           </button>
           <a
             href="/recruiter"

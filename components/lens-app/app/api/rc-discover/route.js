@@ -122,16 +122,16 @@ export async function POST(request) {
       });
 
     } else if (action === "summarize") {
-      // Section summarization for scorecard
-      const summarizeSystemPrompt = `You are extracting structured observations from a discovery section for a candidate scorecard.
+      // Section summarization for lens synthesis
+      const summarizeSystemPrompt = `You are extracting key observations from a discovery section to inform a candidate lens document.
 
 Extract:
-1. KEY OBSERVATIONS: 2-3 bullet points of what the candidate revealed
-2. SIGNAL STRENGTH: strong | moderate | thin | absent
-3. EVIDENCE: The most relevant quote or example they gave
-4. FLAGS: Any red flags or concerns (or "none")
+1. KEY INSIGHTS: 2-3 observations about who this person is professionally
+2. NOTABLE QUOTES: The most revealing thing they said in their own words
+3. PATTERNS: Any recurring themes or through-lines that emerged
+4. OPEN THREADS: Questions or areas worth exploring further (or "none")
 
-Format as structured text (not JSON). Be specific and evidence-based. Keep it concise.`;
+Format as flowing narrative text (not JSON). Be specific and use their language. Keep it concise.`;
 
       const summarizeUserPrompt = `Summarize what you learned about this candidate in the "${section.label || section.id}" section.`;
       const summarizeMessages = [...messages, { role: "user", content: summarizeUserPrompt }];

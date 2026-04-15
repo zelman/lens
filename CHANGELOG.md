@@ -2,6 +2,31 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-15] Replace Scorecard with Lens Document (P0 Fix)
+
+### lens-app 2026.04.15-n (Lens Document Output)
+Fixes deviation from brief: R→C Step 4 now produces a **lens document** (markdown + YAML) instead of a JSON scorecard. Per the brief: "The lens is a conversation catalyst, not an assessment verdict."
+
+**Key Changes:**
+1. **rc-synthesis.js** — Complete rewrite. Now produces 7-section lens document (standard 6 + Role Fit section) instead of JSON scorecard. Role Fit section addresses alignment, productive tension, and open questions without scoring/verdicts.
+
+2. **rc-synthesize/route.js** — Returns `{ lens: markdownText }` instead of `{ scorecard: jsonObject }`. Added streaming for timeout avoidance and sensitivity filtering.
+
+3. **RecruiterCandidateIntake.jsx** — Complete phase now renders lens document with inline markdown parser. Displays stats bar from YAML frontmatter, section headers, and prose. "Copy Lens Markdown" replaces "Copy Scorecard JSON".
+
+**Why this matters:**
+- Scorecard implied assessment verdict (fit score 1-5, "Advance/Do Not Advance")
+- Lens document is a conversation catalyst that both candidate and recruiter can use
+- Candidate owns their lens document — it's their professional identity, not an evaluation
+- Role Fit section gives language for discussing fit without reducing to a score
+
+**Files Modified:**
+- `app/api/_prompts/rc-synthesis.js` — Full rewrite
+- `app/api/rc-synthesize/route.js` — Full rewrite
+- `app/components/RecruiterCandidateIntake.jsx` — State, synthesis, and display changes
+
+---
+
 ## [2026-04-15] Candidate Discovery UX Fixes
 
 ### lens-app 2026.04.15-m (UX Polish)

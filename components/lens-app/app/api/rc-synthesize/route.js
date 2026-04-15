@@ -1,12 +1,40 @@
-// /api/rc-synthesize - Generate candidate scorecard from R→C discovery conversation
+// /api/rc-synthesize - Generate candidate lens document from R→C discovery conversation
+// The lens is a conversation catalyst, not an assessment verdict
 // System prompts are loaded server-side and NEVER sent to client
 
 import { RC_SYNTHESIS_SYSTEM_PROMPT, buildRCSynthesisUserContent } from "../_prompts/rc-synthesis";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
-const MAX_TOKENS = 4000;
-const TEMPERATURE = 0.3; // Lower temperature for consistent scoring
+const MAX_TOKENS = 6000; // Lens documents require extended token limit for 7-section narrative
+const TEMPERATURE = 0.5; // Balanced for narrative prose
+
+// Sensitive terms that should never appear in output
+const SENSITIVE_TERMS = [
+  "ADHD", "ADD", "attention deficit", "ASD", "autism", "dyslexia",
+  "anxiety", "depression", "bipolar", "OCD",
+  "DISC", "Myers-Briggs", "MBTI", "Enneagram", "StrengthsFinder",
+];
+
+function sanitizeLensOutput(text) {
+  let sanitized = text;
+  let violations = [];
+
+  for (const term of SENSITIVE_TERMS) {
+    const pattern = new RegExp(`[^.!?]*\\b${term}\\b[^.!?]*[.!?]`, "gi");
+    const matches = sanitized.match(pattern);
+    if (matches) {
+      violations.push(...matches.map(m => m.trim()));
+      sanitized = sanitized.replace(pattern, "");
+    }
+  }
+
+  // Clean up whitespace
+  sanitized = sanitized.replace(/\n\s*\n\s*\n/g, "\n\n");
+  sanitized = sanitized.replace(/  +/g, " ");
+
+  return { sanitized, violations };
+}
 
 export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -38,7 +66,6 @@ export async function POST(request) {
       );
     }
 
-    // Check if we have enough data to generate a scorecard
     const sectionCount = Object.keys(sectionData).length;
     if (sectionCount === 0) {
       return Response.json(
@@ -47,7 +74,7 @@ export async function POST(request) {
       );
     }
 
-    console.log(`[RC-Synthesize] Generating scorecard for session ${sessionConfig.sessionId}, ${sectionCount} sections`);
+    console.log(`[RC-Synthesize] Generating lens for session ${sessionConfig.sessionId}, ${sectionCount} sections`);
 
     // Build user content
     const userContent = buildRCSynthesisUserContent({
@@ -56,7 +83,7 @@ export async function POST(request) {
       candidateContext: candidateContext || null,
     });
 
-    // Call Anthropic API
+    // Call Anthropic API with streaming to avoid timeout
     const res = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
       headers: {
@@ -68,6 +95,7 @@ export async function POST(request) {
         model: MODEL,
         max_tokens: MAX_TOKENS,
         temperature: TEMPERATURE,
+        stream: true,
         system: RC_SYNTHESIS_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userContent }],
       }),
@@ -82,59 +110,76 @@ export async function POST(request) {
       );
     }
 
-    const data = await res.json();
-    const text = data.content?.find(b => b.type === "text")?.text;
+    // Process streaming response
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+    let stopReason = null;
 
-    if (!text) {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+              fullText += parsed.delta.text;
+            } else if (parsed.type === "message_delta" && parsed.delta?.stop_reason) {
+              stopReason = parsed.delta.stop_reason;
+            }
+          } catch (e) {
+            // Skip non-JSON lines
+          }
+        }
+      }
+    }
+
+    console.log("[RC-Synthesize] Stop reason:", stopReason);
+    console.log("[RC-Synthesize] Response length:", fullText.length);
+
+    if (!fullText) {
       return Response.json(
         { error: "Empty response from AI" },
         { status: 500 }
       );
     }
 
-    // Parse JSON response
-    let scorecard;
-    try {
-      // Handle potential markdown code blocks that the AI might include
-      let jsonText = text.trim();
-
-      // Remove markdown code blocks if present
-      const jsonMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
-        jsonText = jsonMatch[1];
-      }
-
-      scorecard = JSON.parse(jsonText);
-
-      // Validate required fields
-      if (!scorecard.overallAssessment || !scorecard.dimensionScores) {
-        throw new Error("Missing required scorecard fields");
-      }
-
-    } catch (parseErr) {
-      console.error("[RC-Synthesize] Failed to parse scorecard JSON:", parseErr);
-      console.error("[RC-Synthesize] Raw response:", text.slice(0, 500));
-
-      // Return a fallback scorecard structure with error
-      return Response.json({
-        scorecard: null,
-        error: "Failed to parse scorecard",
-        rawResponse: text.slice(0, 2000), // Include partial raw response for debugging
-      });
+    if (stopReason === "max_tokens") {
+      console.warn("[RC-Synthesize] Response truncated - max_tokens reached");
     }
 
-    // Add metadata
-    scorecard.generatedAt = new Date().toISOString();
-    scorecard.sessionId = sessionConfig.sessionId;
+    // Validate lens has required sections
+    const sectionHeadingCount = (fullText.match(/^##\s+/gm) || []).length;
+    if (sectionHeadingCount < 5) {
+      console.error(`[RC-Synthesize] Lens has only ${sectionHeadingCount} sections`);
+      return Response.json(
+        { error: "Generated lens is incomplete. Please try again." },
+        { status: 500 }
+      );
+    }
 
-    console.log(`[RC-Synthesize] Scorecard generated: fitScore=${scorecard.overallAssessment?.fitScore}, recommendation=${scorecard.overallAssessment?.recommendation}`);
+    // Sanitize sensitive content
+    const { sanitized, violations } = sanitizeLensOutput(fullText);
+    if (violations.length > 0) {
+      console.warn(`[RC-Synthesize] Sensitivity filter caught ${violations.length} violations`);
+    }
 
-    return Response.json({ scorecard });
+    console.log(`[RC-Synthesize] Lens generated successfully`);
+
+    return Response.json({ lens: sanitized });
 
   } catch (err) {
     console.error("[RC-Synthesize] Route error:", err);
     return Response.json(
-      { error: "Request failed" },
+      { error: "Failed to generate lens document" },
       { status: 500 }
     );
   }
