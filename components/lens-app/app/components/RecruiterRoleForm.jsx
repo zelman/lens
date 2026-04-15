@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.15-g";
+const BUILD_ID = "2026.04.15-h";
 
 // ── Design tokens (match candidate intake exactly) ──
 const RED = "#D93025";
@@ -281,8 +281,76 @@ function IntroPhase({ onContinue }) {
   );
 }
 
+// Parse markdown role context file
+function parseRoleContextMarkdown(text) {
+  const result = {};
+
+  // Helper to extract value after a bold label
+  const extractField = (pattern) => {
+    const regex = new RegExp(`\\*\\*${pattern}:\\*\\*\\s*([^\\*]+?)(?=\\n\\n|\\n\\*\\*|$)`, 'is');
+    const match = text.match(regex);
+    return match ? match[1].trim() : null;
+  };
+
+  // Simple fields
+  result.roleTitle = extractField('Role title');
+  result.company = extractField('Company')?.replace(/\s*\(.*?\)\s*$/, ''); // Remove "(fictional)" etc
+  result.stakeholders = extractField('Hiring manager \\/ stakeholders|Hiring manager \\/ key stakeholder\\(s\\)');
+  result.compensation = extractField('Compensation range');
+  result.location = extractField('Location');
+  result.companyStage = extractField('Company stage');
+
+  // Multi-line fields
+  const firstYearMatch = text.match(/\*\*What does this role need to accomplish in the first 12 months\?\*\*\s*\n([\s\S]+?)(?=\n\n\*\*|\n\*\*Top priorities)/i);
+  if (firstYearMatch) result.firstYearObjective = firstYearMatch[1].trim();
+
+  const lastPersonMatch = text.match(/\*\*What happened with the last person in this seat\?\*\*\s*\n([\s\S]+?)(?=\n\n\*\*|\n\*\*What would make)/i);
+  if (lastPersonMatch) result.lastPerson = lastPersonMatch[1].trim();
+
+  const failureModeMatch = text.match(/\*\*What would make this hire fail\?\*\*\s*\n([\s\S]+?)(?=\n\n\*\*|\n\*\*Recruiter|$)/i);
+  if (failureModeMatch) result.failureMode = failureModeMatch[1].trim();
+
+  const recruiterMatch = text.match(/\*\*Recruiter-only notes[^*]*\*\*\s*\n([\s\S]+?)$/i);
+  if (recruiterMatch) result.recruiterOnly = recruiterMatch[1].trim();
+
+  // Priorities - numbered list
+  const prioritiesMatch = text.match(/\*\*Top priorities[^*]*\*\*[:\s]*\n((?:\d+\.\s+[^\n]+\n?)+)/i);
+  if (prioritiesMatch) {
+    const priorityLines = prioritiesMatch[1].match(/\d+\.\s+([^\n]+)/g);
+    if (priorityLines) {
+      result.priorities = priorityLines.map(line => line.replace(/^\d+\.\s+/, '').trim());
+    }
+  }
+
+  return result;
+}
+
 function RolePhase({ formData, setFormData, onContinue, onBack }) {
   const [errors, setErrors] = useState({});
+  const fileInputRef = useRef(null);
+
+  const handleFileLoad = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = parseRoleContextMarkdown(text);
+
+      // Merge parsed data into form
+      setFormData(prev => ({
+        ...prev,
+        ...Object.fromEntries(
+          Object.entries(parsed).filter(([_, v]) => v != null)
+        ),
+      }));
+
+      // Clear file input for re-upload
+      e.target.value = '';
+    } catch (err) {
+      console.error('Failed to parse file:', err);
+    }
+  };
 
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -373,6 +441,27 @@ function RolePhase({ formData, setFormData, onContinue, onBack }) {
         <p style={{ fontSize: "14px", color: GRY, margin: 0 }}>
           Tell us about the search. The more specific you are, the better.
         </p>
+      </div>
+
+      {/* Quick load from file (POC) */}
+      <div style={{ marginBottom: "24px" }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".md,.txt"
+          onChange={handleFileLoad}
+          style={{ display: "none" }}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          style={{
+            background: "none", border: `1px dashed ${RULE}`, color: GRY,
+            padding: "10px 16px", cursor: "pointer", fontFamily: FONT,
+            fontSize: "12px", width: "100%", textAlign: "center",
+          }}
+        >
+          📄 Load role context from .md file (POC shortcut)
+        </button>
       </div>
 
       {/* Required fields */}
