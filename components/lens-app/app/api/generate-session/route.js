@@ -148,32 +148,58 @@ export async function POST(request) {
       );
     }
 
-    // Parse JSON response
+    // Parse JSON response with repair attempts
     let sessionConfig;
+    let cleanText = fullText
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    // First attempt: direct parse
     try {
-      // Clean up any markdown formatting that might have slipped through
-      const cleanText = fullText
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
       sessionConfig = JSON.parse(cleanText);
-    } catch (parseErr) {
-      console.error("[generate-session] Failed to parse response as JSON:", parseErr.message);
-      console.error("[generate-session] Raw response (first 1000 chars):", fullText.slice(0, 1000));
-      console.error("[generate-session] Raw response (last 500 chars):", fullText.slice(-500));
-      return Response.json(
-        {
-          error: "Failed to generate session config. Please try again.",
-          debug: {
-            parseError: parseErr.message,
-            responseStart: fullText.slice(0, 500),
-            responseEnd: fullText.slice(-300),
-            stopReason,
-            responseLength: fullText.length
-          }
-        },
-        { status: 500 }
-      );
+    } catch (parseErr1) {
+      console.log("[generate-session] First parse failed, attempting repairs...");
+
+      // Repair attempt 1: Fix unescaped control characters in strings
+      let repairedText = cleanText
+        .replace(/[\x00-\x1F\x7F]/g, (char) => {
+          // Keep newlines and tabs that might be intentional, escape others
+          if (char === '\n' || char === '\r' || char === '\t') return char;
+          return '';
+        });
+
+      // Repair attempt 2: Fix trailing commas before } or ]
+      repairedText = repairedText
+        .replace(/,\s*}/g, '}')
+        .replace(/,\s*]/g, ']');
+
+      try {
+        sessionConfig = JSON.parse(repairedText);
+        console.log("[generate-session] Repair successful");
+      } catch (parseErr2) {
+        // Extract error position for debugging
+        const posMatch = parseErr1.message.match(/position (\d+)/);
+        const errorPos = posMatch ? parseInt(posMatch[1]) : null;
+        const contextAround = errorPos ? cleanText.slice(Math.max(0, errorPos - 100), errorPos + 100) : null;
+
+        console.error("[generate-session] Failed to parse response as JSON:", parseErr1.message);
+        console.error("[generate-session] Context around error:", contextAround);
+        return Response.json(
+          {
+            error: "Failed to generate session config. Please try again.",
+            debug: {
+              parseError: parseErr1.message,
+              responseStart: fullText.slice(0, 500),
+              responseEnd: fullText.slice(-300),
+              contextAroundError: contextAround,
+              stopReason,
+              responseLength: fullText.length
+            }
+          },
+          { status: 500 }
+        );
+      }
     }
 
     // Validate required fields
