@@ -118,12 +118,110 @@ export default function RecruiterCandidateIntake() {
   const inputRef = useRef(null);
 
   // ════════════════════════════════════════
+  // Demo Mode Sample Data
+  // ════════════════════════════════════════
+
+  const DEMO_LENS = `---
+name: Maria Gutierrez
+title: Customer Success Leader
+sector: Healthcare Technology
+stage: Series B-C
+date: April 2026
+role_context: VP of Customer Success at Clarion Health
+stats: "15+ years | 24-person CS org built | $40M ARR / 120% NRR | Healthcare focus"
+---
+
+## Essence
+
+Maria builds customer success organizations that treat retention as a byproduct of genuine customer transformation — not a metric to be optimized. Her career spans enterprise healthcare technology, where she learned that the difference between a churned customer and a champion often comes down to whether someone on the vendor side truly understood the clinical workflow they were trying to change.
+
+She is not a process-first operator. She is a relationship-first leader who builds processes to scale what she does instinctively: listen deeply, translate between technical and clinical stakeholders, and create accountability without bureaucracy. The teams she builds reflect this — people who can sit in a room with a hospital CIO and earn trust in the first fifteen minutes.
+
+What makes her unusual is the combination of strategic altitude and operational depth. She can present to a board on NRR trends and then jump into a renewal call with a struggling account the same afternoon. Most CS leaders bifurcate into strategists or operators. Maria refuses to choose.
+
+## Skills & Experience
+
+Maria's career arc moves from clinical operations (hospital administration at Mount Sinai) through healthcare IT consulting (Deloitte) into customer success leadership at two healthcare SaaS companies. At MedTech Solutions, she inherited a reactive support team and rebuilt it into a proactive CS function that drove NRR from 94% to 118% over three years. At HealthCloud, she built the CS organization from scratch — hiring 24 people, establishing QBR cadence with 50+ enterprise accounts, and creating the renewal playbook that became company standard.
+
+The clinical background matters. She speaks the language of CMOs and CNOs because she's been on their side of the table. When a customer pushes back on adoption timelines, she understands the reality of nurse scheduling, EHR integration constraints, and compliance review cycles. This fluency is rare in CS leadership.
+
+**What Maria carries forward:** building CS organizations from zero, healthcare domain expertise, executive relationship management, renewal and expansion playbooks, cross-functional leadership between product, sales, and customer teams.
+
+**What Maria is done with:** reactive support cultures, companies that view CS as a cost center, leadership that won't invest in customer outcomes until churn becomes a crisis.
+
+## Values
+
+**Clinical outcomes over vendor metrics.** Maria measures success by whether customers are actually achieving what they bought the product to do — not by whether they renewed. She has walked away from expansion opportunities when she believed the customer wasn't ready, because she knows that a premature upsell creates a detractor, not a champion. This sometimes creates tension with sales-driven cultures, and she's learned to navigate that tension by building credibility through results.
+
+**Radical transparency with customers.** She tells customers what they need to hear, not what they want to hear. If an implementation is off track, she names it early. If a product limitation is real, she acknowledges it and works on alternatives. This candor has cost her in the short term — customers occasionally escalate when they don't like the message — but it builds the trust that drives long-term retention.
+
+**Ownership without authority.** Maria believes that CS leaders must take ownership of outcomes they can't fully control. If churn happens, she doesn't blame product gaps or sales overpromises — she asks what CS could have done differently. This mindset attracts people who want accountability and repels people who want excuses.
+
+## Mission & Direction
+
+Maria is looking for a VP or SVP Customer Success role at a Series B-C healthcare technology company with 30-100 employees. The ideal company has enterprise health system customers (not clinics, not consumers), a product that requires behavior change to deliver value, and leadership that understands customer success as a strategic function rather than a support cost.
+
+She wants to build — either from scratch or from an early foundation. A mature CS organization with established playbooks and a full team is not interesting to her. She wants the ambiguity of creating systems that don't exist yet, hiring the first team members who will shape the culture, and establishing the metrics and rhythms that will scale.
+
+Healthcare is non-negotiable. Her fifteen years of domain expertise are her differentiator, and she's not willing to start over in a sector where she'd be learning the customer's world from scratch.
+
+## Work Style
+
+Maria works best with high autonomy and direct access to the executive team. She needs a CEO or COO who will engage with CS strategy, not just review dashboards. Weekly or biweekly 1:1s with her direct leader are essential — she processes out loud and uses those conversations to pressure-test decisions before rolling them out.
+
+She's remote-first but values in-person time with her team and customers. Quarterly onsites, customer visits, and team offsites are part of how she builds culture. A fully distributed company with no travel budget would be a challenge.
+
+Her energy comes from high-stakes customer conversations and building people. Internal meetings drain her unless they're decision-oriented. She protects her calendar aggressively and expects her team to do the same — she'll push back on meeting cultures that fill days with status updates.
+
+Communication style: direct, fast, allergic to corporate speak. She writes short emails and expects responses within 24 hours. She gives feedback immediately, both positive and constructive. Some people find this intensity energizing; others find it exhausting. She's self-aware about this and tries to modulate for different team members, but she won't pretend to be someone she's not.
+
+## Non-Negotiables
+
+Base compensation below $280K signals that the company doesn't value the CS function at the executive level. She's seen what happens when CS leaders are paid like senior managers — they get treated like senior managers, excluded from strategic decisions, and set up to fail.
+
+PE-backed companies are out. The extraction timeline corrupts the customer success function before anyone can build anything worth keeping. She's lived this twice and won't do it again.
+
+She needs to meet the CEO before accepting any role. The relationship between CEO and CS leader determines whether the function has air cover when hard decisions need to be made. If the CEO views CS as a retention cost center rather than a growth engine, she's not interested.
+
+Title matters less than scope, but she won't take a Director title after having been a VP. It signals a step backward to the market and creates unnecessary friction in customer relationships where executive presence matters.
+
+## Role Fit: VP of Customer Success at Clarion Health
+
+**Where alignment is clear.** Maria's healthcare domain expertise maps directly onto Clarion's need for someone who can speak the language of hospital CIOs and CMOs. Her experience building CS organizations from scratch — twice — matches the reality that Clarion has no CS function beyond the CEO's personal relationships. Her track record of moving NRR from mid-90s to 115%+ is exactly what Clarion needs for their Series C story.
+
+**Where productive tension exists.** Maria is a builder who wants to create systems from scratch. Clarion's CEO, Sarah, has reportedly struggled to delegate customer relationships in the past. This could be generative friction — Maria's confidence and clinical fluency might earn Sarah's trust in ways previous attempts haven't — or it could become a source of ongoing conflict if Sarah can't let go. The COO relationship will matter here; Marcus being "the reasonable voice" suggests Maria would need to build that alliance early.
+
+Maria's direct communication style could also create tension with a CEO who's protective of customer relationships. If Sarah interprets Maria's candor as criticism of how she's handled accounts, the first few months could be rocky. On the other hand, that same directness might be exactly what Sarah needs from a trusted partner — someone who will tell her the truth about accounts rather than just absorbing the work.
+
+**Open questions for the conversation.** What does success look like for Sarah in the first 90 days? What would make her feel comfortable stepping back from the top 10 accounts — and what has prevented that from happening with previous hires? How does Sarah handle disagreement from her leadership team, and is there room for pushback on strategy, or does she need alignment first and input second?
+
+For Maria: How would she approach earning Sarah's trust on accounts where Sarah has deep personal relationships? What's her playbook for the first customer conversation where Sarah has context Maria doesn't — and how would she avoid undermining the relationship while establishing her own credibility?
+`;
+
+  const DEMO_SESSION_CONFIG = {
+    sessionId: "demo_clarion_vp_cs",
+    metadata: {
+      roleTitle: "VP of Customer Success",
+      company: "Clarion Health",
+    },
+  };
+
+  // ════════════════════════════════════════
   // Session Loading
   // ════════════════════════════════════════
 
   useEffect(() => {
     const loadSession = () => {
       try {
+        // Check for demo mode
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("demo") === "true") {
+          setSessionConfig(DEMO_SESSION_CONFIG);
+          setLens(DEMO_LENS);
+          setPhase("complete");
+          return;
+        }
+
         const configStr = sessionStorage.getItem("session-config");
         if (!configStr) {
           setLoadError("No session configuration found. Please start from the recruiter dashboard.");
