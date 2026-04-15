@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.15-c";
+const BUILD_ID = "2026.04.15-d";
 
 // ── Design tokens (match candidate intake exactly) ──
 const RED = "#D93025";
@@ -1538,6 +1538,8 @@ export default function RecruiterRoleForm() {
       if (session.phase) setPhase(session.phase);
       if (session.formData) setFormData(session.formData);
       if (session.fileMeta) setPreviousFiles(session.fileMeta);
+      if (session.roleContext) setRoleContext(session.roleContext);
+      if (session.dimensions) setDimensions(session.dimensions);
     }
     setLoaded(true);
   }, []);
@@ -1560,6 +1562,8 @@ export default function RecruiterRoleForm() {
       phase,
       formData,
       fileMeta: Object.keys(fileMeta).length > 0 ? fileMeta : null,
+      roleContext: roleContext || null,
+      dimensions: dimensions || null,
     };
 
     const result = saveSession(sessionData);
@@ -1568,7 +1572,7 @@ export default function RecruiterRoleForm() {
     } else if (result.dropped) {
       setStorageWarning("dropped");
     }
-  }, [loaded, phase, formData, files]);
+  }, [loaded, phase, formData, files, roleContext, dimensions]);
 
   if (!loaded) {
     return (
