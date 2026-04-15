@@ -8,7 +8,7 @@ import {
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
-const MAX_TOKENS = 2500; // Reduced for faster response (Vercel 10s timeout)
+const MAX_TOKENS = 4000; // Enough for full session config JSON
 const TEMPERATURE = 0.5; // Slightly higher for natural conversation flow
 
 export async function POST(request) {
@@ -92,11 +92,25 @@ export async function POST(request) {
 
     const data = await res.json();
     const text = data.content?.[0]?.text;
+    const stopReason = data.stop_reason;
+
+    // Debug logging
+    console.log("[generate-session] Stop reason:", stopReason);
+    console.log("[generate-session] Response length:", text?.length || 0);
 
     if (!text) {
       console.error("[generate-session] Empty response from AI");
       return Response.json(
         { error: "Empty response from AI" },
+        { status: 500 }
+      );
+    }
+
+    // Check if response was truncated
+    if (stopReason === "max_tokens") {
+      console.error("[generate-session] Response truncated - max_tokens reached");
+      return Response.json(
+        { error: "Session config generation truncated. Please try again." },
         { status: 500 }
       );
     }
@@ -112,9 +126,19 @@ export async function POST(request) {
       sessionConfig = JSON.parse(cleanText);
     } catch (parseErr) {
       console.error("[generate-session] Failed to parse response as JSON:", parseErr.message);
-      console.error("[generate-session] Raw response:", text.slice(0, 500));
+      console.error("[generate-session] Raw response (first 1000 chars):", text.slice(0, 1000));
+      console.error("[generate-session] Raw response (last 500 chars):", text.slice(-500));
       return Response.json(
-        { error: "Failed to generate session config. Please try again." },
+        {
+          error: "Failed to generate session config. Please try again.",
+          debug: {
+            parseError: parseErr.message,
+            responseStart: text.slice(0, 500),
+            responseEnd: text.slice(-300),
+            stopReason,
+            responseLength: text.length
+          }
+        },
         { status: 500 }
       );
     }
