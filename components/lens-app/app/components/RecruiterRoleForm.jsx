@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.15-i";
+const BUILD_ID = "2026.04.15-j";
 
 // ── Design tokens (match candidate intake exactly) ──
 const RED = "#D93025";
@@ -284,29 +284,39 @@ function IntroPhase({ onContinue }) {
 // Parse markdown role context file
 function parseRoleContextMarkdown(text) {
   const result = {};
-  console.log("[parseRoleContext] Input length:", text.length);
+  console.log("[parseRoleContext] Input length:", text?.length);
+  if (!text) return result;
 
   // Helper to extract single-line value after **Label:**
   const extractInlineField = (label) => {
-    const regex = new RegExp(`\\*\\*${label}:\\*\\*\\s*(.+?)$`, 'im');
-    const match = text.match(regex);
-    return match ? match[1].trim() : null;
+    try {
+      const regex = new RegExp(`\\*\\*${label}:\\*\\*\\s*(.+?)$`, 'im');
+      const match = text.match(regex);
+      return match && match[1] ? match[1].trim() : null;
+    } catch (e) {
+      console.warn("[extractInlineField] Error for label:", label, e);
+      return null;
+    }
   };
 
   // Helper to extract multi-line value (label on own line, content follows)
-  const extractBlockField = (label, stopBefore) => {
-    const stopPattern = stopBefore || '\\n\\*\\*';
-    const regex = new RegExp(`\\*\\*${label}\\*\\*\\s*\\n([\\s\\S]+?)(?=${stopPattern}|$)`, 'i');
-    const match = text.match(regex);
-    return match ? match[1].trim() : null;
+  const extractBlockField = (label) => {
+    try {
+      const regex = new RegExp(`\\*\\*${label}\\*\\*\\s*\\n([\\s\\S]+?)(?=\\n\\*\\*|$)`, 'i');
+      const match = text.match(regex);
+      return match && match[1] ? match[1].trim() : null;
+    } catch (e) {
+      console.warn("[extractBlockField] Error for label:", label, e);
+      return null;
+    }
   };
 
   // Single-line fields
   result.roleTitle = extractInlineField('Role title');
   const company = extractInlineField('Company');
-  result.company = company?.replace(/\s*\(.*?\)\s*$/, ''); // Remove "(fictional)" etc
-  result.stakeholders = extractInlineField('Hiring manager \\/ stakeholders') ||
-                        extractInlineField('Hiring manager \\/ key stakeholder\\(s\\)');
+  result.company = company ? company.replace(/\s*\(.*?\)\s*$/, '') : null;
+  result.stakeholders = extractInlineField('Hiring manager / stakeholders') ||
+                        extractInlineField('Hiring manager / key stakeholder\\(s\\)');
   result.compensation = extractInlineField('Compensation range');
   result.location = extractInlineField('Location');
   result.companyStage = extractInlineField('Company stage');
@@ -318,10 +328,14 @@ function parseRoleContextMarkdown(text) {
   result.recruiterOnly = extractBlockField('Recruiter-only notes[^*]*');
 
   // Priorities - numbered list after **Top priorities...**
-  const prioritiesMatch = text.match(/\*\*Top priorities[^*]*\*\*\s*\n([\s\S]+?)(?=\n\n\*\*|\n\*\*[A-Z]|$)/i);
-  if (prioritiesMatch) {
-    const lines = prioritiesMatch[1].split('\n').filter(l => /^\d+\./.test(l.trim()));
-    result.priorities = lines.map(line => line.replace(/^\d+\.\s*/, '').trim());
+  try {
+    const prioritiesMatch = text.match(/\*\*Top priorities[^*]*\*\*\s*\n([\s\S]+?)(?=\n\n\*\*|\n\*\*[A-Z]|$)/i);
+    if (prioritiesMatch && prioritiesMatch[1]) {
+      const lines = prioritiesMatch[1].split('\n').filter(l => l && /^\d+\./.test(l.trim()));
+      result.priorities = lines.map(line => line.replace(/^\d+\.\s*/, '').trim());
+    }
+  } catch (e) {
+    console.warn("[parseRoleContext] Priorities parse error:", e);
   }
 
   console.log("[parseRoleContext] Parsed result:", result);
