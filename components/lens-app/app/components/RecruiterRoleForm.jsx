@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.15-h";
+const BUILD_ID = "2026.04.15-i";
 
 // ── Design tokens (match candidate intake exactly) ──
 const RED = "#D93025";
@@ -284,44 +284,47 @@ function IntroPhase({ onContinue }) {
 // Parse markdown role context file
 function parseRoleContextMarkdown(text) {
   const result = {};
+  console.log("[parseRoleContext] Input length:", text.length);
 
-  // Helper to extract value after a bold label
-  const extractField = (pattern) => {
-    const regex = new RegExp(`\\*\\*${pattern}:\\*\\*\\s*([^\\*]+?)(?=\\n\\n|\\n\\*\\*|$)`, 'is');
+  // Helper to extract single-line value after **Label:**
+  const extractInlineField = (label) => {
+    const regex = new RegExp(`\\*\\*${label}:\\*\\*\\s*(.+?)$`, 'im');
     const match = text.match(regex);
     return match ? match[1].trim() : null;
   };
 
-  // Simple fields
-  result.roleTitle = extractField('Role title');
-  result.company = extractField('Company')?.replace(/\s*\(.*?\)\s*$/, ''); // Remove "(fictional)" etc
-  result.stakeholders = extractField('Hiring manager \\/ stakeholders|Hiring manager \\/ key stakeholder\\(s\\)');
-  result.compensation = extractField('Compensation range');
-  result.location = extractField('Location');
-  result.companyStage = extractField('Company stage');
+  // Helper to extract multi-line value (label on own line, content follows)
+  const extractBlockField = (label, stopBefore) => {
+    const stopPattern = stopBefore || '\\n\\*\\*';
+    const regex = new RegExp(`\\*\\*${label}\\*\\*\\s*\\n([\\s\\S]+?)(?=${stopPattern}|$)`, 'i');
+    const match = text.match(regex);
+    return match ? match[1].trim() : null;
+  };
 
-  // Multi-line fields
-  const firstYearMatch = text.match(/\*\*What does this role need to accomplish in the first 12 months\?\*\*\s*\n([\s\S]+?)(?=\n\n\*\*|\n\*\*Top priorities)/i);
-  if (firstYearMatch) result.firstYearObjective = firstYearMatch[1].trim();
+  // Single-line fields
+  result.roleTitle = extractInlineField('Role title');
+  const company = extractInlineField('Company');
+  result.company = company?.replace(/\s*\(.*?\)\s*$/, ''); // Remove "(fictional)" etc
+  result.stakeholders = extractInlineField('Hiring manager \\/ stakeholders') ||
+                        extractInlineField('Hiring manager \\/ key stakeholder\\(s\\)');
+  result.compensation = extractInlineField('Compensation range');
+  result.location = extractInlineField('Location');
+  result.companyStage = extractInlineField('Company stage');
 
-  const lastPersonMatch = text.match(/\*\*What happened with the last person in this seat\?\*\*\s*\n([\s\S]+?)(?=\n\n\*\*|\n\*\*What would make)/i);
-  if (lastPersonMatch) result.lastPerson = lastPersonMatch[1].trim();
+  // Multi-line fields (label ends with ? or :, content on next line)
+  result.firstYearObjective = extractBlockField('What does this role need to accomplish in the first 12 months\\?');
+  result.lastPerson = extractBlockField('What happened with the last person in this seat\\?');
+  result.failureMode = extractBlockField('What would make this hire fail\\?');
+  result.recruiterOnly = extractBlockField('Recruiter-only notes[^*]*');
 
-  const failureModeMatch = text.match(/\*\*What would make this hire fail\?\*\*\s*\n([\s\S]+?)(?=\n\n\*\*|\n\*\*Recruiter|$)/i);
-  if (failureModeMatch) result.failureMode = failureModeMatch[1].trim();
-
-  const recruiterMatch = text.match(/\*\*Recruiter-only notes[^*]*\*\*\s*\n([\s\S]+?)$/i);
-  if (recruiterMatch) result.recruiterOnly = recruiterMatch[1].trim();
-
-  // Priorities - numbered list
-  const prioritiesMatch = text.match(/\*\*Top priorities[^*]*\*\*[:\s]*\n((?:\d+\.\s+[^\n]+\n?)+)/i);
+  // Priorities - numbered list after **Top priorities...**
+  const prioritiesMatch = text.match(/\*\*Top priorities[^*]*\*\*\s*\n([\s\S]+?)(?=\n\n\*\*|\n\*\*[A-Z]|$)/i);
   if (prioritiesMatch) {
-    const priorityLines = prioritiesMatch[1].match(/\d+\.\s+([^\n]+)/g);
-    if (priorityLines) {
-      result.priorities = priorityLines.map(line => line.replace(/^\d+\.\s+/, '').trim());
-    }
+    const lines = prioritiesMatch[1].split('\n').filter(l => /^\d+\./.test(l.trim()));
+    result.priorities = lines.map(line => line.replace(/^\d+\.\s*/, '').trim());
   }
 
+  console.log("[parseRoleContext] Parsed result:", result);
   return result;
 }
 
@@ -331,24 +334,26 @@ function RolePhase({ formData, setFormData, onContinue, onBack }) {
 
   const handleFileLoad = async (e) => {
     const file = e.target.files?.[0];
+    console.log("[handleFileLoad] File selected:", file?.name);
     if (!file) return;
 
     try {
       const text = await file.text();
+      console.log("[handleFileLoad] File content length:", text.length);
       const parsed = parseRoleContextMarkdown(text);
 
-      // Merge parsed data into form
-      setFormData(prev => ({
-        ...prev,
-        ...Object.fromEntries(
-          Object.entries(parsed).filter(([_, v]) => v != null)
-        ),
-      }));
+      // Merge parsed data into form (only non-null values)
+      const updates = Object.fromEntries(
+        Object.entries(parsed).filter(([_, v]) => v != null && v !== '')
+      );
+      console.log("[handleFileLoad] Applying updates:", Object.keys(updates));
+
+      setFormData(prev => ({ ...prev, ...updates }));
 
       // Clear file input for re-upload
       e.target.value = '';
     } catch (err) {
-      console.error('Failed to parse file:', err);
+      console.error('[handleFileLoad] Failed to parse file:', err);
     }
   };
 
