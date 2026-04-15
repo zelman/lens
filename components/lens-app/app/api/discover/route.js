@@ -320,9 +320,12 @@ No preamble — start with the narrative, then the signals.`;
       const isComplete = text.includes("[SECTION_COMPLETE]");
       const cleanText = text.replaceAll("[SECTION_COMPLETE]", "").trim();
 
+      // If AI only returned the completion marker with no content, provide a fallback
+      const finalResponse = cleanText || "Thank you for sharing that. Let me capture what we've covered.";
+
       // Return sanitized response (no API metadata)
       return Response.json({
-        response: cleanText,
+        response: finalResponse,
         sectionComplete: isComplete,
       });
     }
