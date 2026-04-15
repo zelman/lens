@@ -2,6 +2,69 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-15] Candidate Discovery Fork (R→C POC Step 4)
+
+### lens-app 2026.04.15-a (Recruiter Candidate Intake)
+Adds the candidate discovery conversation fork for R→C flow. Consumes `session-config` from sessionStorage (created by Step 3) and runs dynamic sections instead of hardcoded 8 sections.
+
+**Architecture Decision:** FORK (not parameterize)
+- System prompts fundamentally different (R→C context-aware, includes role context)
+- Sections dynamic from session-config (foundation + tailored) vs. hardcoded 8
+- Synthesis output different (JSON scorecard vs. lens document)
+- Preserves existing C→C flow without risk of regression
+
+**New Route:** `/recruiter/candidate`
+- Phase flow: Loading → Intro → Discovery → Synthesis → Complete
+- Loads session-config from sessionStorage on mount
+- Shows role context header (title, company) throughout discovery
+- Dynamic progress bar based on section count
+- Generates scorecard on completion
+
+**New API Routes:**
+- `/api/rc-discover` — R→C discovery conversation endpoint
+  - Model: claude-sonnet-4-20250514, max_tokens 1000
+  - Accepts dynamic section config with signals/red flags
+  - Actions: greeting, summarize, regular conversation
+  - Dynamic question limits (foundation: 2, tailored: 3-4)
+- `/api/rc-synthesize` — Scorecard generation endpoint
+  - Model: claude-sonnet-4-20250514, temp 0.3, max_tokens 4000
+  - Returns structured JSON scorecard with dimension scores
+  - Includes overall assessment, recommendation, recruiter notes
+
+**New System Prompts (server-side only):**
+- `app/api/_prompts/rc-discovery.js`
+  - RC_SYSTEM_BASE: R→C-specific coaching instructions
+  - FOUNDATION_CONTEXTS: Default openers for foundation sections
+  - buildRCSystemPrompt(): Includes role context, signals, red flags
+  - getSectionOpeningPrompt(): Dynamic section openers
+- `app/api/_prompts/rc-synthesis.js`
+  - RC_SYNTHESIS_SYSTEM_PROMPT: Scorecard generation instructions
+  - buildRCSynthesisUserContent(): Formats section data for synthesis
+
+**Scorecard Output Schema:**
+```json
+{
+  "overallAssessment": { "fitScore": 1-5, "fitLabel": "...", "recommendation": "..." },
+  "dimensionScores": [{ "dimensionId": "...", "score": 1-5, "signalStrength": "...", "evidence": "..." }],
+  "recruiterNotes": { "suggestedProbes": [...], "contextForClient": "...", "riskFactors": [...] }
+}
+```
+
+**State Persistence:**
+- localStorage key: `RC_CANDIDATE_INTAKE_STATE`
+- Session recovery if same session-config sessionId matches
+- Cleared on completion
+
+**Files Created:**
+- `app/recruiter/candidate/page.js`: Route entry point
+- `app/components/RecruiterCandidateIntake.jsx`: Main component (~800 lines)
+- `app/api/rc-discover/route.js`: Discovery API
+- `app/api/rc-synthesize/route.js`: Synthesis API
+- `app/api/_prompts/rc-discovery.js`: Discovery prompts
+- `app/api/_prompts/rc-synthesis.js`: Synthesis prompts
+
+---
+
 ## [2026-04-14] Session Generation Engine (R→C POC Steps 1-3)
 
 ### lens-app 2026.04.14-g (Dimension Extraction & Session Generation)
