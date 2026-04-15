@@ -2,6 +2,23 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-15] Candidate Discovery UX Fixes
+
+### lens-app 2026.04.15-m (UX Polish)
+Fixes three UX issues identified during candidate discovery testing:
+
+1. **Consistent section titles** — Section labels now display human-readable titles (e.g., "Work Style") instead of raw IDs (e.g., "work_style"). Added `SECTION_LABELS` mapping with fallback to auto-convert snake_case IDs to Title Case.
+
+2. **Sections end with acknowledgement** — Updated `rc-discovery.js` prompt to explicitly instruct AI to end sections with acknowledgement/reflection statements, NOT questions. Candidates can't respond after `[SECTION_COMPLETE]`, so ending on a question was confusing.
+
+3. **Visual distinction for user messages** — User messages now display with black background (`#1A1A1A`) and white text, matching the C→C intake pattern. AI messages remain light gray (`#fafafa`) with dark text.
+
+**Files Modified:**
+- `app/components/RecruiterCandidateIntake.jsx`: Added `SECTION_LABELS` mapping, `formatSectionLabel()` helper, user message styling
+- `app/api/_prompts/rc-discovery.js`: Updated SECTION COMPLETION instructions to require acknowledgement
+
+---
+
 ## [2026-04-15] Candidate Discovery Fork (R→C POC Step 4)
 
 ### lens-app 2026.04.15-a (Recruiter Candidate Intake)

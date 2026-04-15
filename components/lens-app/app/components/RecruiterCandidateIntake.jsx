@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
+const BUILD_ID = "2026.04.15-m";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
@@ -13,6 +14,45 @@ const GRY = "#888";
 const LT = "#ccc";
 const RULE = "#eee";
 const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+
+// ── Section label mapping (convert snake_case IDs to human-readable) ──
+const SECTION_LABELS = {
+  // Foundation sections
+  essence: "Professional Essence",
+  work_style: "Work Style",
+  values: "Values & Priorities",
+  energy: "Energy & Motivation",
+  disqualifiers: "Deal-Breakers",
+  situation_timeline: "Situation & Timeline",
+  // Common tailored dimensions
+  leadership_style: "Leadership Style",
+  team_building: "Team Building",
+  culture_alignment: "Culture Alignment",
+  technical_depth: "Technical Depth",
+  stakeholder_management: "Stakeholder Management",
+  strategic_thinking: "Strategic Thinking",
+  execution_style: "Execution Style",
+  communication_style: "Communication Style",
+  change_management: "Change Management",
+  role_fit: "Role Fit",
+  motivation: "Motivation & Timing",
+};
+
+/**
+ * Convert a section ID to a human-readable label
+ * @param {string} id - The section ID (e.g., "work_style")
+ * @returns {string} Human-readable label (e.g., "Work Style")
+ */
+function formatSectionLabel(id) {
+  if (!id) return "Unknown Section";
+  // Check explicit mapping first
+  if (SECTION_LABELS[id]) return SECTION_LABELS[id];
+  // Fallback: convert snake_case to Title Case
+  return id
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
 // ── Container style ──
 const containerStyle = {
@@ -112,9 +152,10 @@ export default function RecruiterCandidateIntake() {
         // Add foundation sections
         if (config.foundation && Array.isArray(config.foundation)) {
           for (const f of config.foundation) {
+            const sectionId = f.sectionId || f.section || f.id;
             allSections.push({
-              id: f.sectionId || f.section || f.id,
-              label: f.label || f.section || f.sectionId,
+              id: sectionId,
+              label: f.label || formatSectionLabel(sectionId),
               type: "foundation",
               instruction: f.instruction,
               extractionTarget: f.extractionTarget,
@@ -128,9 +169,10 @@ export default function RecruiterCandidateIntake() {
         // Add tailored sections
         if (config.tailored && Array.isArray(config.tailored)) {
           for (const t of config.tailored) {
+            const dimensionId = t.dimensionId || t.id;
             allSections.push({
-              id: t.dimensionId || t.id,
-              label: t.label || t.dimensionId,
+              id: dimensionId,
+              label: t.label || formatSectionLabel(dimensionId),
               type: "tailored",
               importance: t.importance || "moderate",
               openingQuestions: t.openingQuestions,
@@ -694,11 +736,11 @@ export default function RecruiterCandidateIntake() {
           {messages.map((msg, i) => (
             <div key={i} style={{
               padding: "14px 18px",
-              background: msg.role === "assistant" ? "#fafafa" : "#fff",
-              border: `1px solid ${msg.role === "assistant" ? RULE : "#ddd"}`,
+              background: msg.role === "assistant" ? "#fafafa" : BLK,
+              border: `1px solid ${msg.role === "assistant" ? RULE : BLK}`,
               marginBottom: "12px",
               fontSize: "14px",
-              color: BLK,
+              color: msg.role === "assistant" ? BLK : "#fff",
               lineHeight: 1.7,
               whiteSpace: "pre-wrap",
             }}>

@@ -70,10 +70,10 @@ SECTION COMPLETION
 ══════════════════════════════════════════════════════════════════════════════
 
 When you have gathered enough signal for a section OR reached the question limit:
-1. Briefly reflect what you learned (1-2 sentences)
+1. End with an acknowledgement or brief reflection (1-2 sentences) — e.g., "That really resonates" or "I appreciate you sharing that perspective"
 2. End your response with exactly: [SECTION_COMPLETE]
 
-Do NOT ask another question after deciding to complete. The marker signals the system to advance.`;
+CRITICAL: Do NOT end with a question when completing a section. The candidate cannot respond after [SECTION_COMPLETE]. Your final sentence before the marker MUST be a statement of acknowledgement or reflection, NEVER a question.`;
 
 // Foundation section context templates
 export const FOUNDATION_CONTEXTS = {
