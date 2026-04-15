@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.15-e";
+const BUILD_ID = "2026.04.15-f";
 
 // ── Design tokens (match candidate intake exactly) ──
 const RED = "#D93025";
@@ -1255,6 +1255,10 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
     navigator.clipboard.writeText(JSON.stringify(sessionConfig || roleContext, null, 2));
   };
 
+  const handleLaunchSession = () => {
+    window.location.href = "/recruiter/candidate";
+  };
+
   const hasSession = !!sessionConfig;
 
   return (
@@ -1341,11 +1345,16 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: "12px" }}>
+      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+        {hasSession && (
+          <button onClick={handleLaunchSession} style={primaryButtonStyle}>
+            Launch candidate session
+          </button>
+        )}
         <button onClick={handleCopyJson} style={secondaryButtonStyle}>
           Copy {hasSession ? "session" : "role context"} JSON
         </button>
-        <button onClick={onStartNew} style={primaryButtonStyle}>
+        <button onClick={onStartNew} style={{...secondaryButtonStyle, borderColor: "#ccc", color: GRY}}>
           Define another search
         </button>
       </div>
