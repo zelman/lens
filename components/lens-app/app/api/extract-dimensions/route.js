@@ -1,5 +1,6 @@
 // /api/extract-dimensions - Extract role-specific dimensions from recruiter context
 // Server-side only - system prompt never exposed to client
+// Uses streaming to avoid Vercel timeout limits
 
 import {
   EXTRACT_DIMENSIONS_SYSTEM_PROMPT,
@@ -54,11 +55,11 @@ export async function POST(request) {
 
     // Build user content from role context
     const userContent = buildDimensionExtractionContent(roleContext);
+    console.log(`[extract-dimensions] User content length: ${userContent.length} chars`);
 
-    // Call Anthropic API
+    // Call Anthropic API with streaming to avoid Vercel timeout
     const res = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
-      signal: AbortSignal.timeout(55000), // 55s timeout (leave buffer for Vercel)
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
@@ -68,6 +69,7 @@ export async function POST(request) {
         model: MODEL,
         max_tokens: MAX_TOKENS,
         temperature: TEMPERATURE,
+        stream: true, // Enable streaming
         system: EXTRACT_DIMENSIONS_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userContent }],
       }),
@@ -82,10 +84,43 @@ export async function POST(request) {
       );
     }
 
-    const data = await res.json();
-    const text = data.content?.[0]?.text;
+    // Process streaming response and collect full text
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+    let stopReason = null;
 
-    if (!text) {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+
+            if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+              fullText += parsed.delta.text;
+            } else if (parsed.type === "message_delta" && parsed.delta?.stop_reason) {
+              stopReason = parsed.delta.stop_reason;
+            }
+          } catch (e) {
+            // Skip non-JSON lines
+          }
+        }
+      }
+    }
+
+    console.log("[extract-dimensions] Stop reason:", stopReason);
+    console.log("[extract-dimensions] Response length:", fullText.length);
+
+    if (!fullText) {
       console.error("[extract-dimensions] Empty response from AI");
       return Response.json(
         { error: "Empty response from AI" },
@@ -97,14 +132,14 @@ export async function POST(request) {
     let dimensionResult;
     try {
       // Clean up any markdown formatting that might have slipped through
-      const cleanText = text
+      const cleanText = fullText
         .replace(/```json\n?/g, "")
         .replace(/```\n?/g, "")
         .trim();
       dimensionResult = JSON.parse(cleanText);
     } catch (parseErr) {
       console.error("[extract-dimensions] Failed to parse response as JSON:", parseErr.message);
-      console.error("[extract-dimensions] Raw response:", text.slice(0, 500));
+      console.error("[extract-dimensions] Raw response:", fullText.slice(0, 500));
 
       // Return fallback dimensions for thin context
       return Response.json({
@@ -194,14 +229,6 @@ export async function POST(request) {
     return Response.json(dimensionResult);
 
   } catch (err) {
-    if (err.name === "TimeoutError" || err.name === "AbortError") {
-      console.error("[extract-dimensions] Request timed out");
-      return Response.json(
-        { error: "Request timed out. Please try again." },
-        { status: 504 }
-      );
-    }
-
     console.error("[extract-dimensions] Error:", err);
     return Response.json(
       { error: "Failed to extract dimensions" },

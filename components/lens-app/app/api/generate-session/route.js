@@ -1,5 +1,6 @@
 // /api/generate-session - Generate session config from reviewed dimensions
 // Server-side only - system prompt never exposed to client
+// Uses streaming to avoid Vercel timeout limits
 
 import {
   GENERATE_SESSION_SYSTEM_PROMPT,
@@ -62,11 +63,11 @@ export async function POST(request) {
 
     // Build user content from dimensions and candidate materials
     const userContent = buildSessionGenerationContent(dimensions, candidateMaterials);
+    console.log(`[generate-session] User content length: ${userContent.length} chars`);
 
-    // Call Anthropic API
+    // Call Anthropic API with streaming to avoid Vercel timeout
     const res = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
-      signal: AbortSignal.timeout(58000), // 58s timeout (tight for Vercel Pro)
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
@@ -76,6 +77,7 @@ export async function POST(request) {
         model: MODEL,
         max_tokens: MAX_TOKENS,
         temperature: TEMPERATURE,
+        stream: true, // Enable streaming
         system: GENERATE_SESSION_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userContent }],
       }),
@@ -90,15 +92,46 @@ export async function POST(request) {
       );
     }
 
-    const data = await res.json();
-    const text = data.content?.[0]?.text;
-    const stopReason = data.stop_reason;
+    // Process streaming response and collect full text
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+    let stopReason = null;
 
-    // Debug logging
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+
+            // Handle different event types
+            if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+              fullText += parsed.delta.text;
+            } else if (parsed.type === "message_delta" && parsed.delta?.stop_reason) {
+              stopReason = parsed.delta.stop_reason;
+            } else if (parsed.type === "message_stop") {
+              // End of message
+            }
+          } catch (e) {
+            // Skip non-JSON lines (like event: lines)
+          }
+        }
+      }
+    }
+
     console.log("[generate-session] Stop reason:", stopReason);
-    console.log("[generate-session] Response length:", text?.length || 0);
+    console.log("[generate-session] Response length:", fullText.length);
 
-    if (!text) {
+    if (!fullText) {
       console.error("[generate-session] Empty response from AI");
       return Response.json(
         { error: "Empty response from AI" },
@@ -119,24 +152,24 @@ export async function POST(request) {
     let sessionConfig;
     try {
       // Clean up any markdown formatting that might have slipped through
-      const cleanText = text
+      const cleanText = fullText
         .replace(/```json\n?/g, "")
         .replace(/```\n?/g, "")
         .trim();
       sessionConfig = JSON.parse(cleanText);
     } catch (parseErr) {
       console.error("[generate-session] Failed to parse response as JSON:", parseErr.message);
-      console.error("[generate-session] Raw response (first 1000 chars):", text.slice(0, 1000));
-      console.error("[generate-session] Raw response (last 500 chars):", text.slice(-500));
+      console.error("[generate-session] Raw response (first 1000 chars):", fullText.slice(0, 1000));
+      console.error("[generate-session] Raw response (last 500 chars):", fullText.slice(-500));
       return Response.json(
         {
           error: "Failed to generate session config. Please try again.",
           debug: {
             parseError: parseErr.message,
-            responseStart: text.slice(0, 500),
-            responseEnd: text.slice(-300),
+            responseStart: fullText.slice(0, 500),
+            responseEnd: fullText.slice(-300),
             stopReason,
-            responseLength: text.length
+            responseLength: fullText.length
           }
         },
         { status: 500 }
@@ -178,14 +211,6 @@ export async function POST(request) {
     return Response.json(sessionConfig);
 
   } catch (err) {
-    if (err.name === "TimeoutError" || err.name === "AbortError") {
-      console.error("[generate-session] Request timed out");
-      return Response.json(
-        { error: "Request timed out. Please try again." },
-        { status: 504 }
-      );
-    }
-
     console.error("[generate-session] Error:", err);
     return Response.json(
       { error: "Failed to generate session" },
