@@ -8,7 +8,7 @@ import {
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
-const MAX_TOKENS = 6000;
+const MAX_TOKENS = 2500; // Reduced for faster response (Vercel 10s timeout)
 const TEMPERATURE = 0.5; // Slightly higher for natural conversation flow
 
 export async function POST(request) {
@@ -140,7 +140,7 @@ export async function POST(request) {
     if (!sessionConfig.conversationConfig) {
       sessionConfig.conversationConfig = {
         model: "claude-sonnet-4-20250514",
-        maxTokens: 6000,
+        maxTokens: 2500,
         temperature: 0.5,
         tone: "Warm, curious, coaching-style. Non-evaluative.",
         transparency: "Tell the candidate this session is tailored to the opportunity",
