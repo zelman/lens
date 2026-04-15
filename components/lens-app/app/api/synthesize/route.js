@@ -127,6 +127,16 @@ export async function POST(request) {
     const requestStart = Date.now();
     const getRemainingTimeout = () => Math.max(5000, REQUEST_DEADLINE_MS - (Date.now() - requestStart));
 
+    // Truncate rawDocumentText for synthesis (sectionData already has insights, don't need full docs)
+    // This prevents synthesis timeout - 8K chars (~2K tokens) is enough for evidence grounding
+    // Combined with sectionData (~15K tokens), this keeps total input under model's fast-path
+    const MAX_RAW_TEXT_FOR_SYNTHESIS = 8000;
+    let truncatedRawText = rawDocumentText || null;
+    if (truncatedRawText && truncatedRawText.length > MAX_RAW_TEXT_FOR_SYNTHESIS) {
+      console.log(`[Synthesize] Truncating rawDocumentText from ${truncatedRawText.length} to ${MAX_RAW_TEXT_FOR_SYNTHESIS} chars`);
+      truncatedRawText = truncatedRawText.slice(0, MAX_RAW_TEXT_FOR_SYNTHESIS) + "\n\n[content truncated for synthesis]";
+    }
+
     // Build user content server-side (including document context if available)
     const userContent = buildSynthesisUserContent({
       userName,
@@ -135,7 +145,7 @@ export async function POST(request) {
       sectionData,
       currentDate,
       documentContext: documentContext || null,
-      rawDocumentText: rawDocumentText || null,
+      rawDocumentText: truncatedRawText,
     });
 
     // Call Anthropic API with shared timeout budget
@@ -211,8 +221,10 @@ export async function POST(request) {
       console.log(`Skipping validation - only ${Math.round(remainingBudget / 1000)}s remaining (need ${MIN_VALIDATION_BUDGET_MS / 1000}s)`);
     }
 
+    // Pass truncated text to validation so it only flags gaps from content synthesis actually saw
+    // (If validation saw full text, it could flag gaps that re-synthesis could never fix)
     const validationContent = hasTimeBudget ? buildValidationUserContent({
-      rawDocumentText: rawDocumentText || null,
+      rawDocumentText: truncatedRawText,
       lensMarkdown: lensDoc,
     }) : null;
 

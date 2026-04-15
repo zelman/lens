@@ -1,8 +1,8 @@
 # CONTEXT.md — Lens Project
 
-*Last updated: March 24, 2026*
+*Last updated: April 13, 2026*
 
-This is the living context file for the Lens Project — an AI-assisted career identity discovery system with bidirectional job matching. Lives at the root of `zelman/lens` repo. Update when things change.
+This is the living context file for the Lens Project — an AI-assisted career identity discovery system with bidirectional signal-based matching. Lives at the root of `zelman/lens` repo. Update when things change.
 
 ---
 
@@ -23,20 +23,47 @@ Two directions:
 - **Candidate → Role (C→R):** The user's lens scores companies and roles against their identity signals.
 - **Role → Candidate (R→C):** A company's role lens scores candidates against relational and cultural fit signals.
 
-The insight: generic AI coaching struggles with ROI. When coaching produces a functional lens document that governs daily job scoring and briefings, the outcome becomes concrete and measurable. When the same system works bidirectionally, it becomes an enterprise hiring product.
+**Enterprise thesis (narrowed April 2026):** Deep discovery is only justified for $300K+/board-level hires where a mis-hire is catastrophic. Below that threshold, speed wins over depth. The buyer at the enterprise level is the **executive recruiter** (not HR, not coaches). Internal mobility is the structurally stronger wedge because the employee is already known (reducing gaming risk and cold-start friction). The **role lens** — capturing stakeholder alignment on what a seat actually requires — leads the product, not the candidate lens.
 
 ---
 
 ## Key People
 
-- **Nathan Fierley** — potential co-builder. Independently developing AI coaching concept. Testing the James Pratt coaching persona implementation. Proposed A/B/C collaboration options (decision pending). Priority audience for investor deck.
-- **James Pratt** — Eric's career coach (Nov-Dec 2025). First contributing coach persona (SKILL.md exists). Engaged on AI coaching partnership. Session archive as potential training material. NDA pending.
-- **Todd Gerspach** — Eric's previous career coach. Extensive C-level network. Met recently, expressed interest in contributing if the project formalizes as a business. Proposed freemium GTM model (free sample report as lead gen, paid coaching + extended reports as revenue). Potential angel intro source. NDA pending.
-- **Ravi** — advisory. NDA pending.
+- **James Pratt** — Eric's career coach (Nov-Dec 2025). First contributing coach persona (SKILL.md exists). Engaged on AI coaching partnership. Challenged assumption that companies want precision over volume (3/30/26). NDA pending.
+- **Todd Gerspach** — Eric's previous career coach. Extensive C-level network. Proposed freemium GTM model. NDA pending.
+- **Edie Hunt** (hunt.edith@gmail.com) — retired Goldman Sachs partner (30+ yrs), COO Human Capital Management, CDO. Built Goldman Returnship program. Call completed 4/7/26. Key signal: deep discovery only justified at $300K+/board-level; exec recruiters are the buyer; coach market too diffuse for volume. Sent Beth Stewart intro.
+- **Beth Stewart** — CEO Trewstar; places women on corporate boards. Intro email sent by Edie; no response as of 4/13/26. P1 validation conversation.
+- **Anne Birdsong** — VP/GM Sales Kimberly-Clark, Sr. Dir General Mills, 11 yrs PepsiCo, Cornell. Call completed 4/8/26. Key signals: (1) Immediately gravitated to consulting firm channel (Accenture-type bringing Lens to clients). (2) Validated cost-of-bad-hire from K-C experience (fired Accenture recruiting for bad-fit candidates). (3) Flagged IP protection unprompted. (4) Chris Lyon intro (CRO at League, ex-Workday). (5) Volunteered to test intake form.
+- **Rob Birdsong** — VP Google Cloud Consulting North America. Appears avoidant. Deprioritized.
+- **Jenn Monkiewicz** — Fractional CPO; built custom AI HR system with SCX.ai. Met week of 4/7. Follow-up Wednesday 4/15.
+- **Nathan Fierley** — potential co-builder. Tested bidirectional lens concept. No NDA needed.
+- **Ravi Katam** — early tester, former Bigtincan colleague. Completed discovery flow; provided feedback on redundancy and resume/LinkedIn integration gaps. No NDA needed.
+- **Niels Godfredsen** — engineer, consulting at Remedy. Demoed product 4/4; committed to testing.
+- **Jared Hibbs** — tester; completed full discovery flow; structured feedback processed.
+- **Brendan McCarthy** — tester (~2 hours, post-guardrails refactor). Flagged repetitive questioning.
+- **Bob Slaby** — CCO at Bigtincan (Vector Capital hire), now at Showpad. Outreach sent 4/8 for exec recruiter intros; no response. No NDA.
+- **David Keane** — Bigtincan founder; skeptical of AI SaaS; received moat-focused deck.
+- **Jordan Frank** — runs Traction Software 23+ years. 10-slide intro deck built for meeting 4/13/26.
 
 ---
 
 ## What's Been Built
+
+### Live Product
+
+**Lens Intake App** — deployed at `lens-app-five.vercel.app` (not lens-red-two). Current production build: `2026.04.12-n`.
+- Full 8-section AI-guided discovery with live Claude Sonnet API
+- Serverless proxy deployed: `/api/discover`, `/api/synthesize`, `/api/score` return 405 on GET (correctly expecting POST). API keys and system prompts no longer exposed in browser dev tools.
+- Sensitivity filter removes sentences with clinical labels (no bracketed placeholders). MAX_TOKENS 6000, temperature 0.5, timeout budget 58s with graceful degradation.
+- Guardrails: single-question-per-turn, reflection before questions, no leading multiple-choice prompts
+- Session persistence: localStorage under key `lens-session`; files don't need re-upload on return
+- Save/return capability deployed
+- `/api/score-role` returns 404 — unbuilt (P1, lower urgency given narrowed enterprise timeline)
+
+**Three tester feedback issues addressed (Claude Code complete):**
+1. No privacy disclosure at flow start → Swiss Style disclosure UI added
+2. Redundant questioning across sections → cross-section context accumulator
+3. Bias in discovery prompts toward Eric's profile → all 8 section system prompts rewritten
 
 ### Core IP Documents
 
@@ -45,148 +72,125 @@ The insight: generic AI coaching struggles with ROI. When coaching produces a fu
 - C→R weights: Mission 25, Role 20, Culture 18, Skill 17, Work Style 12, Energy 8
 - R→C weights: Builder Signals 25, Relational Intelligence 22, Domain Expertise 18, Values Alignment 15, Work Style 12, Energy & Sustainability 8
 
-Dimension cross-mapping between directions, hard gate logic in code (not prompt), Gate Tolerance x Analysis Depth = 9 named evaluation modes, Mutual Fit formula = (C→R x 0.5) + (R→C x 0.5), Match Report format, worked example Eric x LeanData MF:72.
+Dimension cross-mapping, hard gate logic in code (not prompt), Gate Tolerance x Analysis Depth = 9 named evaluation modes, Mutual Fit formula = (C→R x 0.5) + (R→C x 0.5), worked example Eric x LeanData MF:72.
 
 **Feedback Loop Learning System Spec** (`specs/feedback-loop-spec-v1.0.md`)
-~3,500-word standalone IP document covering:
-- Signal taxonomy: 12 explicit + 8 implicit signals with strength/direction values
-- Signal decay: effective_strength = base_strength x e^(-lambda x days), configurable lambda (0.01 default, half-life ~69 days). Asymptotic, never reaches zero. Alternative embodiments: lambda=0.03 (urgent), lambda=0.005 (passive), adaptive lambda
-- Weight adjustment: 4-step algorithm (contribution ratios, adjustment x learning_rate 0.02, floor 3/ceiling 40, renormalize to 100). Cold start: learning_rate 0.04 for first 20 signals
-- Disqualifier refinement: >60% pursued rate triggers relaxation suggestion; 10 skips in 7 days triggers new gate suggestion
-- Drift detection: stated vs. revealed weights over 30-day trailing window. Thresholds: 0-10 aligned, 11-20 minor, 21-30 notable, 31+ significant. Three-option UX
-- 6 collection points: at delivery, 48hr, after outreach, after interview, after outcome, monthly reflection
-- Global model: activated at 100+ users per cohort, 50+ pattern instances
-- Build status: SPECIFIED. Not running in n8n. Pipelines are static-weight scoring only.
+~3,500-word standalone IP document. Signal taxonomy (12 explicit + 8 implicit), signal decay (exponential, configurable lambda), weight adjustment algorithm (learning_rate 0.02), disqualifier refinement, drift detection (stated vs. revealed over 30-day trailing window). Build status: SPECIFIED, not running.
+
+**Competitive Landscape** (`specs/lens-competitive-landscape.md`) — 18 entries in Airtable (migrated 4/7/26). MD file is source of truth for narrative analysis, risks, GTM strategy, and research citations. Includes SquarePeg cautionary tale, Pymetrics/Harver acquisition, BetterUp current state, internal mobility platform landscape (Gloat, Fuel50, Eightfold AI), Recruiterflow, Plum, Torre.ai.
+
+**Strategic Brief** (`specs/strategic-brief-v1.3.md`) — analytical stress-test document. 16 known gaps, 10 assumptions to challenge, competitive matrix, business model with unit economics.
+
+**Signal Reconstructibility Test** — 3 independent AI systems given standard recruiter materials (resume + DISC) reconstructed ~43% of discovery artifact signal. Largest gaps: values (~22%), energy (~30%), disqualifiers (~13%). Prompt/framework (v1.0 md) and findings (v1.0 pdf) in docs/.
 
 ### Components (React JSX)
 
-**Role Lens Scorer R→C** (`components/role-lens-scorer-v1.3.jsx`) — Swiss Style, 9 evaluation modes (Gate Tolerance x Analysis Depth sliders). Deployed to Vercel with serverless API proxy (`api/score.js`). Uses structured LLM prompting with JSON output schema. Reduced false-positive rate from ~74% to <15%.
+**Role Lens Scorer R→C** (`components/role-lens-scorer-v1.3.jsx`) — Swiss Style, 9 evaluation modes. Deployed to Vercel with serverless API proxy.
 
-**Candidate Lens Scorer C→R** (`components/lens-scorer.jsx`, v2.15) — Dark theme, operational 4+ months. Needs Swiss Style port. The original scorer that powers Eric's personal job search pipeline.
+**Candidate Lens Scorer C→R** (`components/lens-scorer.jsx`, v2.15) — Dark theme, operational 4+ months.
 
-**Lens Intake Form** (`components/lens-intake.jsx`, v1.0) — Swiss Style. Intro page + context upload (5-category file upload: resume, LinkedIn PDF, writing samples, assessments, anything else). Phase 4 (discovery) still placeholder. Session persistence (phase + status saved).
-
-**Lens Discovery Form** (`components/lens-form.jsx`, v1.0, ~800 lines) — Live Claude API integration (Sonnet). 8 discovery sections with per-section system prompts (Essence, Skills, Values, Mission, Work Style, Energy, Disqualifiers, Situation). Typewriter effect. YAML frontmatter + markdown output. This is the core discovery engine. Needs integration into lens-intake.jsx.
-
-**Lens Feedback Form** (`components/lens-feedback/`, v1.0) — Swiss Style, 8 questions, Q8 tests freemium pricing model. Airtable backend (tblUAyulKOKXiRoOx in archive base). Vercel-deployable (api/submit.js + public/index.html + vercel.json). Ready to deploy.
+**Lens Feedback Form** (`components/lens-feedback/`, v1.0) — Swiss Style, Airtable backend. Deployed at lens-feedback.vercel.app.
 
 ### Decks (Swiss Style, pptxgenjs)
 
-**Investor Pitch Deck** (`docs/lens-investor-pitch-v5.3.pptx`) — 18 slides with full speaker notes on every slide. Includes: TAM $35.2B / SAM $4.2B / SOM $12M Y3, 3-stream revenue model (B2C + Coach B2B2C + Enterprise), bootstrapping path to breakeven at ~100 subscribers, expansion markets (internal mobility, founder-investor, team composition, outplacement), build status labels (Running/Specified/Done), competitive patent column, dual ask (bootstrap OR $750K seed).
+**Investor Pitch Deck** (`docs/lens-investor-pitch-v5.4.pptx`) — 18 slides. Rebuilt with stress test pivots in progress (April 13).
 
-**Coach Pitch Deck** (`docs/lens-coach-pitch-v4.pptx`) — 11 slides. Bidirectional slide, enterprise opportunity, feedback loop as coaching philosophy.
+**Coach Pitch Deck** (`docs/lens-coach-pitch-v4.pptx`) — 11 slides.
+
+**Lens Intro Deck** (`docs/lens-intro-v2.pptx`) — 11 slides. Rebuilt with all 8 stress test pivots applied (April 12).
+
+**Jamie Stern Deck** (`docs/lens-jamie-stern-v3.pptx`) — 22 slides. Rebuilt with stress test pivots (April 13). For retained boutique search firm audience.
+
+**Jordan Frank Intro** (`docs/lens-jordan-frank-intro.pptx`) — 10 slides. Built for 4/13 meeting.
+
+### Positioning Documents
+
+**Core Narrative** (`docs/core-narrative-v1.2.md`) — Single source for product positioning. Updated with exec recruiter audience, coach distribution caveat, $300K+ threshold, internal mobility framing.
+
+**Lens for Hiring Leaders** (`docs/lens-for-hiring-leaders-v2.1.docx`) — Corporate audience doc. Stakeholder misalignment as primary problem, two use cases (exec search + internal mobility), comparison table, diagnosis vs. agency framing, signal test data, "Inspiration not validation" research framing. v2.1 shipped April 13.
+
+**Lens for Executive Recruiting** (`docs/lens-exec-recruiting-v1.2.docx`) — 6-page Briefing Style for Beth Stewart audience. Portfolio inputs table, 3 recruiter use cases, diagnosis-vs-agency section.
+
+**Competitive Stress Test Brief** (`docs/lens-competitive-stress-test-v1.md`) — Adversarial stress test fed to 4 independent AI models.
+
+**Stress Test Synthesis** (`docs/lens-stress-test-synthesis-v1.md`) — 8 strategic pivots derived from 4 LLM stress test runs. Decision document.
+
+**Deck Update Spec** (`docs/deck-update-spec-v1.md`) — Maps every slide change across 3 decks based on stress test pivots.
 
 ### Legal Documents (LOCAL ONLY — never in git)
 
 **Provisional Patent — FILED March 24, 2026**
 - Application #: 64/015,187
-- Confirmation #: 1709
-- Patent Center #: 74987549
 - Entity status: Micro ($65 fee paid)
-- **Deadline to convert to nonprovisional: March 24, 2027** (calendar reminders set)
-- Filed spec: `Provisional_Patent_Specification_Filed_v2.0_20260324.docx`
-- Filed drawings: `Provisional_Patent_Drawings_v2.0_20260324.pdf`
-- Receipt: `USPTO_Receipt_64-015-187_20260324.pdf`
+- **Deadline to convert to nonprovisional: March 24, 2027**
+- 10 claims (3 independent). Microsoft Patent US20250378320A1 flagged as strongest prior art anchor — flag for patent attorney before conversion.
 
-10 claims (3 independent: identity document as scoring governance, asymmetric bidirectional matching, transparent preference drift detection). Alternative embodiments: internal mobility, founder-investor, team composition, coach-client, outplacement.
-
-**Prior Art Landscape** (v1.0) — DONE. Research complete. Key finding: no competitor has filed on identity-signal matching, asymmetric bidirectional scoring, or transparent preference drift detection. Korn Ferry US10346804 is closest but distinguishable.
-
-**IP Summary** (v1.1) — 17 artifacts cataloged, contributor IP boundaries, timestamped authorship declaration.
-
-**Mutual NDA** (v1.0) — RI governing law, 2-year term. Section 5 IP ownership clause. Sign with Nathan, James, Todd, Ravi.
-
-### Supporting Documents
-
-**Core Narrative** (`docs/core-narrative.md`, v1.1) — The single source for all product positioning. Every deck, one-pager, and audience document derives from this. Sections: The Problem, What Exists, What a Lens Is, The Feedback Loop, Signal Matching Over Keyword Matching, Bidirectional Scoring, Where It Stands, Audience Routing (job seekers, hiring leaders, coaches, investors, testers).
-
-**Lens for Beginners** (`docs/Lens_for_Beginners_v1.1.docx`) — Shareable explainer. Problem, what a lens is, comparison table (Resume/ATS vs Personality Tests vs Lens), 4-step how it works, bidirectional explanation, who it's for. Closing pull-quote about replacing resumes with a structured identity system.
-
-**Launch Plan** (`docs/lens-launch-plan-v2.0.docx`) — 4 phases with dates, deliverables (DONE markers for Phase 1), success metrics tables, risk mitigations.
-
-**Eric Zelman Test Profile** (`docs/eric-zelman-test-profile-v1.0.md`) — Pasteable test profile for R→C scorer demos.
+**NSF SBIR Project Pitch** (`docs/nsf-project-pitch-draft-v1.md`) — v0.3. Research question: does AI-facilitated structured identity discovery produce professional representations with higher predictive validity than self-report methods? Grounded in Oh, Wang, and Mount (2011).
 
 ### Config
 
-**James Pratt SKILL.md** (`config/James_Pratt_Skill.md`) — Coach persona encoding. Be-Have-Do, Authentic Presence (Essence + Pathway), IAM Model (Intention, Attention, Manifestation), Tide Pool vs. Buoy metaphor.
+**James Pratt SKILL.md** (`config/James_Pratt_Skill.md`) — Coach persona encoding.
 
-**Agent Lens** (v2.15, lives in `zelman/tidepool` repo) — Monolith at repo root for n8n backward compat. Three-file user architecture in `users/` (lens.md, scoring.yaml, sources.yaml). Dual-mode scoring-config.yaml.
+**Agent Lens** (v2.15, lives in `zelman/tidepool` repo) — Three-file user architecture in `users/`.
 
-### FigJam Diagrams (10 total, Mermaid format)
+### Airtable Tables (base appFO5zLT7ZehXaBo)
 
-Original 7: User flow, product architecture, GTM phases, UX storyboard, data flow, coach onboarding, enterprise role lens.
-
-3 added March 22: Product Architecture v2 (4 tiers with bidirectional scoring), Feedback Loop Architecture v1 (6 collection points, 3 levels, drift detection), User Journey Storyboard v2 (3-month practical timeline).
-
-Note: FigJam/Figma MCP generates Mermaid-format only. No control over typography or design language.
-
-### Airtable Tables
-
-- **Lens Feedback** (tblUAyulKOKXiRoOx in appFO5zLT7ZehXaBo) — user testing feedback collection
-- **Lens Plan** (tblXSpTl6d8U5Q0YY in appFO5zLT7ZehXaBo) — kanban board for project tasks
-- **Artifact Registry** (tblcE723hIH692lSy in appFO5zLT7ZehXaBo) — tracks all artifacts with version, category, location, git status, deploy status. 24+ rows. Single source of truth for what exists and where.
+- **Lens Plan** (tblXSpTl6d8U5Q0YY) — kanban board for project tasks
+- **Feedback Archive** (tbl0Ec6OPqPqyDTDB) — validation conversation notes and tester feedback
+- **Testers** (tbl2PmUHEnwytU3Q8) — tester tracking
+- **Competitive Intelligence** (tbl1n2MWWpmlJqhmf) — 18+ records (migrated 4/7/26)
+- **Artifact Registry** (tblcE723hIH692lSy) — tracks all artifacts
+- **Meetings** (tblvk5GWuVmtpG1w1) — meeting notes
+- **Claude Code Sessions (Lens)** (tblLgWUHElcbKABKF) — session logs
+- **Lens Feedback** (tblUAyulKOKXiRoOx) — user testing feedback collection
 
 ---
 
-## Product Architecture
+## Enterprise Thesis (Narrowed April 2026)
 
-```
-FREE TIER:
-  User -> Intake Form (context upload + AI/coach-persona discovery)
-    -> Lens Document (.md + YAML frontmatter)
+### Validation Signal Summary
 
-PAID TIER ($50/mo):
-  Lens Document -> n8n Scoring Pipeline -> Daily Briefing Email
-    |-- Job Alert Parser (Brave Search enrichment + Claude scoring)
-    |-- VC Portfolio Scraper (company discovery + fit evaluation)
-    |-- Feedback Loop (user signals recalibrate weights over time)
+**Edie Hunt (4/7/26):** $300K+/board-level only. Exec recruiters are the buyer. Coach market too diffuse for volume. Internal mobility may be more tractable than external hiring.
 
-COACH CHANNEL (B2B2C):
-  Coach Partner -> Facilitates deeper discovery -> Methodology encoded as AI persona
-    -> Revenue sharing + brand extension
+**Anne Birdsong (4/8/26):** Consulting firm channel (Accenture-type). Validated cost-of-bad-hire from K-C experience. IP protection concern unprompted. Chris Lyon intro pending.
 
-ENTERPRISE (Future):
-  Role Lens (company-side) <-> Candidate Lens = Bidirectional matching
-    -> Match Reports with Mutual Fit scores, gate analysis, interview questions
-    -> Differentiated from: ATS (keyword), DISC/StrengthsFinder (static),
-      360 Feedback (backward-looking), Jack & Jill (no depth, no document, no feedback loop)
-```
+**James Pratt (3/30/26):** Companies want more candidates, not better-filtered ones. Challenged precision-over-volume assumption.
+
+**Stress Test (4/12/26):** 4 independent AI models stress-tested the positioning. 8 pivots: role lens leads, "prevent expensive misalignment" language, Oh/Wang/Mount reframed as "inspired by" not "foundation," first customer = 10-20 person retained boutique, SquarePeg cautionary tale.
+
+### Two Entry Paths
+
+1. **Executive recruiter channel:** Retained boutiques placing $300K+ candidates. Narrower but higher-margin. Beth Stewart and Chris Lyon as validation pipeline.
+2. **Internal mobility:** Employees intrinsically motivated, already known, cost of bad move = retention loss. Aptitude Research data: 77% lost talent, 70% investing more, only 25% confident.
 
 ---
 
-## Competitive Landscape
+## Research Foundation
 
-Patent search results (March 2026):
-- Greenhouse: no patents on matching methods
-- Lever: no patents
-- Gallup/CliftonStrengths: copyright/trade secret only, no utility patents, no job matching
-- DISC: public domain since 1928
-- Jack & Jill ($20M seed, est. 2025): zero patent filings. 10-20 min intake, symmetric matching, no structured document, no feedback loop
-- Korn Ferry: US10346804 (2019) — four-category self-assessment, unidirectional, no coaching discovery, no feedback loop. Closest prior art but distinguishable on method, direction, and adaptivity.
+**Oh, Wang, and Mount (2011)** — JAP 96:4, 762-773. Meta-analysis of 44,000+ participants: observer ratings predict job performance significantly better than self-reports. **Framing: "inspired by," not "foundation."** What we produce today is higher-resolution structured self-report — not observer-grade assessment. The research question: how close can AI-facilitated discovery get to the observer-rating ceiling?
 
-Key differentiation: No competitor has filed on identity-signal matching, asymmetric bidirectional scoring, or transparent preference drift detection.
+**Signal Reconstructibility Test** — ~43% overlap. Largest gaps in values, energy, disqualifiers. Quantifies what hiring teams intuit: standard materials capture less than half of what determines fit.
+
+**Aptitude Research (2023)** — 77% of companies lost talent to lack of career development. 70% investing more in internal mobility. Only 25% confident their approach works. 58% of employees would leave if not considered for internal roles.
+
+**Competitive white space confirmed:** No product occupies the deep-plus-scalable quadrant. Internal mobility platforms (Gloat, Fuel50, Eightfold AI) match on skills only — the identity layer is open.
 
 ---
 
-## GTM: Four Phases
+## Company Formation
 
-1. **Validate (Now)** — Build intake form, test with Nathan + James, collect feedback via Airtable. Patent filed March 24, 2026.
-2. **Free Tool Launch** — Deploy intake form (Vercel), free lens generation, Todd's network + coach referrals, email waitlist
-3. **Paid Product** — Connect lens to n8n pipeline, daily briefing emails, $50/mo Stripe, passive monitoring as retention engine
-4. **Scale** — Onboard coaches 2-5, enterprise role lens, coach channel revenue (B2B2C), raise on data flywheel + coach network moat
+- **Zelman Labs LLC** — RI LLC filing ($156), EIN obtained. SAM.gov registration completed (2-4 week processing). Eric is registered agent using home address.
+- RI minimum annual tax: $400 regardless of revenue. Disregarded entity for federal tax (Schedule C).
+- SBIR.gov Company Registry: next after SAM.gov clears.
 
 ---
 
-## Revenue Model
+## GTM Sequence (Updated April 2026)
 
-| Stream | Year 1 | Year 2 | Year 3 |
-|--------|--------|--------|--------|
-| B2C (subscriptions) | $30K | $180K | $600K |
-| Coach B2B2C | $12K | $72K | $180K |
-| Enterprise | $0 | $60K | $420K |
-| Total | $42K | $312K | $1.2M |
-
-94% gross margin. Breakeven at ~100 subscribers.
+1. **Candidate product first.** Free lens intake → portable artifact. Coach channel as distribution. This is where traction exists.
+2. **Internal mobility as enterprise wedge.** Pain point validated by Aptitude data and Edie Hunt.
+3. **Executive recruiter channel.** Boutiques placing $300K+ candidates. Beth Stewart, Chris Lyon as validation.
+4. **External hiring as scale play.** Bidirectional matching for external candidates. Build toward as data and trust accumulate.
 
 ---
 
@@ -198,20 +202,10 @@ github.com/zelman/lens/
 |-- ARTIFACT-WORKFLOW.md             # Commit workflow + artifact management rules
 |-- specs/                           # Core IP documents
 |-- components/                      # React JSX components + Vercel packages
-|-- docs/                            # Decks, plans, explainers
+|-- docs/                            # Decks, plans, explainers, positioning docs
 |-- config/                          # Coach personas, scoring configs
 |-- legal/                           # .gitignore'd — NEVER committed
 ```
-
-See ARTIFACT-WORKFLOW.md for the three rules: registry row immediately, git commit checklist per session, legal never in public git.
-
----
-
-## Artifact Management
-
-**Airtable Artifact Registry** (tblcE723hIH692lSy in appFO5zLT7ZehXaBo) is the single source of truth. Every artifact gets a row tracking name, version, category, filename, location, git status, deploy status, and notes.
-
-Workflow: Claude.ai creates artifacts -> adds registry row -> Eric downloads files -> Claude Code commits to git -> registry updated with In Git = true. Legal docs stay local only.
 
 ---
 
@@ -219,79 +213,64 @@ Workflow: Claude.ai creates artifacts -> adds registry row -> Eric downloads fil
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Intake form (intro + upload) | Running | Swiss Style, needs discovery wiring |
-| Discovery form (lens-form.jsx) | Running | ~800 lines, Claude API, 8 sections |
-| Feedback form | Running | Swiss Style, Airtable backend, ready for Vercel |
+| Lens intake app (full flow) | Running | Deployed on Vercel, serverless proxy, sensitivity filter, guardrails |
 | Role Lens Scorer (R->C) | Running | Deployed to Vercel, 9 modes |
 | C->R Scorer | Running | Dark theme, operational 4+ months |
 | Bidirectional Lens System | Specified | v1.0 spec complete, not implemented |
 | Feedback Loop Learning System | Specified | v1.0 spec complete, not in pipeline |
-| Enterprise role lens | Specified | Spec done, intake not built |
+| Role lens stakeholder intake | In Design | **P0 near-term build** — primary validation focus |
+| /api/score-role route | Unbuilt | P1, lower urgency given narrowed timeline |
+| Feedback form | Running | Swiss Style, Airtable backend, deployed |
 | Connect lens to n8n pipeline | Designed | Architecture clear, not wired |
 | Daily briefing email | Designed | Template concept, not built |
-| Stripe integration | Planned | Phase 3 |
-| Coach onboarding #2/#3 | Planned | After James Pratt validates model |
-
----
-
-## Funding Situation (March 2026)
-
-Unemployment ends ~5 weeks (late April 2026). Infrastructure cost: ~$200-300/month currently, scales to ~$500/month at 100 users. n8n scalability is a Phase 3 problem (not before ~100 paying users).
-
-Paths (priority order):
-1. Personal loan from father-in-law (~$25K) — promissory note, NOT equity/SAFE. Covers 3-4 months.
-2. Angel round via Todd's network ($100-150K) — SAFE note. v5.3 deck works.
-3. Fractional CS work — bridge income, materials exist from February.
-4. Accelerator (YC/Techstars) — $125-500K for 7-10%, but timeline doesn't solve 5-week problem.
-
-The real raise: $750K seed for engineering team + scaling infrastructure. But bootstrapping path exists: breakeven at ~100 subscribers without any external capital.
+| Media intake (audio/video) | Specified | AssemblyAI, speaker diarization, two-pass. Deferred. |
+| Multi-call synthesis split | Ready | Config-driven parallel arch with voice primer. Implement when timeouts cluster. |
 
 ---
 
 ## Key Learnings & Principles
 
 - **Signal matching over keyword matching** — the core thesis
-- **Lens works bidirectionally** — candidate lens scores companies; role lens scores candidates. This unlocks enterprise.
-- **Freemium as distribution, not revenue** — Todd's instinct; value is coach adoption and data flywheel
-- **Coaching ROI solved by the lens** — when coaching produces a functional document that governs scoring, the outcome is concrete
-- **Coach channel as quality moat** — self-serve can't replicate coach-facilitated depth
-- **Passive monitoring as retention engine** — makes the business investable
-- **Integration over performance** — authentic voice and values alignment matter more than performing expected roles
-- **Append, don't overwrite** — applies to metadata, self-reflection, and the feedback loop's weight adjustment
+- **Role lens leads.** Stakeholder alignment is the primary pain; the candidate lens follows.
+- **"Prevent expensive misalignment"** — outcome language, not feature language
+- **Enterprise thesis is speculative but narrowed.** Exec recruiters at $300K+, not broad HR.
+- **Oh/Wang/Mount: "inspired by," not "foundation."** We produce higher-resolution self-report, not observer-grade assessment. That's the research question, not the answer.
+- **The daily scored briefing is the core product experience**, not the lens document itself.
+- **Session length (45-60 min) is a feature**, not a bug. Signals coaching-level depth.
+- **Deliver manual first.** Don't build multi-tenant infrastructure until demand is validated.
+- **SquarePeg cautionary tale:** attempted bidirectional psychometric matching, pivoted to AI resume screening. "Buyers pay for less work and better optics, not better judgment."
+- **Coach channel = quality gate, not volume path.** Coach market too diffuse for enterprise scale.
 - **Swiss Style for product identity** — invisible design, content does the work
+- **College matching is not a current initiative.** Identity signals in high school too unstable.
 
 ---
 
 ## Design Language ("Briefing Style")
 
-Swiss base: white background, black type, #D93025 red primary, zero border-radius, hairline rules. Layered richness: all-caps spaced section labels in red, #2D6A2D green for positive signals, #E8590C orange for secondary, monospace for scores, subtle card borders (#EEE), #F0F0F0 container background, tinted signal pills. DM Sans / DM Mono typography.
-
-Apply to ALL decks and product materials.
+Swiss base: white background, black type, #D93025 red primary, zero border-radius, hairline rules. Layered richness: all-caps spaced section labels in red (do NOT use wide characterSpacing on "LENS PROJECT" header), #2D6A2D green for positive signals, #E8590C orange for secondary, monospace for scores, subtle card borders (#EEE), #F0F0F0 container background, tinted signal pills.
 
 ---
 
-## Immediate Action Items
+## Near-Term Priorities
 
-- [x] File provisional patent — **DONE March 24, 2026** (Application #64/015,187)
-- [x] Create zelman/lens repo — **DONE** (committed all artifacts)
-- [x] Prior art search — **DONE** (prior-art-landscape-v1.0.docx)
-- [x] Deploy feedback form to Vercel — **DONE** (https://lens-feedback.vercel.app)
-- [ ] Email IP Summary to self — zelman@gmail.com, timestamp is evidence
-- [ ] Sign NDAs with Nathan, James, Todd, Ravi before next substantive demos
-- [ ] Choose product domain (not tide-pool.org)
-- [ ] Reach out to Todd — show v5.3 deck, ask for 2-3 angel intros
-- [ ] Wire discovery phase — integrate lens-form.jsx into lens-intake.jsx Phase 4
-- [ ] Build father-in-law one-pager — simple promissory note framing, separate from investor deck
-- [ ] Restart fractional CS outreach — bridge income
+- **Role lens stakeholder intake** — P0. Design and build. Primary validation focus.
+- **Run role lens validation conversations** — 3-5 boutique partners. Pipeline: Beth Stewart, Chris Lyon, Jenn follow-up.
+- **Beth Stewart / Trewstar conversation** — P1. No response to intro email yet.
+- **Jenn Monkiewicz follow-up** — Wednesday 4/15.
+- **Chris Lyon intro** via Anne Birdsong — pending.
+- **Git commit** — 12+ artifacts from stress test sessions need Claude Code commit.
+- **SAM.gov registration** processing (~2-4 weeks remaining).
+- **Security verification** (proxy Phase 5) — manual browser check before new tester URLs.
+- **Nonprovisional patent conversion** deadline: 3/24/27. Flag Microsoft patent for attorney.
 
 ---
 
 ## Open Questions
 
-- **Nathan's role:** A/B/C collaboration options pending decision. NDA first.
+- **Does role lens stakeholder intake resonate with retained boutiques?** Primary near-term validation question.
 - **Product domain:** tide-pool.org reserved for archive. Need new domain for Lens product.
-- **Pipeline connection:** How does the generalized lens connect to scoring pipeline? Fork of v9 or new build?
-- **n8n scalability:** Current architecture works to ~100 users. Phase 3 problem.
+- **Consulting firm channel (Anne's insight):** Is Accenture-type firm a real distribution path, or does it require enterprise infrastructure that doesn't exist yet?
+- **White-label for recruiters:** Should the recruiter embed Lens into their process invisibly, or is the Lens brand part of the value?
 - **Coach persona format:** James Pratt SKILL.md exists. What's the standardized format for coach #2, #3?
 
 ---
