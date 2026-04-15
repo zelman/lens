@@ -2,6 +2,53 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-14] Session Generation Engine (R→C POC Steps 1-3)
+
+### lens-app 2026.04.14-g (Dimension Extraction & Session Generation)
+Adds the session generation engine that transforms recruiter role context into a tailored candidate discovery session. Builds on the recruiter role form (2026.04.14-f).
+
+**New API Routes:**
+- `/api/extract-dimensions` — Extracts 4-8 role-specific dimensions from role context
+  - Model: claude-sonnet-4-20250514, temp 0.3, max_tokens 4000
+  - Returns dimensions with importance levels, signals, red flags
+  - Includes fallback dimensions for thin context with warning
+- `/api/generate-session` — Generates full session config from reviewed dimensions
+  - Model: claude-sonnet-4-20250514, temp 0.5, max_tokens 6000
+  - Returns session config with foundation + tailored layers
+  - Accepts optional candidate materials for pre-loaded adjustments
+
+**New System Prompts (server-side only):**
+- `app/api/_prompts/extract-dimensions.js` — Dimension extraction prompt
+- `app/api/_prompts/generate-session.js` — Session config generation prompt
+
+**UI Changes (RecruiterRoleForm.jsx):**
+- New "Dimensions" phase (Step 4 of 4) after Review
+- DimensionReviewPhase component with:
+  - Dimension cards with importance badges (click to cycle)
+  - Inline label editing
+  - Reorder dimensions (up/down buttons)
+  - Add custom dimensions
+  - Remove dimensions (minimum 2)
+  - Dynamic time estimate display
+- Updated progress bar: ["Role", "Documents", "Review", "Dimensions"]
+- Extraction loading state with spinner
+- Session generation with "Generating session..." state
+
+**Output Storage:**
+- `sessionStorage["recruiter-role-context"]` — Role context JSON
+- `sessionStorage["session-config"]` — Generated session config JSON
+
+**Files Created:**
+- `app/api/_prompts/extract-dimensions.js`
+- `app/api/extract-dimensions/route.js`
+- `app/api/_prompts/generate-session.js`
+- `app/api/generate-session/route.js`
+
+**Files Modified:**
+- `app/components/RecruiterRoleForm.jsx` (~+300 lines)
+
+---
+
 ## [2026-04-14] Recruiter Role Input Form (R→C POC Step 1)
 
 ### lens-app 2026.04.14-f (Recruiter Role Form)

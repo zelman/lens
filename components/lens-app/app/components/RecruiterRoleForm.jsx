@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.14-f";
+const BUILD_ID = "2026.04.14-g";
 
 // ── Design tokens (match candidate intake exactly) ──
 const RED = "#D93025";
@@ -954,10 +954,308 @@ function ReviewPhase({ formData, files, onEdit, onBack, onConfirm }) {
   );
 }
 
-function ConfirmationPhase({ roleContext, onStartNew }) {
-  const handleCopyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(roleContext, null, 2));
+function DimensionReviewPhase({ dimensions, setDimensions, roleContext, onBack, onGenerate, isGenerating, generateError }) {
+  const [editingId, setEditingId] = useState(null);
+  const [editValue, setEditValue] = useState("");
+
+  const importanceLevels = ["critical", "high", "moderate"];
+  const importanceColors = { critical: RED, high: ORANGE, moderate: GRY };
+
+  const calculateTimeEstimate = (dims) => {
+    const foundation = 7; // minutes
+    let tailored = 0;
+    for (const dim of dims) {
+      if (dim.importance === "critical") tailored += 4;
+      else if (dim.importance === "high") tailored += 3;
+      else tailored += 1.5;
+    }
+    const total = foundation + tailored;
+    return `${Math.floor(total)}-${Math.ceil(total + 4)} min`;
   };
+
+  const cycleImportance = (dimId) => {
+    setDimensions(prev => ({
+      ...prev,
+      dimensions: prev.dimensions.map(d => {
+        if (d.id !== dimId) return d;
+        const currentIdx = importanceLevels.indexOf(d.importance);
+        const nextIdx = (currentIdx + 1) % importanceLevels.length;
+        return { ...d, importance: importanceLevels[nextIdx] };
+      }),
+    }));
+  };
+
+  const startEdit = (dim) => {
+    setEditingId(dim.id);
+    setEditValue(dim.label);
+  };
+
+  const saveEdit = () => {
+    if (editValue.trim() && editingId) {
+      setDimensions(prev => ({
+        ...prev,
+        dimensions: prev.dimensions.map(d =>
+          d.id === editingId ? { ...d, label: editValue.trim() } : d
+        ),
+      }));
+    }
+    setEditingId(null);
+    setEditValue("");
+  };
+
+  const removeDimension = (dimId) => {
+    if (dimensions.dimensions.length <= 2) return; // Keep at least 2
+    setDimensions(prev => ({
+      ...prev,
+      dimensions: prev.dimensions.filter(d => d.id !== dimId),
+    }));
+  };
+
+  const moveDimension = (index, direction) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= dimensions.dimensions.length) return;
+    setDimensions(prev => {
+      const dims = [...prev.dimensions];
+      [dims[index], dims[newIndex]] = [dims[newIndex], dims[index]];
+      return { ...prev, dimensions: dims };
+    });
+  };
+
+  const addCustomDimension = () => {
+    const id = `custom_${Date.now()}`;
+    const newDim = {
+      id,
+      label: "New Dimension",
+      importance: "moderate",
+      sources: ["Custom"],
+      whatToExplore: "",
+      signals: [],
+      redFlags: [],
+    };
+    setDimensions(prev => ({
+      ...prev,
+      dimensions: [...prev.dimensions, newDim],
+    }));
+    startEdit(newDim);
+  };
+
+  const dimCardStyle = {
+    padding: "16px",
+    background: "#fff",
+    border: `1px solid ${RULE}`,
+    marginBottom: "8px",
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "12px",
+  };
+
+  const badgeStyle = (importance) => ({
+    padding: "4px 8px",
+    fontSize: "10px",
+    fontWeight: 600,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    background: importanceColors[importance],
+    color: "#fff",
+    cursor: "pointer",
+    border: "none",
+    fontFamily: FONT,
+  });
+
+  return (
+    <div style={containerStyle}>
+      <div style={{ marginBottom: "32px" }}>
+        <div style={{
+          fontSize: "11px", letterSpacing: "0.12em", color: RED,
+          textTransform: "uppercase", marginBottom: "8px", fontWeight: 500,
+        }}>
+          STEP <span style={{ color: ORANGE }}>4</span> OF 4
+        </div>
+        <h2 style={{ fontSize: "24px", fontWeight: 600, margin: "0 0 8px", lineHeight: 1.2 }}>
+          Review dimensions
+        </h2>
+        <p style={{ fontSize: "14px", color: GRY, margin: 0 }}>
+          These are the key areas to explore with candidates for this role. Edit, reorder, or add dimensions as needed.
+        </p>
+      </div>
+
+      {/* Context quality warning */}
+      {dimensions.contextWarning && (
+        <div style={{
+          marginBottom: "24px", padding: "12px 16px", background: "#fffaf5",
+          border: `1px solid ${ORANGE}33`, fontSize: "13px", color: ORANGE, lineHeight: 1.6,
+        }}>
+          <strong>Limited context:</strong> {dimensions.contextWarning}
+        </div>
+      )}
+
+      {/* Role context summary */}
+      <div style={{
+        marginBottom: "24px", padding: "12px 16px", background: "#fafafa",
+        border: `1px solid ${RULE}`, fontSize: "13px",
+      }}>
+        <span style={{ fontWeight: 600 }}>{roleContext.roleTitle}</span>
+        <span style={{ color: GRY }}> at </span>
+        <span style={{ fontWeight: 600 }}>{roleContext.company}</span>
+        {dimensions.roleContext?.summary && (
+          <div style={{ color: GRY, marginTop: "4px", fontSize: "12px" }}>
+            {dimensions.roleContext.summary}
+          </div>
+        )}
+      </div>
+
+      {/* Time estimate */}
+      <div style={{
+        marginBottom: "24px", padding: "12px 16px", background: "#f0faf0",
+        border: `1px solid #2D6A2D33`, fontSize: "13px", color: "#2D6A2D",
+      }}>
+        <strong>Estimated session:</strong> {calculateTimeEstimate(dimensions.dimensions)}
+        <span style={{ color: GRY, marginLeft: "8px" }}>
+          ({dimensions.dimensions.length} dimensions)
+        </span>
+      </div>
+
+      {/* Dimensions list */}
+      <div style={{ marginBottom: "24px" }}>
+        {dimensions.dimensions.map((dim, idx) => (
+          <div key={dim.id} style={dimCardStyle}>
+            {/* Reorder buttons */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              <button
+                onClick={() => moveDimension(idx, -1)}
+                disabled={idx === 0}
+                style={{
+                  background: "none", border: `1px solid ${RULE}`, cursor: idx === 0 ? "default" : "pointer",
+                  padding: "4px 6px", fontSize: "10px", color: idx === 0 ? LT : BLK, fontFamily: FONT,
+                }}
+              >
+                ▲
+              </button>
+              <button
+                onClick={() => moveDimension(idx, 1)}
+                disabled={idx === dimensions.dimensions.length - 1}
+                style={{
+                  background: "none", border: `1px solid ${RULE}`, cursor: idx === dimensions.dimensions.length - 1 ? "default" : "pointer",
+                  padding: "4px 6px", fontSize: "10px", color: idx === dimensions.dimensions.length - 1 ? LT : BLK, fontFamily: FONT,
+                }}
+              >
+                ▼
+              </button>
+            </div>
+
+            {/* Main content */}
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                <button
+                  onClick={() => cycleImportance(dim.id)}
+                  style={badgeStyle(dim.importance)}
+                  title="Click to cycle importance"
+                >
+                  {dim.importance}
+                </button>
+                {editingId === dim.id ? (
+                  <input
+                    type="text"
+                    value={editValue}
+                    onChange={e => setEditValue(e.target.value)}
+                    onBlur={saveEdit}
+                    onKeyDown={e => e.key === "Enter" && saveEdit()}
+                    autoFocus
+                    style={{
+                      flex: 1, padding: "4px 8px", fontFamily: FONT, fontSize: "14px",
+                      fontWeight: 600, border: `1px solid ${RED}`, borderRadius: 0,
+                    }}
+                  />
+                ) : (
+                  <span
+                    onClick={() => startEdit(dim)}
+                    style={{ fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                    title="Click to edit"
+                  >
+                    {dim.label}
+                  </span>
+                )}
+              </div>
+
+              {dim.whatToExplore && (
+                <div style={{ fontSize: "12px", color: GRY, lineHeight: 1.5 }}>
+                  {dim.whatToExplore}
+                </div>
+              )}
+
+              {dim.sources && dim.sources.length > 0 && (
+                <div style={{ fontSize: "11px", color: LT, marginTop: "6px" }}>
+                  Source: {dim.sources.join(", ")}
+                </div>
+              )}
+            </div>
+
+            {/* Remove button */}
+            <button
+              onClick={() => removeDimension(dim.id)}
+              disabled={dimensions.dimensions.length <= 2}
+              style={{
+                background: "none", border: "none", color: dimensions.dimensions.length <= 2 ? LT : GRY,
+                cursor: dimensions.dimensions.length <= 2 ? "default" : "pointer",
+                fontSize: "18px", padding: "0", fontFamily: FONT,
+              }}
+              title={dimensions.dimensions.length <= 2 ? "At least 2 dimensions required" : "Remove dimension"}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Add dimension button */}
+      {dimensions.dimensions.length < 10 && (
+        <button
+          onClick={addCustomDimension}
+          style={{
+            width: "100%", padding: "12px", marginBottom: "32px",
+            background: "none", border: `1px dashed ${RULE}`, color: GRY,
+            cursor: "pointer", fontFamily: FONT, fontSize: "13px",
+          }}
+        >
+          + Add custom dimension
+        </button>
+      )}
+
+      {/* Error message */}
+      {generateError && (
+        <div style={{
+          marginBottom: "16px", padding: "12px 16px", background: "#fff5f5",
+          border: `1px solid ${RED}`, fontSize: "13px", color: RED,
+        }}>
+          {generateError}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: "12px" }}>
+        <button onClick={onBack} style={secondaryButtonStyle} disabled={isGenerating}>
+          Back
+        </button>
+        <button
+          onClick={onGenerate}
+          disabled={isGenerating}
+          style={{
+            ...primaryButtonStyle,
+            opacity: isGenerating ? 0.7 : 1,
+          }}
+        >
+          {isGenerating ? "Generating session..." : "Generate candidate session"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
+  const handleCopyJson = () => {
+    navigator.clipboard.writeText(JSON.stringify(sessionConfig || roleContext, null, 2));
+  };
+
+  const hasSession = !!sessionConfig;
 
   return (
     <div style={containerStyle}>
@@ -971,12 +1269,45 @@ function ConfirmationPhase({ roleContext, onStartNew }) {
           ✓
         </div>
         <h2 style={{ fontSize: "24px", fontWeight: 600, margin: "0 0 8px" }}>
-          Role context saved
+          {hasSession ? "Session generated" : "Role context saved"}
         </h2>
         <p style={{ fontSize: "14px", color: GRY, margin: 0 }}>
-          The role context for <strong>{roleContext.roleTitle}</strong> at <strong>{roleContext.company}</strong> has been saved.
+          {hasSession ? (
+            <>
+              A tailored discovery session for <strong>{roleContext.roleTitle}</strong> at <strong>{roleContext.company}</strong> is ready.
+            </>
+          ) : (
+            <>
+              The role context for <strong>{roleContext.roleTitle}</strong> at <strong>{roleContext.company}</strong> has been saved.
+            </>
+          )}
         </p>
       </div>
+
+      {/* Session summary */}
+      {hasSession && sessionConfig.metadata && (
+        <div style={{
+          padding: "20px", background: "#f0faf0", border: `1px solid #2D6A2D33`,
+          marginBottom: "24px",
+        }}>
+          <div style={{
+            fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
+            color: "#2D6A2D", fontWeight: 600, marginBottom: "12px",
+          }}>
+            Session details
+          </div>
+          <div style={{ fontSize: "14px", lineHeight: 1.7 }}>
+            <div><strong>Session ID:</strong> {sessionConfig.sessionId}</div>
+            <div><strong>Duration:</strong> {sessionConfig.metadata.estimatedDuration}</div>
+            {sessionConfig.foundation && (
+              <div><strong>Foundation sections:</strong> {sessionConfig.foundation.length}</div>
+            )}
+            {sessionConfig.tailored && (
+              <div><strong>Tailored dimensions:</strong> {sessionConfig.tailored.length}</div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div style={{
         padding: "20px", background: "#fafafa", border: `1px solid ${RULE}`,
@@ -989,18 +1320,30 @@ function ConfirmationPhase({ roleContext, onStartNew }) {
           What's next
         </div>
         <p style={{ fontSize: "14px", lineHeight: 1.7, margin: "0 0 16px" }}>
-          The role context is stored in your browser session. In the full product, this would
-          generate a unique candidate session link that captures these parameters.
+          {hasSession ? (
+            <>
+              The session config is stored in your browser session. This would be used to launch
+              a tailored candidate discovery conversation.
+            </>
+          ) : (
+            <>
+              The role context is stored in your browser session. In the full product, this would
+              generate a unique candidate session link that captures these parameters.
+            </>
+          )}
         </p>
         <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.6, margin: 0 }}>
-          <strong>MVP Note:</strong> For now, the role context JSON is available in your browser's
-          sessionStorage under the key <code style={{ background: "#eee", padding: "2px 6px" }}>recruiter-role-context</code>.
+          <strong>Storage keys:</strong>{" "}
+          <code style={{ background: "#eee", padding: "2px 6px" }}>recruiter-role-context</code>
+          {hasSession && (
+            <>, <code style={{ background: "#eee", padding: "2px 6px" }}>session-config</code></>
+          )}
         </p>
       </div>
 
       <div style={{ display: "flex", gap: "12px" }}>
         <button onClick={handleCopyJson} style={secondaryButtonStyle}>
-          Copy JSON
+          Copy {hasSession ? "session" : "role context"} JSON
         </button>
         <button onClick={onStartNew} style={primaryButtonStyle}>
           Define another search
@@ -1035,7 +1378,24 @@ export default function RecruiterRoleForm() {
   const [roleContext, setRoleContext] = useState(null);
   const [storageWarning, setStorageWarning] = useState(null);
 
-  const phaseIndex = phase === "intro" ? -1 : phase === "role" ? 0 : phase === "upload" ? 1 : phase === "review" ? 2 : 3;
+  // Dimension extraction state
+  const [dimensions, setDimensions] = useState(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState(null);
+
+  // Session generation state
+  const [sessionConfig, setSessionConfig] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState(null);
+
+  const phaseIndex = phase === "intro" ? -1
+    : phase === "role" ? 0
+    : phase === "upload" ? 1
+    : phase === "review" ? 2
+    : phase === "extracting" ? 2
+    : phase === "dimensions" ? 3
+    : phase === "generating" ? 3
+    : 4;
 
   // File handlers
   const handleAdd = (categoryId, newFiles) => {
@@ -1060,10 +1420,84 @@ export default function RecruiterRoleForm() {
     setPhase(targetPhase);
   };
 
-  const handleConfirm = (context) => {
+  const handleConfirm = async (context) => {
     setRoleContext(context);
-    setPhase("confirmation");
-    clearSession(); // Clear saved progress after completion
+    setExtractionError(null);
+    setIsExtracting(true);
+    setPhase("extracting");
+
+    try {
+      const res = await fetch("/api/extract-dimensions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roleContext: context }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Request failed: ${res.status}`);
+      }
+
+      const extractedDimensions = await res.json();
+      setDimensions(extractedDimensions);
+      setPhase("dimensions");
+    } catch (err) {
+      console.error("Dimension extraction failed:", err);
+      setExtractionError(err.message || "Failed to extract dimensions. Please try again.");
+      setPhase("review"); // Go back to review on error
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleGenerateSession = async () => {
+    if (!dimensions || !roleContext) return;
+
+    setGenerateError(null);
+    setIsGenerating(true);
+
+    // Build candidate materials from uploaded files (if any)
+    const candidateMaterials = {};
+    const candidateFiles = files.candidateMaterials || [];
+    if (candidateFiles.length > 0) {
+      candidateMaterials.resume = candidateFiles[0]._textContent || null;
+      if (candidateFiles.length > 1) {
+        candidateMaterials.other = candidateFiles.slice(1).map(f => ({
+          name: f.name,
+          extractedText: f._textContent || null,
+        }));
+      }
+    }
+
+    try {
+      const res = await fetch("/api/generate-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dimensions,
+          candidateMaterials: Object.keys(candidateMaterials).length > 0 ? candidateMaterials : null,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Request failed: ${res.status}`);
+      }
+
+      const config = await res.json();
+      setSessionConfig(config);
+
+      // Store to sessionStorage for downstream consumption
+      sessionStorage.setItem("session-config", JSON.stringify(config));
+
+      setPhase("confirmation");
+      clearSession(); // Clear saved progress after completion
+    } catch (err) {
+      console.error("Session generation failed:", err);
+      setGenerateError(err.message || "Failed to generate session. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleStartNew = () => {
@@ -1084,6 +1518,10 @@ export default function RecruiterRoleForm() {
     setFiles({});
     setPreviousFiles(null);
     setRoleContext(null);
+    setDimensions(null);
+    setSessionConfig(null);
+    setExtractionError(null);
+    setGenerateError(null);
     clearSession();
   };
 
@@ -1147,7 +1585,7 @@ export default function RecruiterRoleForm() {
         <div style={{ position: "sticky", top: 0, zIndex: 10, background: "#fff", borderBottom: `1px solid ${RULE}` }}>
           <div style={{ maxWidth: "560px", margin: "0 auto", padding: "0 32px" }}>
             <div style={{ display: "flex", gap: "4px", padding: "12px 0", alignItems: "flex-start" }}>
-              {["Role", "Documents", "Review"].map((label, i) => (
+              {["Role", "Documents", "Review", "Dimensions"].map((label, i) => (
                 <div key={label} style={{ flex: 1 }}>
                   <div style={{
                     height: "2px", marginBottom: "4px",
@@ -1239,9 +1677,55 @@ export default function RecruiterRoleForm() {
         />
       )}
 
+      {/* Extracting phase - show loading state */}
+      {phase === "extracting" && (
+        <div style={containerStyle}>
+          <div style={{ textAlign: "center", padding: "60px 0" }}>
+            <div style={{
+              width: "48px", height: "48px", margin: "0 auto 24px",
+              border: `3px solid ${RULE}`, borderTopColor: RED,
+              borderRadius: "50%", animation: "spin 1s linear infinite",
+            }} />
+            <h2 style={{ fontSize: "20px", fontWeight: 600, margin: "0 0 8px" }}>
+              Extracting dimensions...
+            </h2>
+            <p style={{ fontSize: "14px", color: GRY, margin: 0 }}>
+              Analyzing role context to identify key areas for candidate exploration
+            </p>
+            {extractionError && (
+              <div style={{
+                marginTop: "24px", padding: "12px 16px", background: "#fff5f5",
+                border: `1px solid ${RED}`, fontSize: "13px", color: RED, textAlign: "left",
+              }}>
+                {extractionError}
+              </div>
+            )}
+          </div>
+          <style>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )}
+
+      {phase === "dimensions" && dimensions && roleContext && (
+        <DimensionReviewPhase
+          dimensions={dimensions}
+          setDimensions={setDimensions}
+          roleContext={roleContext}
+          onBack={() => setPhase("review")}
+          onGenerate={handleGenerateSession}
+          isGenerating={isGenerating}
+          generateError={generateError}
+        />
+      )}
+
       {phase === "confirmation" && roleContext && (
         <ConfirmationPhase
           roleContext={roleContext}
+          sessionConfig={sessionConfig}
           onStartNew={handleStartNew}
         />
       )}
