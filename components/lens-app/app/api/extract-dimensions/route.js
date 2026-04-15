@@ -128,21 +128,43 @@ export async function POST(request) {
       );
     }
 
-    // Parse JSON response
+    // Parse JSON response with repair attempts
     let dimensionResult;
-    try {
-      // Clean up any markdown formatting that might have slipped through
-      const cleanText = fullText
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-      dimensionResult = JSON.parse(cleanText);
-    } catch (parseErr) {
-      console.error("[extract-dimensions] Failed to parse response as JSON:", parseErr.message);
-      console.error("[extract-dimensions] Raw response:", fullText.slice(0, 500));
+    let cleanText = fullText
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
 
-      // Return fallback dimensions for thin context
-      return Response.json({
+    // First attempt: direct parse
+    try {
+      dimensionResult = JSON.parse(cleanText);
+    } catch (parseErr1) {
+      console.log("[extract-dimensions] First parse failed, attempting repairs...");
+
+      // Repair attempt: Fix control characters and trailing commas
+      let repairedText = cleanText
+        .replace(/[\x00-\x1F\x7F]/g, (char) => {
+          if (char === '\n' || char === '\r' || char === '\t') return char;
+          return '';
+        })
+        .replace(/,\s*}/g, '}')
+        .replace(/,\s*]/g, ']');
+
+      try {
+        dimensionResult = JSON.parse(repairedText);
+        console.log("[extract-dimensions] Repair successful");
+      } catch (parseErr2) {
+        // Extract error position for debugging
+        const posMatch = parseErr1.message.match(/position (\d+)/);
+        const errorPos = posMatch ? parseInt(posMatch[1]) : null;
+        const contextAround = errorPos ? cleanText.slice(Math.max(0, errorPos - 100), errorPos + 100) : null;
+
+        console.error("[extract-dimensions] Failed to parse response as JSON:", parseErr1.message);
+        console.error("[extract-dimensions] Context around error:", contextAround);
+        console.error("[extract-dimensions] Raw response (first 500):", fullText.slice(0, 500));
+
+        // Return fallback dimensions for thin context
+        return Response.json({
         roleContext: {
           summary: `${roleContext.roleTitle} at ${roleContext.company}`,
           roleTitle: roleContext.roleTitle,
@@ -198,6 +220,7 @@ export async function POST(request) {
         contextQuality: "thin",
         contextWarning: "Unable to parse AI response. Using fallback dimensions. Add more context (documents, detailed objectives) for better results.",
       });
+      }
     }
 
     // Validate dimension count
