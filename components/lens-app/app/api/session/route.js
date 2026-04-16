@@ -5,7 +5,7 @@ const BASE_ID = 'appFO5zLT7ZehXaBo';
 const TABLE_ID = 'tblUAyulKOKXiRoOx';
 
 export async function POST(request) {
-  const token = process.env.AIRTABLE_TOKEN;
+  const token = process.env.AIRTABLE_API_KEY;
 
   if (!token) {
     return Response.json(
@@ -69,7 +69,7 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-  const token = process.env.AIRTABLE_TOKEN;
+  const token = process.env.AIRTABLE_API_KEY;
 
   if (!token) {
     return Response.json(

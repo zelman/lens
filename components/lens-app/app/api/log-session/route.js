@@ -40,10 +40,10 @@ const FIELDS = {
 };
 
 export async function POST(request) {
-  const apiKey = process.env.AIRTABLE_TOKEN;
+  const apiKey = process.env.AIRTABLE_API_KEY;
 
   if (!apiKey) {
-    console.error("[log-session] Missing AIRTABLE_TOKEN");
+    console.error("[log-session] Missing AIRTABLE_API_KEY");
     return Response.json({ error: "Service unavailable" }, { status: 500 });
   }
 
