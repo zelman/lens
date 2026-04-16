@@ -2,6 +2,43 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-15] Team Identity Validation Experiment
+
+### lens-app 2026.04.15-p (Team Identity Form)
+Adds Team Identity Validation experiment per James Pratt spec (v1.0). Tests core hypothesis: can AI synthesize individual inputs into a team identity portrait that teams recognize as accurate?
+
+**New Route:** `/team-validation`
+- 4-phase flow: Intro → Values → Work Style → Team Dynamics → Complete
+- Team code parameter supports `?team=CODE` URL pattern for shareable links
+- 10-minute target completion time
+
+**Form Sections:**
+1. **Values** — Select 5 from 40 curated values + write behavioral evidence for each
+2. **Work Style** — 5 forced-choice pairs (pace, collaboration, problems, communication, structure)
+3. **Team Dynamics** — Two open-text questions (best thing, one thing to change)
+
+**New API Routes:**
+- `/api/team-submit` — Stores submissions to Airtable (Team Validation table)
+- `/api/team-synthesize` — Fetches team submissions, generates Team Identity Portrait
+
+**New Airtable Table:** Team Validation (`tblfxCLxn4GPD9C4f`)
+- Fields: Name, Team Code, Values (JSON), Work Style (JSON), Best Thing, One Thing to Change, Submitted At, Synthesized
+
+**Team Identity Portrait Output (4 sections):**
+1. SHARED VALUES — Clustered values with aggregated behavioral evidence
+2. WORK STYLE SIGNATURE — Aggregate profile with consensus/divergence noted
+3. TEAM DYNAMICS — Synthesized from open-text responses
+4. THE TENSION MAP — Meaningful divergences (values, styles, perception gaps)
+
+**Files Created:**
+- `app/team-validation/page.js`
+- `app/components/TeamValidationForm.jsx`
+- `app/api/team-submit/route.js`
+- `app/api/team-synthesize/route.js`
+- `app/api/_prompts/team-synthesis.js`
+
+---
+
 ## [2026-04-15] Replace Scorecard with Lens Document (P0 Fix)
 
 ### lens-app 2026.04.15-n (Lens Document Output)
