@@ -48,8 +48,13 @@ The lens-app uses a **serverless proxy architecture** to protect IP:
 
 - **Server-side routes:** `/api/discover`, `/api/synthesize`, `/api/merge`
 - **System prompts:** Stored in `app/api/_prompts/` (discovery.js, synthesis.js) — NEVER sent to client
-- **Model:** `claude-sonnet-4-20250514`
+- **Model:** `claude-sonnet-4-5-20251101` (successor to deprecated `claude-sonnet-4-20250514`)
 - **Auth:** API key in environment variable (`ANTHROPIC_API_KEY`), accessed only server-side
+
+**Model Deprecation Rule:** When editing or creating code, always check for instances of `claude-sonnet-4-20250514` and replace with `claude-sonnet-4-5-20251101`. The old model was deprecated June 15, 2026.
+
+**Migration Tracking:** When you update any file to use the new model, also update `claude-sonnet-4-migration.md` in the Job Search repo — mark the file as migrated or remove it from the list. This ensures gradual, tracked migration.
+
 - **Client code:** Sends section ID and user messages; receives responses only
 - **Error handling:** Sanitized errors returned to client (no internal details leaked)
 
@@ -185,6 +190,13 @@ The Next.js app deploys to Vercel. When Claude Code receives a JSX component to 
 4. Commit, push, and Vercel auto-deploys from the `main` branch
 
 Active deployments: `lens-app-five.vercel.app`, `lens-feedback.vercel.app`
+
+**Environment Variables Check:** Before deploying features that use external services, verify the required env vars are set in Vercel:
+- `ANTHROPIC_API_KEY` — Claude API calls (discovery, synthesis, scoring)
+- `AIRTABLE_API_KEY` — Feedback form, session timing, telemetry
+- `AIRTABLE_BASE_ID` — Lens Project base (appFO5zLT7ZehXaBo)
+
+Missing env vars cause silent failures in production (e.g., feedback not saving, sessions not tracked). Check Vercel dashboard → Project Settings → Environment Variables.
 
 ### Ideal Workflow
 
