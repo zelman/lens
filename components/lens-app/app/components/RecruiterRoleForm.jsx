@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.15-l";
+const BUILD_ID = "2026.04.21-a";
 
 // ── Design tokens (match candidate intake exactly) ──
 const RED = "#D93025";
@@ -1596,8 +1596,17 @@ export default function RecruiterRoleForm() {
         }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+        // Log full response for debugging
+        console.error("[generate-session] Error response:", data);
+        if (data.debug) {
+          console.error("[generate-session] Parse error:", data.debug.parseError);
+          console.error("[generate-session] Response start:", data.debug.responseStart);
+          console.error("[generate-session] Context around error:", data.debug.contextAroundError);
+          console.error("[generate-session] Stop reason:", data.debug.stopReason);
+        }
         throw new Error(data.error || `Request failed: ${res.status}`);
       }
 
@@ -1611,7 +1620,11 @@ export default function RecruiterRoleForm() {
       clearSession(); // Clear saved progress after completion
     } catch (err) {
       console.error("Session generation failed:", err);
-      setGenerateError(err.message || "Failed to generate session. Please try again.");
+      // Include hint about checking console for details
+      const errorMsg = err.message || "Failed to generate session. Please try again.";
+      setGenerateError(errorMsg.includes("parse") || errorMsg.includes("config")
+        ? `${errorMsg} (Check browser console for debug details)`
+        : errorMsg);
     } finally {
       setIsGenerating(false);
     }

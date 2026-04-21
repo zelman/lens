@@ -13,6 +13,7 @@ const MAX_TOKENS = 4000; // Enough for full session config JSON
 const TEMPERATURE = 0.5; // Slightly higher for natural conversation flow
 
 export async function POST(request) {
+  console.log("[generate-session] Request received");
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -25,6 +26,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
+    console.log("[generate-session] Parsed body, dimensions count:", body.dimensions?.dimensions?.length);
     const { dimensions, candidateMaterials } = body;
 
     // Validate dimensions
@@ -154,6 +156,9 @@ export async function POST(request) {
       .replace(/```json\n?/g, "")
       .replace(/```\n?/g, "")
       .trim();
+
+    console.log("[generate-session] Clean text first 200 chars:", cleanText.slice(0, 200));
+    console.log("[generate-session] Clean text last 200 chars:", cleanText.slice(-200));
 
     // First attempt: direct parse
     try {
