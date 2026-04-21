@@ -7,7 +7,7 @@ The intake form is the product's primary user-facing surface. It guides users th
 - **lens-intake.jsx:** Intro → Context Upload → Status → Discovery (placeholder). Session persistence via localStorage (phase + status + file metadata). Files need re-upload on return (binary can't serialize). Swiss Style design.
 - **lens-form.jsx:** Status → Resume → Intro → Discovery → Synthesis → Done. Live Claude API integration (Sonnet). 8 discovery sections with per-section `systemContext`, `workflowHint`, and optional `scoreDimension` mapping. Typewriter streaming effect. YAML + markdown output with visual scoring tab.
 - **Discovery sections (0-7 in code, 1-8 in UI):** Essence, Skills & Experience, Values, Mission & Sector, Work Style, What Fills You, Disqualifiers, Situation & Timeline.
-- **Claude API pattern:** fetch to `api.anthropic.com/v1/messages`, model `claude-sonnet-4-20250514`, system prompt as const, response parsed by filtering `type: "text"` blocks.
+- **Claude API pattern:** fetch to `api.anthropic.com/v1/messages`, model `claude-sonnet-4-6`, system prompt as const, response parsed by filtering `type: "text"` blocks.
 
 ## Key Patterns and Conventions
 - Section numbering: 0-indexed in arrays, 1-indexed in display

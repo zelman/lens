@@ -16,7 +16,7 @@ Scoring components evaluate job opportunities against a user's lens document. Tw
 - **Thresholds (Agent Lens v2.15):** 80+ STRONG FIT, 60-79 GOOD FIT, 40-59 MARGINAL, <40 SKIP
 - **Domain distance:** Additive modifier (+5 to -10) based on sector proximity
 - **Auto-disqualifiers:** Hard gates checked before scoring (PE-backed, >200 employees, public company, etc.)
-- **API pattern:** Single completion (no streaming), `claude-sonnet-4-20250514`, response stripped of ```json fences then JSON.parse'd
+- **API pattern:** Single completion (no streaming), `claude-sonnet-4-6`, response stripped of ```json fences then JSON.parse'd
 
 ## Current State
 - lens-scorer.jsx uses the **old dark theme** (#0a0a0a, #a08060 accent, DM Sans/DM Mono fonts) — this is **tech debt, pending Swiss Style migration**. Swiss Style target: white (#FFFFFF) background, #1A1A1A text, #D93025 red accent, #E8590C orange secondary, zero border-radius, Helvetica Neue / DM Sans. Flag any new code that deepens dark-theme dependency.

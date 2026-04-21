@@ -48,12 +48,16 @@ The lens-app uses a **serverless proxy architecture** to protect IP:
 
 - **Server-side routes:** `/api/discover`, `/api/synthesize`, `/api/merge`
 - **System prompts:** Stored in `app/api/_prompts/` (discovery.js, synthesis.js) — NEVER sent to client
-- **Model:** `claude-sonnet-4-5-20251101` (successor to deprecated `claude-sonnet-4-20250514`)
 - **Auth:** API key in environment variable (`ANTHROPIC_API_KEY`), accessed only server-side
 
-**Model Deprecation Rule:** When editing or creating code, always check for instances of `claude-sonnet-4-20250514` and replace with `claude-sonnet-4-5-20251101`. The old model was deprecated June 15, 2026.
+**Model Selection:**
+| Model | Use Case |
+|-------|----------|
+| `claude-opus-4-7` | Heavy reasoning (complex scoring logic, architectural decisions) |
+| `claude-sonnet-4-6` | General synthesis (lens generation, discovery conversations) |
+| `claude-haiku-4-5-20251001` | Fast/cheap operations (validation, simple transforms) |
 
-**Migration Tracking:** When you update any file to use the new model, also update `claude-sonnet-4-migration.md` in the Job Search repo — mark the file as migrated or remove it from the list. This ensures gradual, tracked migration.
+**Migration Rule:** When editing or creating code, check for `claude-sonnet-4-20250514` and migrate to the appropriate model above. Update `claude-sonnet-4-migration.md` in the Job Search repo to track progress.
 
 - **Client code:** Sends section ID and user messages; receives responses only
 - **Error handling:** Sanitized errors returned to client (no internal details leaked)
