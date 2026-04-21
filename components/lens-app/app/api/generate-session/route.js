@@ -12,6 +12,32 @@ const MODEL = "claude-sonnet-4-20250514";
 const MAX_TOKENS = 4000; // Enough for full session config JSON
 const TEMPERATURE = 0.5; // Slightly higher for natural conversation flow
 
+// Helper: Try to find a valid JSON substring by progressively truncating
+function findLastValidJson(text) {
+  // Find positions of closing braces that might end valid JSON
+  const closingPositions = [];
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') {
+      depth--;
+      if (depth === 0) closingPositions.push(i + 1);
+    }
+  }
+
+  // Try each potential end point from longest to shortest
+  for (let i = closingPositions.length - 1; i >= 0; i--) {
+    const candidate = text.slice(0, closingPositions[i]);
+    try {
+      JSON.parse(candidate);
+      return candidate;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 export async function POST(request) {
   console.log("[generate-session] Request received");
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -165,6 +191,7 @@ export async function POST(request) {
       sessionConfig = JSON.parse(cleanText);
     } catch (parseErr1) {
       console.log("[generate-session] First parse failed, attempting repairs...");
+      console.log("[generate-session] Parse error:", parseErr1.message);
 
       // Repair attempt 1: Fix unescaped control characters in strings
       let repairedText = cleanText
@@ -179,10 +206,42 @@ export async function POST(request) {
         .replace(/,\s*}/g, '}')
         .replace(/,\s*]/g, ']');
 
+      // Repair attempt 3: Fix malformed string values that accidentally start new objects
+      // Pattern: "key": "value text...Schema": { -> "key": "value text..."
+      // This happens when Claude accidentally continues into another property
+      repairedText = repairedText
+        .replace(/"([^"]*?)([a-zA-Z]+)":\s*\{/g, (match, before, word, offset) => {
+          // Only fix if this looks like it's inside a string value (not a real property)
+          // Check if there's an unclosed string before this
+          const textBefore = repairedText.slice(Math.max(0, offset - 200), offset);
+          const quoteCount = (textBefore.match(/"/g) || []).length;
+          // If odd number of quotes, we're inside a string - truncate
+          if (quoteCount % 2 === 1) {
+            console.log("[generate-session] Repair: truncating malformed string at:", word);
+            return `"${before.slice(0, -word.length).trim()}"`;
+          }
+          return match;
+        });
+
       try {
         sessionConfig = JSON.parse(repairedText);
         console.log("[generate-session] Repair successful");
       } catch (parseErr2) {
+        console.log("[generate-session] Repair attempt 2 failed:", parseErr2.message);
+
+        // Repair attempt 4: Try truncating at the last valid closing brace
+        const lastValidClose = findLastValidJson(cleanText);
+        if (lastValidClose) {
+          try {
+            sessionConfig = JSON.parse(lastValidClose);
+            console.log("[generate-session] Truncation repair successful");
+          } catch (parseErr3) {
+            // Fall through to error handling
+          }
+        }
+      }
+
+      if (!sessionConfig) {
         // Extract error position for debugging
         const posMatch = parseErr1.message.match(/position (\d+)/);
         const errorPos = posMatch ? parseInt(posMatch[1]) : null;
