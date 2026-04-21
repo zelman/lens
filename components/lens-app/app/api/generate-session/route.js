@@ -8,7 +8,7 @@ import {
 } from "../_prompts/generate-session";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-opus-4-5-20251101";  // Opus 4.5 for reliable complex JSON
 const MAX_TOKENS = 4000; // Enough for full session config JSON
 const TEMPERATURE = 0.3; // Lower temperature for more consistent JSON output
 const MAX_RETRIES = 2;
