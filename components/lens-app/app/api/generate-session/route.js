@@ -10,7 +10,8 @@ import {
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
 const MAX_TOKENS = 4000; // Enough for full session config JSON
-const TEMPERATURE = 0.5; // Slightly higher for natural conversation flow
+const TEMPERATURE = 0.3; // Lower temperature for more consistent JSON output
+const MAX_RETRIES = 2;
 
 // Helper: Try to find a valid JSON substring by progressively truncating
 function findLastValidJson(text) {
@@ -35,6 +36,109 @@ function findLastValidJson(text) {
       continue;
     }
   }
+  return null;
+}
+
+// Helper: Call Claude API and return streaming response as text
+async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
+  const res = await fetch(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      temperature: TEMPERATURE,
+      stream: true,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userContent }],
+    }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "Unknown error");
+    throw new Error(`Anthropic API error: ${res.status} ${errorText}`);
+  }
+
+  // Process streaming response
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+  let stopReason = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split("\n");
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+            fullText += parsed.delta.text;
+          } else if (parsed.type === "message_delta" && parsed.delta?.stop_reason) {
+            stopReason = parsed.delta.stop_reason;
+          }
+        } catch (e) {
+          // Skip non-JSON lines
+        }
+      }
+    }
+  }
+
+  return { fullText, stopReason };
+}
+
+// Helper: Parse JSON with repair attempts
+function parseJsonWithRepairs(text) {
+  let cleanText = text
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .trim();
+
+  // Attempt 1: Direct parse
+  try {
+    return JSON.parse(cleanText);
+  } catch (err1) {
+    console.log("[generate-session] Direct parse failed:", err1.message);
+  }
+
+  // Attempt 2: Basic repairs (control chars, trailing commas)
+  let repairedText = cleanText
+    .replace(/[\x00-\x1F\x7F]/g, (char) => {
+      if (char === '\n' || char === '\r' || char === '\t') return char;
+      return '';
+    })
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']');
+
+  try {
+    return JSON.parse(repairedText);
+  } catch (err2) {
+    console.log("[generate-session] Repair parse failed:", err2.message);
+  }
+
+  // Attempt 3: Find longest valid JSON prefix
+  const truncated = findLastValidJson(cleanText);
+  if (truncated) {
+    try {
+      const result = JSON.parse(truncated);
+      console.log("[generate-session] Truncation repair successful, lost", cleanText.length - truncated.length, "chars");
+      return result;
+    } catch (err3) {
+      console.log("[generate-session] Truncation parse failed:", err3.message);
+    }
+  }
+
   return null;
 }
 
@@ -93,177 +197,69 @@ export async function POST(request) {
     const userContent = buildSessionGenerationContent(dimensions, candidateMaterials);
     console.log(`[generate-session] User content length: ${userContent.length} chars`);
 
-    // Call Anthropic API with streaming to avoid Vercel timeout
-    const res = await fetch(ANTHROPIC_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        temperature: TEMPERATURE,
-        stream: true, // Enable streaming
-        system: GENERATE_SESSION_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userContent }],
-      }),
-    });
+    // Try generating session config with retries
+    let sessionConfig = null;
+    let lastError = null;
+    let lastDebug = null;
 
-    if (!res.ok) {
-      const errorText = await res.text().catch(() => "Unknown error");
-      console.error("[generate-session] Anthropic API error:", res.status, errorText);
-      return Response.json(
-        { error: "AI service temporarily unavailable" },
-        { status: 503 }
-      );
-    }
-
-    // Process streaming response and collect full text
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let fullText = "";
-    let stopReason = null;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
-
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const data = line.slice(6);
-          if (data === "[DONE]") continue;
-
-          try {
-            const parsed = JSON.parse(data);
-
-            // Handle different event types
-            if (parsed.type === "content_block_delta" && parsed.delta?.text) {
-              fullText += parsed.delta.text;
-            } else if (parsed.type === "message_delta" && parsed.delta?.stop_reason) {
-              stopReason = parsed.delta.stop_reason;
-            } else if (parsed.type === "message_stop") {
-              // End of message
-            }
-          } catch (e) {
-            // Skip non-JSON lines (like event: lines)
-          }
-        }
-      }
-    }
-
-    console.log("[generate-session] Stop reason:", stopReason);
-    console.log("[generate-session] Response length:", fullText.length);
-
-    if (!fullText) {
-      console.error("[generate-session] Empty response from AI");
-      return Response.json(
-        { error: "Empty response from AI" },
-        { status: 500 }
-      );
-    }
-
-    // Check if response was truncated
-    if (stopReason === "max_tokens") {
-      console.error("[generate-session] Response truncated - max_tokens reached");
-      return Response.json(
-        { error: "Session config generation truncated. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    // Parse JSON response with repair attempts
-    let sessionConfig;
-    let cleanText = fullText
-      .replace(/```json\n?/g, "")
-      .replace(/```\n?/g, "")
-      .trim();
-
-    console.log("[generate-session] Clean text first 200 chars:", cleanText.slice(0, 200));
-    console.log("[generate-session] Clean text last 200 chars:", cleanText.slice(-200));
-
-    // First attempt: direct parse
-    try {
-      sessionConfig = JSON.parse(cleanText);
-    } catch (parseErr1) {
-      console.log("[generate-session] First parse failed, attempting repairs...");
-      console.log("[generate-session] Parse error:", parseErr1.message);
-
-      // Repair attempt 1: Fix unescaped control characters in strings
-      let repairedText = cleanText
-        .replace(/[\x00-\x1F\x7F]/g, (char) => {
-          // Keep newlines and tabs that might be intentional, escape others
-          if (char === '\n' || char === '\r' || char === '\t') return char;
-          return '';
-        });
-
-      // Repair attempt 2: Fix trailing commas before } or ]
-      repairedText = repairedText
-        .replace(/,\s*}/g, '}')
-        .replace(/,\s*]/g, ']');
-
-      // Repair attempt 3: Fix malformed string values that accidentally start new objects
-      // Pattern: "key": "value text...Schema": { -> "key": "value text..."
-      // This happens when Claude accidentally continues into another property
-      repairedText = repairedText
-        .replace(/"([^"]*?)([a-zA-Z]+)":\s*\{/g, (match, before, word, offset) => {
-          // Only fix if this looks like it's inside a string value (not a real property)
-          // Check if there's an unclosed string before this
-          const textBefore = repairedText.slice(Math.max(0, offset - 200), offset);
-          const quoteCount = (textBefore.match(/"/g) || []).length;
-          // If odd number of quotes, we're inside a string - truncate
-          if (quoteCount % 2 === 1) {
-            console.log("[generate-session] Repair: truncating malformed string at:", word);
-            return `"${before.slice(0, -word.length).trim()}"`;
-          }
-          return match;
-        });
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`[generate-session] Attempt ${attempt}/${MAX_RETRIES}`);
 
       try {
-        sessionConfig = JSON.parse(repairedText);
-        console.log("[generate-session] Repair successful");
-      } catch (parseErr2) {
-        console.log("[generate-session] Repair attempt 2 failed:", parseErr2.message);
-
-        // Repair attempt 4: Try truncating at the last valid closing brace
-        const lastValidClose = findLastValidJson(cleanText);
-        if (lastValidClose) {
-          try {
-            sessionConfig = JSON.parse(lastValidClose);
-            console.log("[generate-session] Truncation repair successful");
-          } catch (parseErr3) {
-            // Fall through to error handling
-          }
-        }
-      }
-
-      if (!sessionConfig) {
-        // Extract error position for debugging
-        const posMatch = parseErr1.message.match(/position (\d+)/);
-        const errorPos = posMatch ? parseInt(posMatch[1]) : null;
-        const contextAround = errorPos ? cleanText.slice(Math.max(0, errorPos - 100), errorPos + 100) : null;
-
-        console.error("[generate-session] Failed to parse response as JSON:", parseErr1.message);
-        console.error("[generate-session] Context around error:", contextAround);
-        return Response.json(
-          {
-            error: "Failed to generate session config. Please try again.",
-            debug: {
-              parseError: parseErr1.message,
-              responseStart: fullText.slice(0, 500),
-              responseEnd: fullText.slice(-300),
-              contextAroundError: contextAround,
-              stopReason,
-              responseLength: fullText.length
-            }
-          },
-          { status: 500 }
+        const { fullText, stopReason } = await callClaudeStreaming(
+          apiKey,
+          GENERATE_SESSION_SYSTEM_PROMPT,
+          userContent
         );
+
+        console.log("[generate-session] Stop reason:", stopReason);
+        console.log("[generate-session] Response length:", fullText.length);
+
+        if (!fullText) {
+          lastError = "Empty response from AI";
+          continue;
+        }
+
+        if (stopReason === "max_tokens") {
+          lastError = "Response truncated - max_tokens reached";
+          continue;
+        }
+
+        // Try to parse the response
+        sessionConfig = parseJsonWithRepairs(fullText);
+
+        if (sessionConfig) {
+          console.log(`[generate-session] Success on attempt ${attempt}`);
+          break;
+        }
+
+        // Store debug info for last failed attempt
+        const cleanText = fullText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        lastError = "Failed to parse JSON";
+        lastDebug = {
+          parseError: "JSON parse failed after all repair attempts",
+          responseStart: fullText.slice(0, 500),
+          responseEnd: fullText.slice(-300),
+          stopReason,
+          responseLength: fullText.length,
+          attempt
+        };
+
+      } catch (err) {
+        console.error(`[generate-session] Attempt ${attempt} error:`, err.message);
+        lastError = err.message;
       }
+    }
+
+    if (!sessionConfig) {
+      console.error("[generate-session] All attempts failed:", lastError);
+      return Response.json(
+        {
+          error: "Failed to generate session config. Please try again.",
+          debug: lastDebug
+        },
+        { status: 500 }
+      );
     }
 
     // Validate required fields
