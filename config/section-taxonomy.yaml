@@ -1,0 +1,134 @@
+# Section Taxonomy — v0.1
+# Maps discovery sections to pattern extraction categories
+# Used by pattern-extraction pre-pass to anchor extractions to specific sections
+
+version: "0.1"
+last_updated: "2026-04-21"
+
+# Discovery sections (0-indexed internally, 1-indexed in UI)
+sections:
+  - id: essence
+    index: 0
+    label: "Essence"
+    description: "Identity patterns — what's consistent across roles, contexts, and chapters"
+    extraction_focus:
+      - tensions      # Between stated identity and actual behaviors
+      - repetitions   # Recurring self-descriptions, phrases, metaphors
+      - contrasts     # How they distinguish themselves from others
+
+  - id: values
+    index: 1
+    label: "Values"
+    description: "Behavioral values, not aspirational — evidence from stories and friction points"
+    extraction_focus:
+      - tensions      # Values espoused vs. values enacted
+      - structural_moves  # How they frame value conflicts
+      - unstated_implications  # What they reveal by what they DON'T say
+
+  - id: mission
+    index: 2
+    label: "Mission"
+    description: "What kind of work and organization they're drawn to"
+    extraction_focus:
+      - tensions      # Between what they want and what they'll accept
+      - repetitions   # Recurring criteria, deal-makers
+      - contrasts     # What they're moving away from vs. toward
+
+  - id: workstyle
+    index: 3
+    label: "Work Style"
+    description: "How they actually work — environment, pace, collaboration, autonomy"
+    extraction_focus:
+      - repetitions   # Consistent work patterns described
+      - contrasts     # Good days vs. bad days
+      - unstated_implications  # Preferences revealed through complaints
+
+  - id: energy
+    index: 4
+    label: "What Fills You"
+    description: "Distinguishes between competence and energy — what gives vs. drains"
+    extraction_focus:
+      - tensions      # Good at but drains vs. energizes but undervalued
+      - contrasts     # Energy sources vs. energy drains
+      - unstated_implications  # What they wish they could do more of
+
+  - id: disqualifiers
+    index: 5
+    label: "Disqualifiers"
+    description: "Hard stops — what would make them walk away even with perfect title/comp"
+    extraction_focus:
+      - repetitions   # Repeated dealbreakers across examples
+      - structural_moves  # How they frame non-negotiables
+      - unstated_implications  # Soft disqualifiers not stated as hard stops
+
+  - id: goals
+    index: 6
+    label: "Goals"
+    description: "Practical job search parameters — title, comp, location, timeline"
+    extraction_focus:
+      - tensions      # Between aspirations and constraints
+      - contrasts     # Must-haves vs. nice-to-haves
+      - unstated_implications  # Flexibility not explicitly stated
+
+  - id: synthesis
+    index: 7
+    label: "Synthesis"
+    description: "Final reflection — through-line across all sections, gap-check"
+    extraction_focus:
+      - tensions      # Contradictions between sections
+      - repetitions   # Themes that surfaced multiple times
+      - structural_moves  # How they prioritize competing concerns
+
+# Pattern extraction categories (from Kanban card recH0a9yY41Kg2op1)
+extraction_categories:
+  tensions:
+    description: "Contradictions or friction between stated beliefs and observed behaviors, or between different parts of the narrative"
+    examples:
+      - "Says they value autonomy but describes seeking approval for decisions"
+      - "Claims to be a builder but all examples involve inheriting existing teams"
+    output_format: "{ section_id, quote, tension_between, implication }"
+
+  repetitions:
+    description: "Recurring themes, phrases, metaphors, or patterns that appear multiple times — reveals what's top of mind"
+    examples:
+      - "Uses 'building from scratch' three times across different sections"
+      - "Returns to the topic of manager quality in every work-related answer"
+    output_format: "{ theme, occurrences: [{ section_id, quote }], significance }"
+    deduplication_rule: "Merge repetitions of the same theme; list all occurrences under one entry"
+
+  structural_moves:
+    description: "How the person frames, sequences, or positions information — reveals priorities and rhetorical habits"
+    examples:
+      - "Always leads with company name/brand before describing their role"
+      - "Deflects from personal accomplishments to team achievements"
+    output_format: "{ section_id, move_type, quote, what_it_reveals }"
+
+  unstated_implications:
+    description: "What can be inferred from what they DON'T say, from hedging, or from notable omissions"
+    examples:
+      - "Never mentions compensation despite discussing multiple job searches"
+      - "Describes 'learning a lot' at a job without any concrete outcomes"
+    output_format: "{ section_id, observation, implied_meaning, confidence: high|medium|low }"
+
+  contrasts:
+    description: "Explicit or implicit comparisons — what they're moving toward vs. away from, what they like vs. dislike"
+    examples:
+      - "Contrasts 'early stage scrappiness' favorably against 'enterprise bureaucracy'"
+      - "Distinguishes between 'managers who get it' and 'managers who micromanage'"
+    output_format: "{ section_id, positive_pole, negative_pole, quote }"
+
+# Validation rules for extraction output
+validation:
+  required_fields:
+    - section_id   # Must map to a valid section from sections list
+    - quote        # Verbatim or near-verbatim from source material
+
+  max_extractions_per_category: 10
+  min_confidence_for_unstated: "medium"
+
+  deduplication:
+    repetitions: "merge_by_theme"
+    tensions: "keep_distinct"
+    contrasts: "keep_distinct"
+    structural_moves: "keep_distinct"
+    unstated_implications: "keep_distinct"
