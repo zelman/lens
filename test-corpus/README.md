@@ -1,6 +1,6 @@
-# test-corpus/ — v0.1
+# test-corpus/ — v0.2
 
-Paired tester source materials + Lens outputs, used as a regression/eval set for synthesis changes (primarily the pattern-extraction pre-pass).
+Paired tester source materials + Lens outputs, used as the ground truth regression set for synthesis changes (primarily the pattern-extraction pre-pass).
 
 **This folder is gitignored.** Contents are tester PII and stay local-only, matching the `legal/` precedent. The `.gitignore` in this folder blocks all content except itself and this README.
 
@@ -34,7 +34,7 @@ test-corpus/
 
 ## How materials get here
 
-Testers produce redacted text files per the request spec (`tester-materials-request.md`, Artifact Registry `recdfnv5Y8JCRunpy`). Request language and redaction token format are defined there.
+Testers produce redacted text files per the request spec (`specs/tester-materials-request.md`). Request language and redaction token format are defined there.
 
 **Redaction format:** `[REDACTED: description]` — e.g., `[REDACTED: employer name]`, `[REDACTED: phone number]`
 
@@ -43,4 +43,4 @@ Testers produce redacted text files per the request spec (`tester-materials-requ
 Internal synthesis evaluation only. Not used for training, fine-tuning, or sharing with third parties.
 
 ---
-**Version:** v0.1 (2026-04-21)
+**Version:** v0.2 (2026-04-21) | Artifact Registry: `rec1DoHC8tRoXYBVt`
