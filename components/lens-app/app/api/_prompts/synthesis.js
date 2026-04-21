@@ -270,7 +270,54 @@ Users may upload documents containing sensitive personal information: DISC asses
 - Clinical/medical labels (ADHD, anxiety, depression, etc.)
 - Direct quotes from 360 feedback or peer reviews
 - Language from coaching notes that reveals vulnerabilities
-- Any "areas for improvement" phrasing from assessments`;
+- Any "areas for improvement" phrasing from assessments
+
+## PATTERN EXTRACTION INTEGRATION
+
+When pattern extraction data is provided (in <pattern_extractions> tags), use it to deepen the lens document. The pre-pass has already identified tensions, repetitions, structural moves, unstated implications, and contrasts from the discovery conversation. These patterns reveal signal that surface-level transcription would miss.
+
+### How to use each extraction category:
+
+**TENSIONS** — Contradictions between stated beliefs and observed behaviors
+- Reference in **Essence** and **Work Style** to capture the full complexity of the person
+- Tensions often reveal where someone is still evolving or where they need specific environmental support
+- Don't flatten tensions into simple statements — acknowledge the duality
+- Example: If the extraction shows tension between "values autonomy" and "seeks approval," write: "He works best with clear initial direction and then space to execute — the first meeting matters more than ongoing check-ins."
+
+**REPETITIONS** — Recurring themes that reveal core identity
+- Use the most frequent repetitions to anchor the **Essence** section's opening identity statement
+- A theme that appears 3+ times across sections is load-bearing for this person's self-concept
+- Example: If "builder" appears in essence, mission, and energy contexts, make it the central frame: "Eric is a builder — not an optimizer, not a maintainer, but someone who creates the structure others will inhabit."
+
+**STRUCTURAL MOVES** — How the person frames and positions information
+- Use in **Essence** to capture their communication style and self-presentation
+- Structural moves like "deflection to team" or "preemptive disclaimer" reveal what they value and what they undersell
+- The lens should compensate for underselling — if they deflect from accomplishments, the lens asserts them
+- Example: If they consistently credit the team, write: "She builds through others — the team's wins are her wins, and she's genuinely uncomfortable with solo credit. But the pattern of success follows her from role to role."
+
+**UNSTATED IMPLICATIONS** — What can be inferred from omissions
+- Surface in **Non-Negotiables** and **Work Style** when they reveal soft disqualifiers
+- High-confidence implications can be stated directly; medium-confidence should be framed as preferences
+- Example: If comp was never mentioned (high confidence), this may indicate flexibility OR avoidance — probe in Mission section: "Compensation matters less than the right environment — though market-rate expectations are implicit."
+
+**CONTRASTS** — What they're moving toward vs. away from
+- Map directly to **Mission & Direction** (positive pole) and **Non-Negotiables** (negative pole)
+- Contrasts provide the sharpest targeting language for recruiters
+- Use the person's own language for contrasts when vivid
+- Example: "Early stage over enterprise. Deep profiling over keyword bingo. Coach-guided over self-service. The pattern is consistent: he wants to build systems where depth beats scale."
+
+### Integration rules:
+
+1. Pattern extractions SUPPLEMENT the conversation, they don't replace it. The conversation is the source; extractions are the analysis.
+
+2. Don't mention that patterns were "extracted" or "analyzed" — write as if you simply noticed these things about the person.
+
+3. Every pattern extraction includes verbatim quotes. Use those quotes when they're vivid; paraphrase when they're awkward.
+
+4. Tensions and unstated implications are SENSITIVE. Frame them as growth edges or environmental needs, not as flaws. The recruiter test applies: would this person want a hiring manager to read this?
+
+5. If an extraction contradicts direct statements in the conversation, trust the conversation. Extractions are interpretive; direct statements are authoritative.`;
+
 
 // Status label mapping
 export const STATUS_LABELS = {
@@ -284,7 +331,7 @@ export const STATUS_LABELS = {
 // - "candidate" (default): Full sensitivity filter, recruiter-safe output (C→R lens)
 // - "employer" (future): Full signal including assessment data, development areas (R→C lens)
 // - "external" (future): Middle ground for external recruiters
-export function buildSynthesisUserContent({ userName, pronouns, status, sectionData, currentDate, documentContext, rawDocumentText, audienceMode = "candidate" }) {
+export function buildSynthesisUserContent({ userName, pronouns, status, sectionData, currentDate, documentContext, rawDocumentText, patternExtractions, audienceMode = "candidate" }) {
   const safeSectionData = sectionData || {};
   const allSections = Object.entries(safeSectionData)
     .filter(([k, v]) => v != null && String(v).trim() !== '')
@@ -311,6 +358,24 @@ export function buildSynthesisUserContent({ userName, pronouns, status, sectionD
     }
   }
 
+  // Build pattern extraction section if available
+  let patternSection = "";
+  if (patternExtractions && Object.keys(patternExtractions).length > 0) {
+    const hasExtractions = ['tensions', 'repetitions', 'structural_moves', 'unstated_implications', 'contrasts']
+      .some(key => patternExtractions[key]?.length > 0);
+
+    if (hasExtractions) {
+      patternSection = `
+
+<pattern_extractions>
+${JSON.stringify(patternExtractions, null, 2)}
+</pattern_extractions>
+
+Use these pattern extractions per the PATTERN EXTRACTION INTEGRATION rules in your instructions. Tensions and repetitions inform Essence; contrasts sharpen Mission and Non-Negotiables; unstated implications surface as soft preferences or environmental needs.
+`;
+    }
+  }
+
   return `Here is the full discovery conversation:
 
 Name: ${userName || "[Name not provided]"}
@@ -318,7 +383,7 @@ Pronouns: ${pronouns || "they/them"}
 Status: ${statusLabel}
 Today's Date: ${currentDate}
 Audience Mode: ${audienceMode}
-${documentSection}
+${documentSection}${patternSection}
 ══════════════════════════════════════════════════════════════════════════════
 DISCOVERY CONVERSATION
 ══════════════════════════════════════════════════════════════════════════════
