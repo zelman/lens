@@ -1,0 +1,5 @@
+# NEVER commit tester PII to git
+# Only this .gitignore and README.md are tracked
+*
+!.gitignore
+!README.md
