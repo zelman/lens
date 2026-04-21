@@ -54,7 +54,10 @@ async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
       temperature: TEMPERATURE,
       stream: true,
       system: systemPrompt,
-      messages: [{ role: "user", content: userContent }],
+      messages: [
+        { role: "user", content: userContent },
+        { role: "assistant", content: "{" }  // Prefill to force JSON start
+      ],
     }),
   });
 
@@ -99,11 +102,16 @@ async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
 }
 
 // Helper: Parse JSON with repair attempts
-function parseJsonWithRepairs(text) {
+function parseJsonWithRepairs(text, prefilled = false) {
   let cleanText = text
     .replace(/```json\n?/g, "")
     .replace(/```\n?/g, "")
     .trim();
+
+  // If we used prefill, prepend the opening brace
+  if (prefilled && !cleanText.startsWith("{")) {
+    cleanText = "{" + cleanText;
+  }
 
   // Attempt 1: Direct parse
   try {
@@ -225,8 +233,8 @@ export async function POST(request) {
           continue;
         }
 
-        // Try to parse the response
-        sessionConfig = parseJsonWithRepairs(fullText);
+        // Try to parse the response (prefilled=true because we used assistant prefill)
+        sessionConfig = parseJsonWithRepairs(fullText, true);
 
         if (sessionConfig) {
           console.log(`[generate-session] Success on attempt ${attempt}`);
