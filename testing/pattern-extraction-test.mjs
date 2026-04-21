@@ -33,7 +33,10 @@ const PROJECT_ROOT = path.resolve(__dirname, '..');
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-5-20251101"; // Updated model per CLAUDE.md
+// Two-stage validation protocol:
+// Stage 1: Opus 4.7 (current) — validate approach on test corpus
+// Stage 2: Sonnet 4.6 — calibrate for production cost if quality matches
+const MODEL = "claude-opus-4-7";
 const EXTRACTION_MAX_TOKENS = 4000;
 const SYNTHESIS_MAX_TOKENS = 6000;
 const TEMPERATURE = 0.3; // Lower for extraction (more deterministic)
