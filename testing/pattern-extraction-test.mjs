@@ -39,7 +39,7 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-opus-4-7";
 const EXTRACTION_MAX_TOKENS = 4000;
 const SYNTHESIS_MAX_TOKENS = 6000;
-const TEMPERATURE = 0.3; // Lower for extraction (more deterministic)
+// Note: temperature param removed — deprecated in Claude 4.5+ models
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PATTERN EXTRACTION SYSTEM PROMPT (from specs/pattern-extraction-prompt-v0.2.md)
@@ -136,7 +136,6 @@ async function callClaude(systemPrompt, userContent, maxTokens, apiKey) {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: maxTokens,
-      temperature: TEMPERATURE,
       system: systemPrompt,
       messages: [{ role: "user", content: userContent }],
     }),
