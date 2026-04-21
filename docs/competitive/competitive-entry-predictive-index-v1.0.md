@@ -28,7 +28,7 @@ Talent optimization platform built around a 6-minute free-choice adjective check
 - **Depth of discovery:** coaching-depth conversation vs. forced-choice adjective checklist. PI captures traits; Lens captures narrative, tensions, values, disqualifiers, mission, situation — the substance recruiters actually need to discuss with candidates and clients.
 - **Portable output:** candidate owns a markdown document (+ YAML) they can carry to any search, any firm, any coach. PI profiles live in the customer's PI tenant and are bound to it.
 - **Conversation catalyst, not verdict:** PI outputs a 4-factor graph and a reference-profile label ("Captain," "Promoter," "Individualist," etc.). Lens outputs a narrative document designed to enable recruiter↔candidate, recruiter↔client, and peer↔peer conversations. PI is the archetype of the "assessment verdict" model we have explicitly positioned against.
-- **Coach-in-the-loop:** James Pratt persona (and future coach personas) encode real coaching methodology into discovery. PI's partner network are users of the tool, not contributors to the intelligence model. No PI analog to our coach channel.
+- **Coach-in-the-loop:** individual executive coach methodologies are encoded as distinct personas that drive discovery. PI's partner network are users of the tool, not contributors to the intelligence model. No PI analog to our coach channel.
 - **Narrative + signal:** markdown + YAML gives both human readability and machine scoring. PI gives a graph, a label, and a numeric match score.
 - **Forward-looking match hypothesis** (in progress) vs. PI's backward-looking trait profile.
 - **Candidate-side product:** Lens starts with the candidate and extends to the role. PI is company-side only — candidates complete an assessment at the request of an employer, with no candidate-facing artifact or ownership.
@@ -48,7 +48,7 @@ Big, credentialed, and embedded in the retained search channel — the incumbent
 
 **Strategic implications to flag for CONTEXT update:**
 1. Add PI to "known incumbents in retained-search channel" — Caldwell partnership is the specific data point.
-2. Positioning language: the phrase "assessment verdict" (which we already use internally) maps cleanly onto PI's output model. Make PI the foil in Beth Stewart / Beth Warner / Graham Kittle conversations.
+2. Positioning language: the phrase "assessment verdict" (which we already use internally) maps cleanly onto PI's output model. Make PI the foil in retained-search-firm conversations.
 3. Confirm: do NOT build psychometric-validity pretensions. Lens is not an assessment; it's a discovery artifact. Stay in our lane.
 4. Accelerate coach-persona channel — it's our structural analog to PI's certified partner network and has no PI equivalent.
 5. Pricing stays calibrated to per-search $2–5K. PI's enterprise subscription is a different buying motion; don't drift toward their model.

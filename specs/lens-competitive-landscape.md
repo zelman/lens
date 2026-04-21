@@ -5,7 +5,7 @@
 **Maintained by:** Eric Zelman
 **Source of truth:** this document. Mirrored in Airtable Competitive Intelligence table (`tbl1n2MWWpmlJqhmf`, base `appFO5zLT7ZehXaBo`).
 
-> **Bootstrap note (2026-04-21):** This is v1.0 — the initial consolidated landscape. Predictive Index received deep research; other entries are solid-but-seed-level and flagged "bootstrap — re-verify" where data is thin. Append new findings per the `competitive-entry` skill; update the "Last reviewed" date when you revisit an entry.
+> **Bootstrap note (2026-04-21):** v1.1 supersedes v1.0 — same analysis and entries, with private-network individual names removed for distribution safety. Concepts (coach-persona channel, partnership model) preserved. Predictive Index received deep research; other entries are solid-but-seed-level and flagged "bootstrap — re-verify" where data is thin. Append new findings per the `competitive-entry` skill; update the "Last reviewed" date when you revisit an entry.
 
 ---
 
@@ -21,7 +21,7 @@ The landscape breaks into three clusters worth understanding distinctly:
 
 3. **Adjacent and ecosystem (Tier 2 + 3):** SquarePeg pivoted away from bidirectional consumer matching toward B2B sourcing/screening — informative prior art on what fails. Pymetrics was acquired by Harver (2022); consolidation signal. DISC / MBTI / StrengthsFinder are static traits with no matching layer. LinkedIn / Indeed / Greenhouse / Lever shape distribution and integration expectations, not direct competition.
 
-**GTM implication:** retained search channel is already penetrated by PI. Assume PI is present in every mid-to-large retained firm conversation. Wedge strategy: (a) target firms not yet PI-certified; (b) position as complement to PI, not replacement; (c) lead with the candidate-owned narrative artifact, which PI structurally cannot match. Accelerating the coach-persona channel (James Pratt and successors) is our structural answer to PI's certified partner network.
+**GTM implication:** retained search channel is already penetrated by PI. Assume PI is present in every mid-to-large retained firm conversation. Wedge strategy: (a) target firms not yet PI-certified; (b) position as complement to PI, not replacement; (c) lead with the candidate-owned narrative artifact, which PI structurally cannot match. Accelerating the coach-persona channel (individual executive coaching methodologies encoded as distinct personas) is our structural answer to PI's certified partner network.
 
 ---
 
@@ -54,7 +54,7 @@ Two autonomous conversational AI agents: "Jack" interviews candidates via phone 
 - **Geography:** London-first, SF next — already operating at a scale we are not.
 
 **Key differentiators (ours):**
-- **Coaching depth vs. conversational breadth:** their phone call is minutes of structured interview. Our session is 45 minutes of coaching-methodology-driven discovery (James Pratt persona encoded; future coach personas). Different quality of signal.
+- **Coaching depth vs. conversational breadth:** their phone call is minutes of structured interview. Our session is 45 minutes of coaching-methodology-driven discovery (individual executive coach methodologies encoded as distinct personas). Different quality of signal.
 - **Portable candidate artifact:** Jack's profile lives inside Jack & Jill's system as input to Jill's matching. Candidate does not receive a document they can carry elsewhere. Lens produces a markdown + YAML the candidate owns outright.
 - **Coach layer:** no coach persona model. Jack is a single AI agent applying Jack & Jill's own methodology.
 - **Buyer focus:** Jack & Jill pursues volume hiring (fast-growing companies, general roles). Lens targets $300K+ retained executive search, where mis-hire cost is catastrophic and per-search price supports deep discovery.
@@ -146,7 +146,7 @@ Talent optimization platform built around a 6-minute free-choice adjective check
 - **Depth of discovery:** coaching-depth conversation vs. forced-choice adjective checklist. PI captures traits; Lens captures narrative, tensions, values, disqualifiers, mission, situation.
 - **Portable output:** candidate owns a markdown document (+ YAML) they can carry to any search, any firm, any coach. PI profiles live in the customer's PI tenant.
 - **Conversation catalyst, not verdict:** PI outputs a 4-factor graph and a reference-profile label. Lens outputs a narrative document designed to enable recruiter↔candidate, recruiter↔client, and peer↔peer conversations. PI is the archetype of the "assessment verdict" model we have explicitly positioned against.
-- **Coach-in-the-loop:** James Pratt persona and future coach personas encode real coaching methodology into discovery. PI's partner network are users of the tool, not contributors to the intelligence model.
+- **Coach-in-the-loop:** individual executive coach methodologies are encoded as distinct personas that drive discovery. PI's partner network are users of the tool, not contributors to the intelligence model.
 - **Narrative + signal:** markdown + YAML gives both human readability and machine scoring.
 - **Forward-looking match hypothesis** (in progress) vs. PI's backward-looking trait profile.
 - **Candidate-side product:** Lens starts with the candidate and extends to the role. PI is company-side only.
@@ -265,7 +265,7 @@ Category of static self-report personality/strengths assessments with no matchin
 
 **Overlap with Lens Project:**
 - Self-report discovery of preferences and styles.
-- Used in coaching contexts (James Pratt's methodology touches on similar territory).
+- Used in coaching contexts (established executive coaching methodologies often touch on similar territory).
 
 **Key differentiators (theirs):**
 - Vast installed base; assumed literacy among HR and coaching professionals.
@@ -315,7 +315,7 @@ Enterprise coaching-at-scale platforms. Match employees to human coaches, facili
 
 **Overlap with Lens Project:**
 - Coaching as the core service (though their model is human coach sessions; ours is coaching *methodology encoded as AI persona*).
-- James Pratt partnership sits in this ecosystem — coaches are our suppliers/partners, not our competitors.
+- Our coach-partner model sits in this ecosystem — individual coaches are our suppliers/partners, not our competitors.
 
 **Key differentiators (theirs):**
 - Human coach network at scale.
@@ -324,7 +324,7 @@ Enterprise coaching-at-scale platforms. Match employees to human coaches, facili
 
 **Key differentiators (ours):**
 - Productized coaching conversation (AI persona) — radically lower unit cost per session.
-- Lens document as concrete coaching ROI output (what James Pratt partnership thesis formalizes).
+- Lens document as concrete coaching ROI output (the partnership thesis with contributing coaches).
 - Hiring-adjacent use case (they're post-hire development).
 
 **Verdict:**
@@ -432,6 +432,7 @@ No product runs coaching-depth discovery on both sides of a hire AND produces a 
 
 ## Revision log
 
+- **2026-04-21 (v1.1):** Scrubbed all private-network individual names (coaches, advisors, retained-firm contacts) for distribution safety. Concepts preserved in generic phrasing. No analysis changes.
 - **2026-04-21 (v1.0):** Initial bootstrap. PI entered via deep research; Jack & Jill and SquarePeg verified via current web sources; Pymetrics/Plum/Torre.ai/category entries seeded at bootstrap level with "re-verify" flags. Executive summary and GTM implication written around PI research findings. (Eric, via Claude research session.)
 
 ---

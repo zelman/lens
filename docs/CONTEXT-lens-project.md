@@ -159,7 +159,7 @@ Detail lives in `specs/lens-competitive-landscape.md` (zelman/lens). Entries als
 
 **Core gap in the landscape:** no one runs coaching-depth discovery on BOTH sides of a hire (role AND candidate) and produces a portable narrative artifact the candidate owns. This remains our core wedge.
 
-**GTM implication from PI research (added 2026-04-21):** retained search channel is already penetrated by PI. Our GTM must assume PI is present in most conversations with mid-to-large retained firms. Wedge strategy: (a) target firms not yet PI-certified; (b) position Lens as complement (narrative layer over PI's trait data); (c) lean into the candidate-owned artifact angle PI structurally cannot match. Accelerating the coach-persona channel (James Pratt and successors) is our structural answer to PI's certified partner network.
+**GTM implication from PI research (added 2026-04-21):** retained search channel is already penetrated by PI. Our GTM must assume PI is present in most conversations with mid-to-large retained firms. Wedge strategy: (a) target firms not yet PI-certified; (b) position Lens as complement (narrative layer over PI's trait data); (c) lean into the candidate-owned artifact angle PI structurally cannot match. Accelerating the coach-persona channel (individual executive coaching methodologies encoded as distinct personas) is our structural answer to PI's certified partner network.
 
 ### Airtable Tables (base appFO5zLT7ZehXaBo)
 

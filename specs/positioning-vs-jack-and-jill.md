@@ -1,10 +1,10 @@
 # Lens vs. Jack & Jill — Positioning Recalibration
 
-**Version:** v1.0
+**Version:** v1.1
 **Date:** 2026-04-21
 **Destination:** `specs/positioning-vs-jack-and-jill.md` in `zelman/lens`
 **Audience:** Eric, for use with investors, advisors, retained search firms, and testers.
-**Supersedes:** the "no depth, no portable document, no coach network" framing in prior context — that framing understates the threat.
+**Supersedes:** v1.0 — same analysis, private-network names removed for distribution safety (no legal partnerships in place with any named individuals; names belong in internal tracking only).
 
 ---
 
@@ -60,7 +60,7 @@ The new framing has **four axes of distinction**, and each is defensible on stru
 
 **Jack & Jill:** network effect. Jill gets better as Jack's candidate pool grows. Classic two-sided marketplace. The moat depends on keeping the candidate profile locked to their platform — if Jack's conversations became portable, the flywheel breaks.
 
-**Lens:** format + coach partnership. The Lens document is portable by design (candidate owns the .md); the moat is (a) recruiter adoption of the format and (b) the coach persona network that powers discovery. A competitor can copy the format — that's the point, we want them to. What they cannot copy is James Pratt's coaching methodology encoded as a persona, or Edith Hunt's retained-search credibility, or the per-firm customizations that live on top of the open format.
+**Lens:** format + coach partnership. The Lens document is portable by design (candidate owns the .md); the moat is (a) recruiter adoption of the format and (b) the coach persona network that powers discovery. A competitor can copy the format — that's the point, we want them to. What they cannot copy is an individual executive coach's methodology encoded as a persona, the credibility of the search-industry advisors who stand behind the product, or the per-firm customizations that live on top of the open format.
 
 **Why this is structural:** Jack & Jill must keep the candidate locked in; we must keep the candidate free. These are incompatible moats. If either of us succeeds, we cannot also become the other.
 
@@ -88,11 +88,11 @@ When pitching, don't pretend Jack & Jill doesn't exist or doesn't matter. Acknow
 
 *"Jack & Jill is building the mass-market AI recruiter. We're building the operating layer for retained executive search — a $20B+ global market with different economics. The founders of Jack & Jill and the founders of Lens are solving adjacent problems with structurally incompatible business models. The question for you is whether retained exec search gets its own AI-native infrastructure play, or gets absorbed into a volume platform. We think it gets its own, and here's why."*
 
-### For a retained search firm (Beth Stewart, Beth Warner, Graham Kittle)
+### For a retained search firm leader
 
 *"You've probably already heard about Jack & Jill. Their pitch is that AI agents will replace recruiters. Ours is the opposite: AI tools will make trusted recruiters more visible to clients and help you win more searches. Jack & Jill is your disruption threat. Lens is a tool in your hand. We'd like to show you how it works."*
 
-### For an executive coach (James Pratt, others)
+### For a prospective executive coach partner
 
 *"Jack & Jill treats the discovery conversation as a commodity — one AI does it for everyone. We treat it as your methodology, encoded as a persona. If you believe your coaching IP is valuable, we're the partner who says so. Jack & Jill is the partner who says it doesn't matter who runs the conversation."*
 
@@ -100,7 +100,7 @@ When pitching, don't pretend Jack & Jill doesn't exist or doesn't matter. Acknow
 
 *"Jack & Jill wants to match you faster to jobs. Lens wants to give you a document that describes you well enough for any recruiter, any search, any firm — for the rest of your career. Different products. If you want to end a job search quickly, use them. If you want to understand yourself well enough that any job search after this one is easier, use this."*
 
-### For an advisor (Edie Hunt, Todd Gerspach)
+### For an advisor
 
 *"The nearest competitor is Jack & Jill. They raised $20M in October to do conversational AI recruiting at volume. Same thesis as us on 'conversation beats resume,' opposite strategy on every other dimension: their buyer is volume hiring, their output is a match, their value is cost reduction, their moat is platform lock-in. Ours is the inverse on all four. The question I want your help with: is the retained exec search flank defensible against volume scaling down-market, or do we need to move faster?"*
 
@@ -112,7 +112,7 @@ When pitching, don't pretend Jack & Jill doesn't exist or doesn't matter. Acknow
 
 2. *"There's no depth in the market."* They have depth, just different depth. Replace with: *"There's no coaching-methodology depth in the market — no one else encodes a real executive coach's framework into their discovery."*
 
-3. *"Jack & Jill lacks a coach network."* True but sounds dismissive. Replace with: *"Jack & Jill uses a single AI methodology applied uniformly. We partner with named executive coaches whose methodology becomes the persona."*
+3. *"Jack & Jill lacks a coach network."* True but sounds dismissive. Replace with: *"Jack & Jill uses a single AI methodology applied uniformly. We build our discovery on top of individual executive coaching methodologies that become distinct personas."*
 
 ---
 
@@ -122,7 +122,7 @@ When pitching, don't pretend Jack & Jill doesn't exist or doesn't matter. Acknow
 
 2. **Retained-exec-search specificity.** Every pitch should name the buyer: *"Retained executive search firms placing $300K+ roles. Mis-hire cost is $1M+. Recruiter fees are $100K+. Not a volume market."*
 
-3. **Coach persona as the unreplicable moat.** Every pitch should reference James Pratt (or successor coaches) by name: *"James Pratt is one of the top executive coaches in the northeast. His methodology is encoded as the first Lens persona. That is not a feature Jack & Jill can ship in six months."*
+3. **Coach persona as the unreplicable moat.** Every pitch should frame the coach persona model as a structural differentiator: *"Lens personas are built by encoding individual executive coaching methodologies — the kind of IP that takes a career to develop and is meaningful on both sides of a search conversation. Jack & Jill's single-AI-methodology approach cannot reach that depth without abandoning their unit economics."*
 
 ---
 
@@ -132,15 +132,22 @@ Escalate threat level from Jack & Jill if any of the following happen:
 
 1. They announce a tier for executive search or $200K+ roles.
 2. They launch a candidate-facing profile view or portable export of Jack conversations.
-3. They partner with a named executive coach or build a coach persona layer.
+3. They partner with named executive coaches or build a coach persona layer.
 4. They raise a Series A on the back of US market traction.
 
 Any one of these means the positioning axes above have narrowed and we need to re-differentiate. Calendar reminder: check their product announcements and LinkedIn monthly.
 
 ---
 
+## Distribution-safety note
+
+This document is intended for distribution to investors, advisors, retained search firms, and testers. Per Lens Project policy, it does NOT name individuals from the project's private network (coaches, advisors, retained-firm contacts, testers, partners) because no legal partnerships are in place. Internal tracking of those individuals lives in Airtable and CONTEXT files, not in committed repo artifacts shared externally. Public industry figures whose names appear in press coverage (Jack & Jill founders, competitor CEOs) are retained since that information is already public.
+
+---
+
 ## Revision log
 
-- **2026-04-21 (v1.0):** Initial recalibration following competitive research session. Supersedes the "no depth / no portable document / no coach network" framing as insufficiently differentiated.
+- **2026-04-21 (v1.1):** Removed all references to private-network individuals (coaches, advisors, retained-firm contacts). Concepts preserved; names replaced with generic role descriptions. Added distribution-safety note.
+- **2026-04-21 (v1.0):** Initial recalibration following competitive research session. Superseded by v1.1 for distribution safety.
 
 ---
