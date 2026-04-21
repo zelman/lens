@@ -1,6 +1,6 @@
 # CONTEXT.md — Lens Project
 
-*Last updated: April 13, 2026*
+*Last updated: April 21, 2026*
 
 This is the living context file for the Lens Project — an AI-assisted career identity discovery system with bidirectional signal-based matching. Lives at the root of `zelman/lens` repo. Update when things change.
 
@@ -132,6 +132,34 @@ Dimension cross-mapping, hard gate logic in code (not prompt), Gate Tolerance x 
 **James Pratt SKILL.md** (`config/James_Pratt_Skill.md`) — Coach persona encoding.
 
 **Agent Lens** (v2.15, lives in `zelman/tidepool` repo) — Three-file user architecture in `users/`.
+
+### Competitive Research
+
+Detail lives in `specs/lens-competitive-landscape.md` (zelman/lens). Entries also mirrored in Airtable Competitive Intelligence table (`tbl1n2MWWpmlJqhmf`).
+
+**Key incumbents and the "not that, this" positioning against each:**
+
+- **The Predictive Index (PI)** — $102M revenue, 447 employees, 8K customers across 142 countries, 70-year validity moat. Deeply embedded in retained search: **Caldwell Partners is PI's largest certified partner worldwide**; Renée Vincent, Shulman Associates, Ascent Select also certified. PI Job Assessment is the closest functional analog to Role Lens. PI is the canonical example of the "assessment verdict" model we've explicitly rejected. Use as the foil: *"PI gives you a graph; Lens gives you a conversation."* Do NOT compete on validity, speed, or platform breadth. DO compete on depth of discovery, portable candidate-owned artifact, narrative format, and the catalyst framing. Tier 2, Threat Level Medium.
+
+- **Jack & Jill** — $20M seed, nearest direct competitor (Tier 1). Fast recruiter-level AI matching with structured preferences. Lacks coaching depth, portable document, and coach network.
+
+- **SquarePeg** — closest prior art for bidirectional matching; pivoted away from it. Lessons: frictionless employer-side integration matters, bidirectional intake is hard to scale without a wedge.
+
+- **Pymetrics** — acquired by Harver (2022). Neuroscience games for trait assessment; absorbed into enterprise talent platform. Validates the consolidation trend; doesn't compete on narrative depth.
+
+- **JSON Resume** — structured format precedent, not a product. Relevant as ownership/portability antecedent for the lens-as-document model.
+
+- **DISC / StrengthsFinder / Myers-Briggs** — static assessments, no matching capability. Category Lens is positioned post.
+
+- **360 Feedback tools** — backward-looking, no forward-matching. Observer ratings (Oh/Wang/Mount 2011) are the psychometric ceiling; neither PI nor Lens nor these reach it cleanly today.
+
+- **ATS systems (Greenhouse, Lever, etc.)** — keyword matching, opposite philosophy. PI integrates into this layer; Lens is not planning to own it.
+
+- **Internal mobility platforms (Plum, Torre.ai)** — enterprise wedge, not direct overlap today; worth watching.
+
+**Core gap in the landscape:** no one runs coaching-depth discovery on BOTH sides of a hire (role AND candidate) and produces a portable narrative artifact the candidate owns. This remains our core wedge.
+
+**GTM implication from PI research (added 2026-04-21):** retained search channel is already penetrated by PI. Our GTM must assume PI is present in most conversations with mid-to-large retained firms. Wedge strategy: (a) target firms not yet PI-certified; (b) position Lens as complement (narrative layer over PI's trait data); (c) lean into the candidate-owned artifact angle PI structurally cannot match. Accelerating the coach-persona channel (James Pratt and successors) is our structural answer to PI's certified partner network.
 
 ### Airtable Tables (base appFO5zLT7ZehXaBo)
 
