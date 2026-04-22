@@ -37,7 +37,7 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 // Stage 1: Opus 4.7 (current) — validate approach on test corpus
 // Stage 2: Sonnet 4.6 — calibrate for production cost if quality matches
 const MODEL = "claude-opus-4-7";
-const EXTRACTION_MAX_TOKENS = 4000;
+const EXTRACTION_MAX_TOKENS = 8000;  // Increased from 4000 to prevent truncation
 const SYNTHESIS_MAX_TOKENS = 6000;
 // Note: temperature param removed — deprecated in Claude 4.5+ models
 
@@ -147,6 +147,12 @@ async function callClaude(systemPrompt, userContent, maxTokens, apiKey) {
   }
 
   const data = await response.json();
+
+  // Detect truncation before attempting parse
+  if (data.stop_reason === 'max_tokens') {
+    throw new Error(`Response truncated at max_tokens (${maxTokens}). Increase limit or reduce input.`);
+  }
+
   const text = data.content?.[0]?.text;
 
   if (!text) {
@@ -154,6 +160,76 @@ async function callClaude(systemPrompt, userContent, maxTokens, apiKey) {
   }
 
   return text;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// JSON REPAIR (for truncated responses)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function repairTruncatedJson(jsonStr) {
+  // Find the last safely parseable point and close unclosed brackets
+  let inString = false;
+  let escape = false;
+  let lastSafePoint = 0;
+  let depth = 0;
+
+  for (let i = 0; i < jsonStr.length; i++) {
+    const char = jsonStr[i];
+
+    if (escape) {
+      escape = false;
+      continue;
+    }
+
+    if (char === '\\' && inString) {
+      escape = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (!inString) {
+      if (char === '{' || char === '[') {
+        depth++;
+      } else if (char === '}' || char === ']') {
+        depth--;
+        if (depth >= 0) lastSafePoint = i + 1;
+      } else if (char === ',' && depth > 0) {
+        lastSafePoint = i;
+      }
+    }
+  }
+
+  // Truncate to last safe point
+  let repaired = jsonStr.slice(0, lastSafePoint);
+
+  // Count unclosed brackets
+  let openBraces = 0;
+  let openBrackets = 0;
+  inString = false;
+  escape = false;
+
+  for (let i = 0; i < repaired.length; i++) {
+    const char = repaired[i];
+    if (escape) { escape = false; continue; }
+    if (char === '\\' && inString) { escape = true; continue; }
+    if (char === '"') { inString = !inString; continue; }
+    if (!inString) {
+      if (char === '{') openBraces++;
+      if (char === '}') openBraces--;
+      if (char === '[') openBrackets++;
+      if (char === ']') openBrackets--;
+    }
+  }
+
+  // Close unclosed structures
+  repaired += ']'.repeat(Math.max(0, openBrackets));
+  repaired += '}'.repeat(Math.max(0, openBraces));
+
+  return repaired;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -266,7 +342,19 @@ Examples:
     }
     jsonStr = jsonStr.trim();
 
-    extractionJson = JSON.parse(jsonStr);
+    // Try parsing, with repair fallback for truncated responses
+    try {
+      extractionJson = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      if (parseErr instanceof SyntaxError) {
+        console.log(`   ⚠️  JSON parse failed, attempting repair...`);
+        const repaired = repairTruncatedJson(jsonStr);
+        extractionJson = JSON.parse(repaired);  // If this fails, let outer catch handle it
+        console.log(`   ✓ Repair successful (truncated output salvaged)`);
+      } else {
+        throw parseErr;
+      }
+    }
   } catch (err) {
     console.error(`❌ Extraction failed: ${err.message}`);
     process.exit(1);
