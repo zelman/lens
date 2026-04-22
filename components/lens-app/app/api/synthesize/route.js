@@ -9,8 +9,7 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 6000; // Reduced from 8000 for faster generation (lens typically ~4000 tokens)
 const VALIDATION_MAX_TOKENS = 1500; // Gap report is smaller (reduced from 2000)
-const TEMPERATURE = 0.5; // Reduced from 0.7 for faster sampling
-const RETRY_TEMPERATURE = 0.8; // Slightly higher for retry variation
+// Note: temperature param removed — deprecated in Claude 4.5+ models
 const REQUEST_DEADLINE_MS = 58000; // Total time budget for all API calls (Vercel Pro = 60s, leave 2s buffer)
 const MIN_VALIDATION_BUDGET_MS = 20000; // Skip validation if less than 20s remaining (need time for validation + potential re-synthesis)
 
@@ -149,7 +148,7 @@ export async function POST(request) {
     });
 
     // Call Anthropic API with shared timeout budget
-    const callAnthropic = async (systemPrompt, content, maxTokens = MAX_TOKENS, temp = TEMPERATURE) => {
+    const callAnthropic = async (systemPrompt, content, maxTokens = MAX_TOKENS) => {
       const res = await fetch(ANTHROPIC_API_URL, {
         method: "POST",
         signal: AbortSignal.timeout(getRemainingTimeout()),
@@ -161,7 +160,6 @@ export async function POST(request) {
         body: JSON.stringify({
           model: MODEL,
           max_tokens: maxTokens,
-          temperature: temp,
           system: systemPrompt,
           messages: [{ role: "user", content }],
         }),
@@ -194,11 +192,11 @@ export async function POST(request) {
     // ═══════════════════════════════════════════════════════════════════════
     let lensDoc = await callAnthropic(SYNTHESIS_SYSTEM_PROMPT, userContent);
 
-    // Validate output has enough sections (retry once if malformed with higher temperature)
+    // Validate output has enough sections (retry once if malformed)
     const sectionHeadingCount = (lensDoc.match(/^##\s+/gm) || []).length;
     if (sectionHeadingCount < 4) {
-      console.warn(`Synthesis produced only ${sectionHeadingCount} sections, retrying with higher temperature...`);
-      lensDoc = await callAnthropic(SYNTHESIS_SYSTEM_PROMPT, userContent, MAX_TOKENS, RETRY_TEMPERATURE);
+      console.warn(`Synthesis produced only ${sectionHeadingCount} sections, retrying...`);
+      lensDoc = await callAnthropic(SYNTHESIS_SYSTEM_PROMPT, userContent, MAX_TOKENS);
 
       // Validate retry attempt
       const retryCount = (lensDoc.match(/^##\s+/gm) || []).length;
