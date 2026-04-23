@@ -260,6 +260,7 @@ export async function POST(request) {
       } catch (err) {
         console.error(`[generate-session] Attempt ${attempt} error:`, err.message);
         lastError = err.message;
+        lastDebug = { errorMessage: err.message, attempt };
       }
     }
 
