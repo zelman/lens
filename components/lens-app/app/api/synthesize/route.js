@@ -312,7 +312,12 @@ export async function POST(request) {
     });
 
   } catch (err) {
-    console.error("Synthesize route error:", err);
+    console.error("Synthesize route error:", {
+      name: err.name,
+      message: err.message,
+      cause: err.cause,
+      stack: err.stack?.split('\n').slice(0, 3).join(' | ')
+    });
     return Response.json(
       { error: "Failed to generate lens document" },
       { status: 500 }
