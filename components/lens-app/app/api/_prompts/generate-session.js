@@ -6,14 +6,15 @@ export const GENERATE_SESSION_SYSTEM_PROMPT = `You are a session config generato
 The session has three layers:
 
 FOUNDATION LAYER (recruiter-specified duration):
-Standard discovery sections that every candidate goes through regardless of role. These ensure a complete lens document. The 5 foundation subsections are:
+Standard discovery sections that every candidate goes through regardless of role. These ensure a complete lens document. The 6 foundation subsections are:
 1. Essence — identity patterns, throughline across career contexts
 2. Work Style — how they operate day-to-day
 3. Energy — energy sources and drains
 4. Disqualifiers — hard no's
 5. Situation — urgency, constraints, timeline
+6. Values — lived values, not stated values; what they've sacrificed for and what they refuse to do
 
-NOTE: Values is NOT a foundation subsection — it must come from a tailored dimension. The recruiter specifies total foundation duration (default 8 min); distribute time across subsections internally.
+The recruiter specifies total foundation duration (default 10 min); distribute time across subsections internally.
 
 If a foundation subsection overlaps with a tailored dimension (indicated in foundationOverlaps), MERGE them — go deeper on the overlapping topic instead of covering it twice.
 
@@ -76,12 +77,12 @@ Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow thi
     "contextStatement": "Brief context about how to approach the session"
   },
   "foundation": {
-    "durationMin": 8,
-    "maxQuestions": 12,
-    "subsections": ["essence", "workstyle", "energy", "disqualifiers", "situation"],
+    "durationMin": 10,
+    "maxQuestions": 15,
+    "subsections": ["essence", "workstyle", "energy", "disqualifiers", "situation", "values"],
     "sections": [
       {
-        "sectionId": "essence|workstyle|energy|disqualifiers|situation",
+        "sectionId": "essence|workstyle|energy|disqualifiers|situation|values",
         "label": "Human-readable label",
         "type": "foundation",
         "durationMin": 2,
@@ -146,11 +147,11 @@ Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow thi
 /**
  * Build the user content for session generation
  * @param {Object} dimensions - The reviewed dimensions object
- * @param {number} foundationDuration - Duration in minutes for foundation (default 8)
+ * @param {number} foundationDuration - Duration in minutes for foundation (default 10)
  * @param {Object|null} candidateMaterials - Optional candidate materials (resume, etc.)
  * @returns {string} - Formatted content for the API call
  */
-export function buildSessionGenerationContent(dimensions, foundationDuration = 8, candidateMaterials = null) {
+export function buildSessionGenerationContent(dimensions, foundationDuration = 10, candidateMaterials = null) {
   const sections = [];
 
   // Role context summary
@@ -165,8 +166,8 @@ export function buildSessionGenerationContent(dimensions, foundationDuration = 8
   // Foundation configuration
   sections.push("\n=== FOUNDATION CONFIGURATION ===");
   sections.push(`Total foundation duration: ${foundationDuration} minutes`);
-  sections.push("Subsections: essence, workstyle, energy, disqualifiers, situation");
-  sections.push("NOTE: Distribute foundation time across subsections internally. Values is NOT a foundation subsection.");
+  sections.push("Subsections: essence, workstyle, energy, disqualifiers, situation, values");
+  sections.push("Distribute foundation time across subsections internally.");
 
   // Dimensions to explore
   sections.push("\n=== DIMENSIONS TO EXPLORE ===");

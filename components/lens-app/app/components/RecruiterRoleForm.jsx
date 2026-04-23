@@ -1273,16 +1273,6 @@ function DimensionReviewPhase({ dimensions, setDimensions, roleContext, foundati
         </div>
       )}
 
-      {/* Values warning */}
-      {dimensions.valuesWarning && (
-        <div style={{
-          marginBottom: "24px", padding: "12px 16px", background: "#fffaf5",
-          border: `1px solid ${ORANGE}33`, fontSize: "13px", color: ORANGE, lineHeight: 1.6,
-        }}>
-          <strong>Missing Values dimension:</strong> {dimensions.valuesWarning}
-        </div>
-      )}
-
       {/* Role context summary */}
       <div style={{
         marginBottom: "24px", padding: "12px 16px", background: "#fafafa",
@@ -1306,7 +1296,7 @@ function DimensionReviewPhase({ dimensions, setDimensions, roleContext, foundati
               FOUNDATION
             </div>
             <div style={{ fontSize: "12px", color: GRY, lineHeight: 1.5 }}>
-              Runs for every candidate regardless of role. Covers: Essence, Work Style, Energy, Disqualifiers, Situation.
+              Runs for every candidate regardless of role. Covers: Essence, Work Style, Energy, Disqualifiers, Situation, Values.
             </div>
           </div>
           <DurationStepper

@@ -15,7 +15,7 @@
   "foundation": {
     "durationMin": 4,
     "maxQuestions": 6,
-    "subsections": ["essence", "workstyle", "energy", "disqualifiers", "situation"],
+    "subsections": ["essence", "workstyle", "energy", "disqualifiers", "situation", "values"],
     "sections": [
       {
         "sectionId": "essence",
@@ -71,6 +71,17 @@
         "merged_with_dimension": null,
         "instruction": "Ask about timeline and urgency.",
         "extractionTarget": "Current situation context"
+      },
+      {
+        "sectionId": "values",
+        "id": "values",
+        "label": "Values",
+        "type": "foundation",
+        "durationMin": 1,
+        "maxQuestions": 2,
+        "merged_with_dimension": null,
+        "instruction": "Probe for lived values, not stated values. Ask for a story about a decision that cost something because of a value they hold.",
+        "extractionTarget": "Lived-value evidence, anti-values"
       }
     ]
   },

@@ -40,21 +40,20 @@ Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow thi
     "workstyle": "dimension_id or null",
     "energy": "dimension_id or null",
     "disqualifiers": "dimension_id or null",
-    "situation": "dimension_id or null"
+    "situation": "dimension_id or null",
+    "values": "dimension_id or null"
   },
-  "valuesWarning": "null or warning if no Values-related dimension found",
   "contextQuality": "rich|adequate|thin",
   "contextWarning": "null or warning message if context is thin"
 }
 
-FOUNDATION SUBSECTIONS (these 5 are fixed):
+FOUNDATION SUBSECTIONS (these 6 are fixed):
 - essence: identity patterns, throughline across career contexts
 - workstyle: how they operate day-to-day
 - energy: energy sources and drains
 - disqualifiers: hard no's, dealbreakers
 - situation: urgency, constraints, timeline
-
-IMPORTANT: Values is NOT a foundation subsection. If no dimension addresses Values/Culture alignment, set valuesWarning to flag this. Recruiters should be prompted to add a Values-related dimension.
+- values: lived values, not stated values; what they've sacrificed for and what they refuse to do
 
 FOUNDATION OVERLAPS:
 Map foundation subsections to extracted dimensions where they overlap. When a foundation subsection overlaps with a tailored dimension (e.g., a "Work Environment Fit" dimension overlaps with "workstyle"), the session will merge them — explore deeper on the overlapping topic instead of covering it twice.

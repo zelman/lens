@@ -88,9 +88,9 @@ export const FOUNDATION_CONTEXTS = {
     opener: "Tell me about a recent workday that went really well. What made it good — the pace, the people, the type of work?",
   },
   values: {
-    instruction: "Behavioral values grounded in stories",
-    extractionTarget: "What they actually optimize for, deal-breakers",
-    opener: "When you say something matters to you at work, what does that actually look like in practice?",
+    instruction: "Probe for lived values, not stated values. Ask for a story about a decision that cost something (time, money, comfort, relationship) because of a value the candidate holds. Listen for hard anti-values — what the candidate refuses to do regardless of upside.",
+    extractionTarget: "Lived-value evidence, aspirational-but-honest signals, hard anti-values",
+    opener: "Tell me about a time you made a decision at work that cost you something — time, money, a relationship, maybe a promotion — because of something you believe in. What happened?",
   },
   energy: {
     instruction: "What fills vs drains them",

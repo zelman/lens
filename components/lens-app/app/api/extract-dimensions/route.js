@@ -227,7 +227,6 @@ export async function POST(request) {
           disqualifiers: null,
           situation: "motivation",
         },
-        valuesWarning: "Consider adding a Values/Culture dimension for comprehensive candidate assessment.",
         contextQuality: "thin",
         contextWarning: "Unable to parse AI response. Using fallback dimensions. Add more context (documents, detailed objectives) for better results.",
       });
@@ -256,19 +255,6 @@ export async function POST(request) {
         disqualifiers: null,
         situation: null,
       };
-    }
-
-    // Add valuesWarning if not present and no values-adjacent dimension exists
-    if (!dimensionResult.valuesWarning && dimensionResult.dimensions) {
-      const hasValuesRelated = dimensionResult.dimensions.some(d =>
-        d.label.toLowerCase().includes("value") ||
-        d.label.toLowerCase().includes("culture") ||
-        d.id.includes("value") ||
-        d.id.includes("culture")
-      );
-      if (!hasValuesRelated) {
-        dimensionResult.valuesWarning = "No Values/Culture dimension found. Consider adding one for comprehensive assessment.";
-      }
     }
 
     return Response.json(dimensionResult);
