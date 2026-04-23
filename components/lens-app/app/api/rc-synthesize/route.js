@@ -133,11 +133,18 @@ export async function POST(request) {
     const getRemainingTimeout = () => Math.max(5000, REQUEST_DEADLINE_MS - (Date.now() - requestStart));
 
     // Build user content
-    const userContent = buildRCSynthesisUserContent({
-      sessionConfig,
-      sectionData,
-      candidateContext: candidateContext || null,
-    });
+    let userContent;
+    try {
+      userContent = buildRCSynthesisUserContent({
+        sessionConfig,
+        sectionData,
+        candidateContext: candidateContext || null,
+      });
+      console.log(`[RC-Synthesize] userContent: ${userContent.length} chars, prompt: ${RC_SYNTHESIS_SYSTEM_PROMPT.length} chars`);
+    } catch (buildErr) {
+      console.error("[RC-Synthesize] buildRCSynthesisUserContent failed:", buildErr.message);
+      throw buildErr;
+    }
 
     // Helper for non-streaming API calls (used for validation and re-synthesis)
     const callAnthropicNonStreaming = async (systemPrompt, content, maxTokens = MAX_TOKENS) => {
@@ -176,6 +183,8 @@ export async function POST(request) {
     // ═══════════════════════════════════════════════════════════════════════
     // PHASE 1: Initial Synthesis (streaming for large output)
     // ═══════════════════════════════════════════════════════════════════════
+    const phase1Budget = getRemainingTimeout();
+    console.log(`[RC-Synthesize] Phase 1 starting, budget: ${Math.round(phase1Budget / 1000)}s`);
     const res = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
       signal: AbortSignal.timeout(getRemainingTimeout()),
@@ -359,7 +368,13 @@ export async function POST(request) {
     return Response.json({ lens: sanitized });
 
   } catch (err) {
-    console.error("[RC-Synthesize] Route error:", err);
+    const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError' || err.message?.includes('timeout');
+    console.error("[RC-Synthesize] Route error:", {
+      name: err.name,
+      message: err.message,
+      isTimeout,
+      stack: err.stack?.split('\n').slice(0, 3).join(' | ')
+    });
     return Response.json(
       { error: "Failed to generate lens document" },
       { status: 500 }
