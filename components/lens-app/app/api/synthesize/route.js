@@ -6,7 +6,7 @@ import { SYNTHESIS_SYSTEM_PROMPT, buildSynthesisUserContent } from "../_prompts/
 import { VALIDATION_SYSTEM_PROMPT, buildValidationUserContent, buildRevisionAddendum } from "../_prompts/validation";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514"; // Deprecated but functional until we confirm new model IDs
+const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 6000; // Reduced from 8000 for faster generation (lens typically ~4000 tokens)
 const VALIDATION_MAX_TOKENS = 1500; // Gap report is smaller (reduced from 2000)
 // Note: temperature param removed — deprecated in Claude 4.5+ models
