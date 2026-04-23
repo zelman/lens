@@ -185,11 +185,77 @@ Live total updates on every stepper change. Text shifts to #E8590C (orange) when
 
 ---
 
-## ENGINE-SIDE ENFORCEMENT (DEPENDENCY)
+## ENGINE-SIDE ENFORCEMENT (IMPLEMENTED)
 
-**WARNING**: Per-section timing guardrails in the candidate discovery engine must enforce duration as a real budget, not a suggestion. This is tracked separately and is a blocking dependency.
+Duration budgets are enforced server-side via question count (not wall-clock time). This approach is chosen because:
+- Serverless routes are stateless across turns
+- Wall-clock reconstruction adds complexity and surface area
+- Question count aligns with how synthesis chunks the conversation
+- More predictable UX (N questions vs "about X minutes")
 
-This work (feature/rc-duration-stepper-foundation branch) does NOT merge to main until engine-side enforcement lands alongside it.
+### Shared Timing Module
+
+`lib/session-timing/index.js` exports:
+
+| Export | Purpose |
+|--------|---------|
+| `QUESTIONS_PER_MINUTE` | Conversion constant: `1.5` |
+| `MIN_QUESTIONS_PER_SECTION` | Floor: `2` questions minimum |
+| `sectionBudgetFromConfig(section)` | Returns `{ maxQuestions, durationMinHint }` |
+| `questionsFromDuration(durationMin)` | Utility: `ceil(durationMin * 1.5)`, floor 2 |
+| `isSectionBudgetExhausted(sectionState)` | Returns `true` if at limit |
+| `getBudgetStatus(sectionState)` | Returns `{ exhausted, remaining, atLimit, nearLimit }` |
+| `buildTransitionSignal({ fromSection, toSection, reason })` | Builds transition payload |
+
+### Budget Calculation
+
+```
+maxQuestions = max(ceil(durationMin × 1.5), 2)
+
+Examples:
+- durationMin: 2 → maxQuestions: 3
+- durationMin: 4 → maxQuestions: 6
+- durationMin: 5 → maxQuestions: 8
+- durationMin: 7 → maxQuestions: 11
+```
+
+### API Response Payload
+
+Every `/api/rc-discover` response now includes:
+
+```json
+{
+  "response": "...",
+  "sectionComplete": false,
+  "budgetStatus": {
+    "questionsAsked": 3,
+    "maxQuestions": 6,
+    "remaining": 3,
+    "exhausted": false
+  }
+}
+```
+
+When a section completes (AI marker or budget exhaustion):
+
+```json
+{
+  "response": "...",
+  "sectionComplete": true,
+  "budgetStatus": { ... },
+  "transition": {
+    "from": "essence",
+    "to": "section_1",
+    "reason": "budget_exhausted|section_complete",
+    "timestamp": "2026-04-22T10:30:00Z",
+    "isSessionComplete": false
+  }
+}
+```
+
+### Test Fixture
+
+`test-configs/short-budget.json` provides a minimal session (4 min foundation + 4 min tailored) for verifying budget enforcement triggers transitions at correct question counts.
 
 ---
 
@@ -206,12 +272,20 @@ This work (feature/rc-duration-stepper-foundation branch) does NOT merge to main
 
 After implementation, verify:
 
+### UI Tests
 1. **Duration stepper UI**: Click +/− changes duration, importance label updates
 2. **Foundation card**: Appears at top, has own duration stepper, cannot be removed/reordered
 3. **Live total**: Footer updates in real-time; orange warning appears at > 25 min
 4. **Overlap warning**: When dimension overlaps with foundation, warning displays on card
 5. **Values warning**: When no Values dimension exists, warning appears in UI
 6. **Session config output**: New schema with foundation.durationMin and tailored[].durationMin
+
+### Engine-Side Tests
+7. **Budget enforcement**: Use `test-configs/short-budget.json` to verify sections transition at maxQuestions
+8. **budgetStatus response**: Every `/api/rc-discover` response includes budgetStatus object
+9. **Transition signals**: When section completes, response includes transition object with from/to/reason
+10. **Force transition**: When budget exhausted before AI completes, forceTransition triggers automatic section end
+11. **Greeting includes budget**: First response (action: "greeting") includes budgetStatus with maxQuestions
 
 ---
 

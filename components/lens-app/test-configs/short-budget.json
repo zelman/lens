@@ -1,0 +1,128 @@
+{
+  "description": "Minimal session for testing budget enforcement (4 min foundation, 4 min tailored)",
+  "sessionId": "ses_test_short_budget_20260422",
+  "metadata": {
+    "roleTitle": "Test Role",
+    "company": "Test Company",
+    "estimatedDuration": "8-10 minutes",
+    "candidatePreloaded": false,
+    "generatedAt": "2026-04-22T10:00:00Z"
+  },
+  "candidateIntro": {
+    "greeting": "Hello! Thanks for taking the time to chat today.",
+    "contextStatement": "This is a brief discovery session. We're exploring fit, not testing performance."
+  },
+  "foundation": {
+    "durationMin": 4,
+    "maxQuestions": 6,
+    "subsections": ["essence", "workstyle", "energy", "disqualifiers", "situation"],
+    "sections": [
+      {
+        "sectionId": "essence",
+        "id": "essence",
+        "label": "Professional Essence",
+        "type": "foundation",
+        "durationMin": 1,
+        "maxQuestions": 2,
+        "merged_with_dimension": null,
+        "instruction": "Ask about their professional identity and throughline.",
+        "extractionTarget": "Core identity patterns"
+      },
+      {
+        "sectionId": "workstyle",
+        "id": "workstyle",
+        "label": "Work Style",
+        "type": "foundation",
+        "durationMin": 1,
+        "maxQuestions": 2,
+        "merged_with_dimension": null,
+        "instruction": "Ask how they operate day-to-day.",
+        "extractionTarget": "Work patterns and preferences"
+      },
+      {
+        "sectionId": "energy",
+        "id": "energy",
+        "label": "Energy",
+        "type": "foundation",
+        "durationMin": 0.5,
+        "maxQuestions": 2,
+        "merged_with_dimension": null,
+        "instruction": "Ask about energy sources and drains.",
+        "extractionTarget": "Energy patterns"
+      },
+      {
+        "sectionId": "disqualifiers",
+        "id": "disqualifiers",
+        "label": "Disqualifiers",
+        "type": "foundation",
+        "durationMin": 0.5,
+        "maxQuestions": 2,
+        "merged_with_dimension": null,
+        "instruction": "Ask about hard no's and dealbreakers.",
+        "extractionTarget": "Non-negotiables"
+      },
+      {
+        "sectionId": "situation",
+        "id": "situation",
+        "label": "Situation",
+        "type": "foundation",
+        "durationMin": 1,
+        "maxQuestions": 2,
+        "merged_with_dimension": null,
+        "instruction": "Ask about timeline and urgency.",
+        "extractionTarget": "Current situation context"
+      }
+    ]
+  },
+  "tailored": [
+    {
+      "dimensionId": "test_dimension",
+      "id": "test_dimension",
+      "label": "Test Dimension",
+      "type": "tailored",
+      "importance": "moderate",
+      "durationMin": 4,
+      "maxQuestions": 6,
+      "openingQuestions": [
+        "Tell me about a recent project you're proud of.",
+        "What challenges did you face?"
+      ],
+      "followUpGuidance": {
+        "ifStrong": "Probe for specific examples and outcomes.",
+        "ifThin": "Ask for concrete details.",
+        "ifAvoided": "Note avoidance and move on."
+      },
+      "extractionSchema": {
+        "observations": ["Project complexity", "Problem-solving approach"],
+        "signalStrength": "moderate"
+      }
+    }
+  ],
+  "primerProbes": [],
+  "conversationConfig": {
+    "model": "claude-sonnet-4-6",
+    "maxTokens": 1000,
+    "tone": "Warm, curious, coaching-style. Non-evaluative.",
+    "transparency": "Tell the candidate this session is tailored to the opportunity",
+    "pacing": "Don't rush. Let silences happen. Follow the candidate's energy.",
+    "transitions": "Move naturally between topics. Don't announce sections.",
+    "thinSignalProtocol": "Probe once. If still thin, note it and move on.",
+    "unexpectedDepth": "If relevant, follow the candidate's lead."
+  },
+  "_testNotes": {
+    "purpose": "Test that budget enforcement triggers transitions at correct question counts",
+    "expectedBehavior": [
+      "Each foundation section should complete after 2 questions max",
+      "Tailored section should complete after 6 questions max",
+      "Total session should be 8-10 minutes (not 15-25)",
+      "budgetStatus should be returned in each API response",
+      "transition signals should fire when sections complete"
+    ],
+    "howToTest": [
+      "1. Store this config in sessionStorage as 'session-config'",
+      "2. Navigate to /recruiter/candidate",
+      "3. Verify each section transitions after maxQuestions",
+      "4. Check network responses for budgetStatus and transition fields"
+    ]
+  }
+}

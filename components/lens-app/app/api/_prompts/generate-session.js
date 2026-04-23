@@ -47,6 +47,18 @@ CONVERSATION INSTRUCTIONS:
 - If the candidate gives a thin answer, probe once. If still thin, note it and move on.
 - If the candidate goes deep on something unexpected but relevant, follow it.
 
+BUDGET CALCULATION (CRITICAL):
+For each section, calculate maxQuestions from durationMin:
+- Formula: maxQuestions = ceil(durationMin × 1.5)
+- Floor: minimum 2 questions per section (even if durationMin is 1)
+- Examples:
+  - durationMin: 2 → maxQuestions: 3
+  - durationMin: 4 → maxQuestions: 6
+  - durationMin: 5 → maxQuestions: 8
+  - durationMin: 7 → maxQuestions: 11
+
+The engine enforces these budgets strictly. When a section's question count is reached, the conversation automatically transitions to the next section.
+
 OUTPUT FORMAT:
 Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow this structure:
 
@@ -65,12 +77,15 @@ Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow thi
   },
   "foundation": {
     "durationMin": 8,
+    "maxQuestions": 12,
     "subsections": ["essence", "workstyle", "energy", "disqualifiers", "situation"],
     "sections": [
       {
         "sectionId": "essence|workstyle|energy|disqualifiers|situation",
         "label": "Human-readable label",
-        "timeAllocation": "X min",
+        "type": "foundation",
+        "durationMin": 2,
+        "maxQuestions": 3,
         "merged_with_dimension": "dimension_id or null",
         "instruction": "Specific instruction for this section, including opening question",
         "extractionTarget": "What to extract from responses"
@@ -81,8 +96,10 @@ Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow thi
     {
       "dimensionId": "string",
       "label": "string",
+      "type": "tailored",
       "importance": "critical|high|moderate",
       "durationMin": 4,
+      "maxQuestions": 6,
       "openingQuestions": ["Question 1", "Question 2"],
       "followUpGuidance": {
         "ifStrong": "What to do if candidate gives strong signal",
