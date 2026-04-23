@@ -229,11 +229,13 @@ export async function POST(request) {
 
         if (!fullText) {
           lastError = "Empty response from AI";
+          lastDebug = { issue: "empty_response", stopReason, attempt };
           continue;
         }
 
         if (stopReason === "max_tokens") {
           lastError = "Response truncated - max_tokens reached";
+          lastDebug = { issue: "max_tokens", responseLength: fullText.length, attempt };
           continue;
         }
 
