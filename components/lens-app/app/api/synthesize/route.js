@@ -118,6 +118,9 @@ export async function POST(request) {
       );
     }
 
+    // Log payload details for debugging
+    console.log(`[Synthesize] Payload: ${payloadSize} bytes, sections: ${sectionCount}, rawDoc: ${rawDocumentText?.length || 0} chars`);
+
     // Build current date
     const now = new Date();
     const currentDate = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -146,6 +149,8 @@ export async function POST(request) {
       documentContext: documentContext || null,
       rawDocumentText: truncatedRawText,
     });
+
+    console.log(`[Synthesize] userContent length: ${userContent.length} chars, timeout budget: ${getRemainingTimeout()}ms`);
 
     // Call Anthropic API with shared timeout budget
     const callAnthropic = async (systemPrompt, content, maxTokens = MAX_TOKENS) => {
