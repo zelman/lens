@@ -111,6 +111,10 @@ function parseJsonWithRepairs(text, prefilled = false) {
     cleanText = "{" + cleanText;
   }
 
+  // Log first 100 chars for debugging
+  console.log("[generate-session] cleanText first 100:", cleanText.slice(0, 100));
+  console.log("[generate-session] cleanText char codes:", Array.from(cleanText.slice(0, 20)).map(c => c.charCodeAt(0)));
+
   // Attempt 1: Direct parse
   try {
     return JSON.parse(cleanText);
