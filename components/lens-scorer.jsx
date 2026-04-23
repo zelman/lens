@@ -191,7 +191,7 @@ export default function LensScorer() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-opus-4-7",
           max_tokens: 2000,
           system: systemPrompt,
           messages: [{ role: "user", content: `Score this opportunity against the lens:\n\n${input.trim()}` }],
