@@ -21,9 +21,11 @@ const MIN_VALIDATION_BUDGET_MS = 20000; // Skip validation if less than 20s rema
 // Matches /api/synthesize implementation for parity
 // ═══════════════════════════════════════════════════════════════════════
 
+// Note: "ADD" removed - too many false positives with common word "add".
+// Coverage maintained via "ADHD" and "attention deficit".
 const SENSITIVE_TERMS = [
   // Clinical/neurodivergence labels
-  "ADHD", "ADD", "attention deficit", "ASD", "autism", "dyslexia",
+  "ADHD", "attention deficit", "ASD", "autism", "dyslexia",
   "anxiety", "depression", "bipolar", "OCD",
   // Assessment frameworks
   "DISC", "Myers-Briggs", "MBTI", "Enneagram", "StrengthsFinder", "CliftonStrengths",
@@ -38,7 +40,10 @@ const SENSITIVE_TERMS = [
 // Build regex to match any sentence containing sensitive terms
 function buildSentencePattern(term) {
   const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`[^.!?]*\\b${escaped}\\b[^.!?]*[.!?]`, 'gi');
+  // Bracketed terms like "[work style" don't work with \b word boundary
+  const boundary = /^\[/.test(term) ? '' : '\\b';
+  // Match sentence containing the term, including end-of-string for unpunctuated final sentences
+  return new RegExp(`[^.!?]*${boundary}${escaped}${boundary}[^.!?]*(?:[.!?]|$)`, 'gim');
 }
 
 function sanitizeLensOutput(text) {
@@ -124,7 +129,16 @@ export async function POST(request) {
       );
     }
 
-    console.log(`[RC-Synthesize] Generating lens for session ${sessionConfig.sessionId}, ${sectionCount} sections`);
+    // Check payload size (200KB limit for synthesis)
+    const payloadSize = JSON.stringify(body).length;
+    if (payloadSize > 200000) {
+      return Response.json(
+        { error: "Request too large" },
+        { status: 400 }
+      );
+    }
+
+    console.log(`[RC-Synthesize] Generating lens for session ${sessionConfig.sessionId}, ${sectionCount} sections, payload: ${payloadSize} bytes`);
 
     // ═══════════════════════════════════════════════════════════════════════
     // TIMEOUT BUDGET MANAGEMENT

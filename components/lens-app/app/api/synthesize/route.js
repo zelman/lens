@@ -23,9 +23,11 @@ const MIN_VALIDATION_BUDGET_MS = 20000; // Skip validation if less than 20s rema
 // ═══════════════════════════════════════════════════════════════════════
 
 // Sensitive terms that trigger sentence removal (case-insensitive)
+// Note: "ADD" removed - too many false positives with common word "add".
+// Coverage maintained via "ADHD" and "attention deficit".
 const SENSITIVE_TERMS = [
   // Clinical/neurodivergence labels
-  "ADHD", "ADD", "attention deficit", "ASD", "autism", "dyslexia",
+  "ADHD", "attention deficit", "ASD", "autism", "dyslexia",
   "anxiety", "depression", "bipolar", "OCD",
   // Assessment frameworks
   "DISC", "Myers-Briggs", "MBTI", "Enneagram", "StrengthsFinder", "CliftonStrengths",
@@ -41,8 +43,10 @@ const SENSITIVE_TERMS = [
 function buildSentencePattern(term) {
   // Escape special regex characters in the term
   const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  // Match sentence containing the term (from start of sentence or after period to next period)
-  return new RegExp(`[^.!?]*\\b${escaped}\\b[^.!?]*[.!?]`, 'gi');
+  // Bracketed terms like "[work style" don't work with \b word boundary
+  const boundary = /^\[/.test(term) ? '' : '\\b';
+  // Match sentence containing the term, including end-of-string for unpunctuated final sentences
+  return new RegExp(`[^.!?]*${boundary}${escaped}${boundary}[^.!?]*(?:[.!?]|$)`, 'gim');
 }
 
 function sanitizeLensOutput(text) {
