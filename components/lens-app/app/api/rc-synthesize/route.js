@@ -5,9 +5,9 @@
 import { RC_SYNTHESIS_SYSTEM_PROMPT, buildRCSynthesisUserContent } from "../_prompts/rc-synthesis";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 6000; // Lens documents require extended token limit for 7-section narrative
-const TEMPERATURE = 0.5; // Balanced for narrative prose
+// Note: temperature param removed — deprecated in Claude 4.5+ models
 
 // Sensitive terms that should never appear in output
 const SENSITIVE_TERMS = [
@@ -94,7 +94,6 @@ export async function POST(request) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: MAX_TOKENS,
-        temperature: TEMPERATURE,
         stream: true,
         system: RC_SYNTHESIS_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userContent }],

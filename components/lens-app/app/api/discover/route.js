@@ -4,7 +4,7 @@
 import { VALID_SECTIONS, buildSystemPrompt, getSectionPrompt } from "../_prompts/discovery";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 1000;
 const MAX_UPLOAD_SUMMARY_LENGTH = 60000; // ~15K tokens, client applies priority-based budget
 const MIN_UPLOAD_SUMMARY_LENGTH = 100; // Minimum for meaningful context

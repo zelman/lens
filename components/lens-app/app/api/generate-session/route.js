@@ -8,9 +8,9 @@ import {
 } from "../_prompts/generate-session";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-opus-4-5-20251101";  // Opus 4.5 for reliable complex JSON
+const MODEL = "claude-opus-4-7";  // Opus for reliable complex JSON
 const MAX_TOKENS = 4000; // Enough for full session config JSON
-const TEMPERATURE = 0.3; // Lower temperature for more consistent JSON output
+// Note: temperature param removed — deprecated in Claude 4.5+ models
 const MAX_RETRIES = 2;
 
 // Helper: Try to find a valid JSON substring by progressively truncating
@@ -51,7 +51,6 @@ async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      temperature: TEMPERATURE,
       stream: true,
       system: systemPrompt,
       messages: [
@@ -290,9 +289,9 @@ export async function POST(request) {
 
     if (!sessionConfig.conversationConfig) {
       sessionConfig.conversationConfig = {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         maxTokens: 2500,
-        temperature: 0.5,
+        // Note: temperature removed — deprecated in Claude 4.5+ models
         tone: "Warm, curious, coaching-style. Non-evaluative.",
         transparency: "Tell the candidate this session is tailored to the opportunity",
         pacing: "Don't rush. Let silences happen. Follow the candidate's energy.",

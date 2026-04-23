@@ -4,9 +4,9 @@
 import { TEAM_SYNTHESIS_SYSTEM_PROMPT, buildTeamSynthesisUserContent } from "../_prompts/team-synthesis";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 2000;
-const TEMPERATURE = 0.5;
+// Note: temperature param removed — deprecated in Claude 4.5+ models
 
 const AIRTABLE_API_URL = "https://api.airtable.com/v0";
 const BASE_ID = "appFO5zLT7ZehXaBo";
@@ -98,7 +98,6 @@ export async function POST(request) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: MAX_TOKENS,
-        temperature: TEMPERATURE,
         system: TEAM_SYNTHESIS_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userContent }],
       }),

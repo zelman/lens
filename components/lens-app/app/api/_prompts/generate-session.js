@@ -98,9 +98,8 @@ Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow thi
     }
   ],
   "conversationConfig": {
-    "model": "claude-sonnet-4-20250514",
+    "model": "claude-sonnet-4-6",
     "maxTokens": 6000,
-    "temperature": 0.5,
     "tone": "coaching description",
     "transparency": "what to tell the candidate",
     "pacing": "pacing guidance",

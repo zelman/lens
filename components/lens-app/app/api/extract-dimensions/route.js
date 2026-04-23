@@ -8,9 +8,9 @@ import {
 } from "../_prompts/extract-dimensions";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-opus-4-7";
 const MAX_TOKENS = 4000;
-const TEMPERATURE = 0.3; // Low temperature for consistency
+// Note: temperature param removed — deprecated in Claude 4.5+ models
 
 export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -68,7 +68,6 @@ export async function POST(request) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: MAX_TOKENS,
-        temperature: TEMPERATURE,
         stream: true, // Enable streaming
         system: EXTRACT_DIMENSIONS_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userContent }],
