@@ -54,8 +54,7 @@ async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
       stream: true,
       system: systemPrompt,
       messages: [
-        { role: "user", content: userContent },
-        { role: "assistant", content: "{" }  // Prefill to force JSON start
+        { role: "user", content: userContent + "\n\nRespond with ONLY the JSON object, starting with {" }
       ],
     }),
   });
@@ -238,8 +237,8 @@ export async function POST(request) {
           continue;
         }
 
-        // Try to parse the response (prefilled=true because we used assistant prefill)
-        sessionConfig = parseJsonWithRepairs(fullText, true);
+        // Try to parse the response (no prefill used)
+        sessionConfig = parseJsonWithRepairs(fullText, false);
 
         if (sessionConfig) {
           console.log(`[generate-session] Success on attempt ${attempt}`);
