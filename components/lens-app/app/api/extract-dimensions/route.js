@@ -183,6 +183,7 @@ export async function POST(request) {
             id: "role_fit",
             label: "Role Fit",
             importance: "critical",
+            durationMin: 7,
             sources: ["Role title"],
             whatToExplore: "How well does the candidate's experience align with this role's core responsibilities?",
             signals: ["Relevant experience", "Clear understanding of the role"],
@@ -192,6 +193,7 @@ export async function POST(request) {
             id: "leadership_style",
             label: "Leadership Style",
             importance: "high",
+            durationMin: 5,
             sources: ["General"],
             whatToExplore: "How does the candidate lead and influence others?",
             signals: ["Clear leadership philosophy", "Concrete examples"],
@@ -201,6 +203,7 @@ export async function POST(request) {
             id: "culture_alignment",
             label: "Culture Alignment",
             importance: "high",
+            durationMin: 5,
             sources: ["General"],
             whatToExplore: "Will this person thrive in this company's environment?",
             signals: ["Values alignment", "Work style compatibility"],
@@ -210,6 +213,7 @@ export async function POST(request) {
             id: "motivation",
             label: "Motivation & Timing",
             importance: "moderate",
+            durationMin: 4,
             sources: ["General"],
             whatToExplore: "Why is this person interested and what's their timeline?",
             signals: ["Clear motivation", "Reasonable timeline"],
@@ -217,14 +221,13 @@ export async function POST(request) {
           },
         ],
         foundationOverlaps: {
-          work_style: null,
-          values: "culture_alignment",
           essence: null,
-          mission_sector: null,
+          workstyle: null,
           energy: "motivation",
           disqualifiers: null,
-          situation_timeline: "motivation",
+          situation: "motivation",
         },
+        valuesWarning: "Consider adding a Values/Culture dimension for comprehensive candidate assessment.",
         contextQuality: "thin",
         contextWarning: "Unable to parse AI response. Using fallback dimensions. Add more context (documents, detailed objectives) for better results.",
       });
@@ -247,14 +250,25 @@ export async function POST(request) {
 
     if (!dimensionResult.foundationOverlaps) {
       dimensionResult.foundationOverlaps = {
-        work_style: null,
-        values: null,
         essence: null,
-        mission_sector: null,
+        workstyle: null,
         energy: null,
         disqualifiers: null,
-        situation_timeline: null,
+        situation: null,
       };
+    }
+
+    // Add valuesWarning if not present and no values-adjacent dimension exists
+    if (!dimensionResult.valuesWarning && dimensionResult.dimensions) {
+      const hasValuesRelated = dimensionResult.dimensions.some(d =>
+        d.label.toLowerCase().includes("value") ||
+        d.label.toLowerCase().includes("culture") ||
+        d.id.includes("value") ||
+        d.id.includes("culture")
+      );
+      if (!hasValuesRelated) {
+        dimensionResult.valuesWarning = "No Values/Culture dimension found. Consider adding one for comprehensive assessment.";
+      }
     }
 
     return Response.json(dimensionResult);

@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.22-g";
+const BUILD_ID = "2026.04.22-h";
 
 // ── Design tokens (match candidate intake exactly) ──
 const RED = "#D93025";
@@ -1062,33 +1062,106 @@ function ReviewPhase({ formData, files, onEdit, onBack, onConfirm }) {
   );
 }
 
-function DimensionReviewPhase({ dimensions, setDimensions, roleContext, onBack, onGenerate, isGenerating, generateError }) {
+// ── Duration Stepper Component ──
+function DurationStepper({ value, onChange, min = 4, disabled = false, label }) {
+  const MONO_FONT = "Consolas, 'Courier New', monospace";
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      <button
+        onClick={() => onChange(Math.max(min, value - 1))}
+        disabled={disabled || value <= min}
+        style={{
+          width: "24px", height: "24px",
+          background: "none",
+          border: `1px solid ${RULE}`,
+          cursor: disabled || value <= min ? "default" : "pointer",
+          color: disabled || value <= min ? LT : BLK,
+          fontFamily: FONT,
+          fontSize: "14px",
+          fontWeight: 500,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+        }}
+      >
+        −
+      </button>
+      <span style={{
+        fontFamily: MONO_FONT,
+        fontSize: "14px",
+        fontWeight: 600,
+        minWidth: "32px",
+        textAlign: "center",
+      }}>
+        {value}
+      </span>
+      <button
+        onClick={() => onChange(value + 1)}
+        disabled={disabled}
+        style={{
+          width: "24px", height: "24px",
+          background: "none",
+          border: `1px solid ${RULE}`,
+          cursor: disabled ? "default" : "pointer",
+          color: disabled ? LT : BLK,
+          fontFamily: FONT,
+          fontSize: "14px",
+          fontWeight: 500,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+        }}
+      >
+        +
+      </button>
+      <span style={{ fontSize: "11px", color: GRY, marginLeft: "2px" }}>
+        min
+      </span>
+      {label && (
+        <span style={{ fontSize: "11px", color: GRY, marginLeft: "8px" }}>
+          {label}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Helper: Derive importance from duration ──
+function deriveImportance(durationMin) {
+  if (durationMin >= 7) return "critical";
+  if (durationMin >= 5) return "high";
+  return "moderate";
+}
+
+const importanceColors = { critical: RED, high: ORANGE, moderate: GRY };
+const GREEN = "#2D6A2D";
+
+// ── Foundation subsections (fixed for all sessions) ──
+const FOUNDATION_SUBSECTIONS = ["essence", "workstyle", "energy", "disqualifiers", "situation"];
+
+function DimensionReviewPhase({ dimensions, setDimensions, roleContext, foundationDuration, setFoundationDuration, onBack, onGenerate, isGenerating, generateError }) {
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState("");
 
-  const importanceLevels = ["critical", "high", "moderate"];
-  const importanceColors = { critical: RED, high: ORANGE, moderate: GRY };
-
-  const calculateTimeEstimate = (dims) => {
-    const foundation = 7; // minutes
-    let tailored = 0;
-    for (const dim of dims) {
-      if (dim.importance === "critical") tailored += 4;
-      else if (dim.importance === "high") tailored += 3;
-      else tailored += 1.5;
-    }
-    const total = foundation + tailored;
-    return `${Math.floor(total)}-${Math.ceil(total + 4)} min`;
+  // Calculate total session time (foundation + all dimensions)
+  const calculateTotalTime = () => {
+    const dimTotal = dimensions.dimensions.reduce((sum, d) => sum + (d.durationMin || 4), 0);
+    return foundationDuration + dimTotal;
   };
 
-  const cycleImportance = (dimId) => {
+  const totalTime = calculateTotalTime();
+
+  // Update dimension duration
+  const updateDimensionDuration = (dimId, newDuration) => {
     setDimensions(prev => ({
       ...prev,
       dimensions: prev.dimensions.map(d => {
         if (d.id !== dimId) return d;
-        const currentIdx = importanceLevels.indexOf(d.importance);
-        const nextIdx = (currentIdx + 1) % importanceLevels.length;
-        return { ...d, importance: importanceLevels[nextIdx] };
+        const importance = deriveImportance(newDuration);
+        return { ...d, durationMin: newDuration, importance };
       }),
     }));
   };
@@ -1135,6 +1208,7 @@ function DimensionReviewPhase({ dimensions, setDimensions, roleContext, onBack, 
       id,
       label: "New Dimension",
       importance: "moderate",
+      durationMin: 4, // Default 4 min floor
       sources: ["Custom"],
       whatToExplore: "",
       signals: [],
@@ -1157,17 +1231,19 @@ function DimensionReviewPhase({ dimensions, setDimensions, roleContext, onBack, 
     gap: "12px",
   };
 
-  const badgeStyle = (importance) => ({
-    padding: "4px 8px",
+  const foundationCardStyle = {
+    padding: "16px",
+    background: "#fafafa",
+    border: `2px solid ${BLK}`,
+    marginBottom: "16px",
+  };
+
+  const importanceLabelStyle = (importance) => ({
     fontSize: "10px",
-    fontWeight: 600,
+    fontWeight: 500,
     letterSpacing: "0.06em",
     textTransform: "uppercase",
-    background: importanceColors[importance],
-    color: "#fff",
-    cursor: "pointer",
-    border: "none",
-    fontFamily: FONT,
+    color: importanceColors[importance],
   });
 
   return (
@@ -1197,6 +1273,16 @@ function DimensionReviewPhase({ dimensions, setDimensions, roleContext, onBack, 
         </div>
       )}
 
+      {/* Values warning */}
+      {dimensions.valuesWarning && (
+        <div style={{
+          marginBottom: "24px", padding: "12px 16px", background: "#fffaf5",
+          border: `1px solid ${ORANGE}33`, fontSize: "13px", color: ORANGE, lineHeight: 1.6,
+        }}>
+          <strong>Missing Values dimension:</strong> {dimensions.valuesWarning}
+        </div>
+      )}
+
       {/* Role context summary */}
       <div style={{
         marginBottom: "24px", padding: "12px 16px", background: "#fafafa",
@@ -1212,107 +1298,149 @@ function DimensionReviewPhase({ dimensions, setDimensions, roleContext, onBack, 
         )}
       </div>
 
-      {/* Time estimate */}
-      <div style={{
-        marginBottom: "24px", padding: "12px 16px", background: "#f0faf0",
-        border: `1px solid #2D6A2D33`, fontSize: "13px", color: "#2D6A2D",
-      }}>
-        <strong>Estimated session:</strong> {calculateTimeEstimate(dimensions.dimensions)}
-        <span style={{ color: GRY, marginLeft: "8px" }}>
-          ({dimensions.dimensions.length} dimensions)
-        </span>
+      {/* Foundation card (fixed, always at top) */}
+      <div style={foundationCardStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+          <div>
+            <div style={{ fontSize: "11px", letterSpacing: "0.1em", color: BLK, textTransform: "uppercase", fontWeight: 600, marginBottom: "4px" }}>
+              FOUNDATION
+            </div>
+            <div style={{ fontSize: "12px", color: GRY, lineHeight: 1.5 }}>
+              Runs for every candidate regardless of role. Covers: Essence, Work Style, Energy, Disqualifiers, Situation.
+            </div>
+          </div>
+          <DurationStepper
+            value={foundationDuration}
+            onChange={setFoundationDuration}
+            min={4}
+          />
+        </div>
       </div>
 
       {/* Dimensions list */}
       <div style={{ marginBottom: "24px" }}>
-        {dimensions.dimensions.map((dim, idx) => (
-          <div key={dim.id} style={dimCardStyle}>
-            {/* Reorder buttons */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              <button
-                onClick={() => moveDimension(idx, -1)}
-                disabled={idx === 0}
-                style={{
-                  background: "none", border: `1px solid ${RULE}`, cursor: idx === 0 ? "default" : "pointer",
-                  padding: "4px 6px", fontSize: "10px", color: idx === 0 ? LT : BLK, fontFamily: FONT,
-                }}
-              >
-                ▲
-              </button>
-              <button
-                onClick={() => moveDimension(idx, 1)}
-                disabled={idx === dimensions.dimensions.length - 1}
-                style={{
-                  background: "none", border: `1px solid ${RULE}`, cursor: idx === dimensions.dimensions.length - 1 ? "default" : "pointer",
-                  padding: "4px 6px", fontSize: "10px", color: idx === dimensions.dimensions.length - 1 ? LT : BLK, fontFamily: FONT,
-                }}
-              >
-                ▼
-              </button>
-            </div>
+        {dimensions.dimensions.map((dim, idx) => {
+          const dimDuration = dim.durationMin || 4;
+          const importance = deriveImportance(dimDuration);
 
-            {/* Main content */}
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+          return (
+            <div key={dim.id} style={dimCardStyle}>
+              {/* Reorder buttons */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                 <button
-                  onClick={() => cycleImportance(dim.id)}
-                  style={badgeStyle(dim.importance)}
-                  title="Click to cycle importance"
+                  onClick={() => moveDimension(idx, -1)}
+                  disabled={idx === 0}
+                  style={{
+                    background: "none", border: `1px solid ${RULE}`, cursor: idx === 0 ? "default" : "pointer",
+                    padding: "4px 6px", fontSize: "10px", color: idx === 0 ? LT : BLK, fontFamily: FONT,
+                  }}
                 >
-                  {dim.importance}
+                  ▲
                 </button>
-                {editingId === dim.id ? (
-                  <input
-                    type="text"
-                    value={editValue}
-                    onChange={e => setEditValue(e.target.value)}
-                    onBlur={saveEdit}
-                    onKeyDown={e => e.key === "Enter" && saveEdit()}
-                    autoFocus
-                    style={{
-                      flex: 1, padding: "4px 8px", fontFamily: FONT, fontSize: "14px",
-                      fontWeight: 600, border: `1px solid ${RED}`, borderRadius: 0,
-                    }}
+                <button
+                  onClick={() => moveDimension(idx, 1)}
+                  disabled={idx === dimensions.dimensions.length - 1}
+                  style={{
+                    background: "none", border: `1px solid ${RULE}`, cursor: idx === dimensions.dimensions.length - 1 ? "default" : "pointer",
+                    padding: "4px 6px", fontSize: "10px", color: idx === dimensions.dimensions.length - 1 ? LT : BLK, fontFamily: FONT,
+                  }}
+                >
+                  ▼
+                </button>
+              </div>
+
+              {/* Main content */}
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
+                  {/* Duration stepper */}
+                  <DurationStepper
+                    value={dimDuration}
+                    onChange={(val) => updateDimensionDuration(dim.id, val)}
+                    min={4}
                   />
-                ) : (
-                  <span
-                    onClick={() => startEdit(dim)}
-                    style={{ fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
-                    title="Click to edit"
-                  >
-                    {dim.label}
+                  {/* Derived importance label (read-only) */}
+                  <span style={importanceLabelStyle(importance)}>
+                    {importance}
                   </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                  {editingId === dim.id ? (
+                    <input
+                      type="text"
+                      value={editValue}
+                      onChange={e => setEditValue(e.target.value)}
+                      onBlur={saveEdit}
+                      onKeyDown={e => e.key === "Enter" && saveEdit()}
+                      autoFocus
+                      style={{
+                        flex: 1, padding: "4px 8px", fontFamily: FONT, fontSize: "14px",
+                        fontWeight: 600, border: `1px solid ${RED}`, borderRadius: 0,
+                      }}
+                    />
+                  ) : (
+                    <span
+                      onClick={() => startEdit(dim)}
+                      style={{ fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                      title="Click to edit"
+                    >
+                      {dim.label}
+                    </span>
+                  )}
+                </div>
+
+                {dim.whatToExplore && (
+                  <div style={{ fontSize: "12px", color: GRY, lineHeight: 1.5 }}>
+                    {dim.whatToExplore}
+                  </div>
+                )}
+
+                {dim.sources && dim.sources.length > 0 && (
+                  <div style={{ fontSize: "11px", color: LT, marginTop: "6px" }}>
+                    Source: {dim.sources.join(", ")}
+                  </div>
+                )}
+
+                {/* Overlap warning if dimension overlaps with foundation */}
+                {dim.foundationOverlap && (
+                  <div style={{ fontSize: "11px", color: ORANGE, marginTop: "6px" }}>
+                    ⚠ Overlaps with foundation section: {dim.foundationOverlap}
+                  </div>
                 )}
               </div>
 
-              {dim.whatToExplore && (
-                <div style={{ fontSize: "12px", color: GRY, lineHeight: 1.5 }}>
-                  {dim.whatToExplore}
-                </div>
-              )}
-
-              {dim.sources && dim.sources.length > 0 && (
-                <div style={{ fontSize: "11px", color: LT, marginTop: "6px" }}>
-                  Source: {dim.sources.join(", ")}
-                </div>
-              )}
+              {/* Remove button */}
+              <button
+                onClick={() => removeDimension(dim.id)}
+                disabled={dimensions.dimensions.length <= 2}
+                style={{
+                  background: "none", border: "none", color: dimensions.dimensions.length <= 2 ? LT : GRY,
+                  cursor: dimensions.dimensions.length <= 2 ? "default" : "pointer",
+                  fontSize: "18px", padding: "0", fontFamily: FONT,
+                }}
+                title={dimensions.dimensions.length <= 2 ? "At least 2 dimensions required" : "Remove dimension"}
+              >
+                ×
+              </button>
             </div>
+          );
+        })}
+      </div>
 
-            {/* Remove button */}
-            <button
-              onClick={() => removeDimension(dim.id)}
-              disabled={dimensions.dimensions.length <= 2}
-              style={{
-                background: "none", border: "none", color: dimensions.dimensions.length <= 2 ? LT : GRY,
-                cursor: dimensions.dimensions.length <= 2 ? "default" : "pointer",
-                fontSize: "18px", padding: "0", fontFamily: FONT,
-              }}
-              title={dimensions.dimensions.length <= 2 ? "At least 2 dimensions required" : "Remove dimension"}
-            >
-              ×
-            </button>
-          </div>
-        ))}
+      {/* Session time total (footer) */}
+      <div style={{
+        marginBottom: "24px", padding: "12px 16px",
+        background: totalTime > 25 ? "#fffaf5" : "#f0faf0",
+        border: `1px solid ${totalTime > 25 ? ORANGE + "33" : GREEN + "33"}`,
+        fontSize: "13px",
+        color: totalTime > 25 ? ORANGE : GREEN,
+      }}>
+        <strong>Estimated session:</strong> {totalTime} min
+        {totalTime > 25 && (
+          <span style={{ marginLeft: "8px", fontSize: "12px" }}>
+            (Consider reducing duration for shorter sessions)
+          </span>
+        )}
       </div>
 
       {/* Add dimension button */}
@@ -1621,6 +1749,7 @@ export default function RecruiterRoleForm() {
 
   // Dimension extraction state
   const [dimensions, setDimensions] = useState(null);
+  const [foundationDuration, setFoundationDuration] = useState(8); // Default 8 min for foundation
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState(null);
 
@@ -1680,6 +1809,17 @@ export default function RecruiterRoleForm() {
       }
 
       const extractedDimensions = await res.json();
+
+      // Ensure each dimension has durationMin based on importance
+      if (extractedDimensions.dimensions) {
+        extractedDimensions.dimensions = extractedDimensions.dimensions.map(dim => ({
+          ...dim,
+          durationMin: dim.durationMin ||
+            (dim.importance === "critical" ? 7 :
+             dim.importance === "high" ? 5 : 4),
+        }));
+      }
+
       setDimensions(extractedDimensions);
       setPhase("dimensions");
     } catch (err) {
@@ -1716,6 +1856,7 @@ export default function RecruiterRoleForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           dimensions,
+          foundationDuration, // Duration stepper value for foundation
           candidateMaterials: Object.keys(candidateMaterials).length > 0 ? candidateMaterials : null,
         }),
       });
@@ -1974,6 +2115,8 @@ export default function RecruiterRoleForm() {
           dimensions={dimensions}
           setDimensions={setDimensions}
           roleContext={roleContext}
+          foundationDuration={foundationDuration}
+          setFoundationDuration={setFoundationDuration}
           onBack={() => setPhase("review")}
           onGenerate={handleGenerateSession}
           isGenerating={isGenerating}

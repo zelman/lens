@@ -5,16 +5,17 @@ export const GENERATE_SESSION_SYSTEM_PROMPT = `You are a session config generato
 
 The session has three layers:
 
-FOUNDATION LAYER (~40% of session time):
-Standard discovery sections that every candidate goes through regardless of role. These ensure a complete lens document. The sections are:
+FOUNDATION LAYER (recruiter-specified duration):
+Standard discovery sections that every candidate goes through regardless of role. These ensure a complete lens document. The 5 foundation subsections are:
 1. Essence — identity patterns, throughline across career contexts
-2. Values — behavioral evidence of what they actually value
-3. Work Style — how they operate day-to-day
-4. What Fills You (Energy) — energy sources and drains
-5. Disqualifiers — hard no's
-6. Situation & Timeline — urgency, constraints
+2. Work Style — how they operate day-to-day
+3. Energy — energy sources and drains
+4. Disqualifiers — hard no's
+5. Situation — urgency, constraints, timeline
 
-If a foundation section overlaps with a tailored dimension (indicated in foundationOverlaps), MERGE them — go deeper on the overlapping topic instead of covering it twice.
+NOTE: Values is NOT a foundation subsection — it must come from a tailored dimension. The recruiter specifies total foundation duration (default 8 min); distribute time across subsections internally.
+
+If a foundation subsection overlaps with a tailored dimension (indicated in foundationOverlaps), MERGE them — go deeper on the overlapping topic instead of covering it twice.
 
 If candidate materials are pre-loaded, adjust the foundation:
 - Skip topics fully covered by the resume (career walkthrough, education)
@@ -46,6 +47,18 @@ CONVERSATION INSTRUCTIONS:
 - If the candidate gives a thin answer, probe once. If still thin, note it and move on.
 - If the candidate goes deep on something unexpected but relevant, follow it.
 
+BUDGET CALCULATION (CRITICAL):
+For each section, calculate maxQuestions from durationMin:
+- Formula: maxQuestions = ceil(durationMin × 1.5)
+- Floor: minimum 2 questions per section (even if durationMin is 1)
+- Examples:
+  - durationMin: 2 → maxQuestions: 3
+  - durationMin: 4 → maxQuestions: 6
+  - durationMin: 5 → maxQuestions: 8
+  - durationMin: 7 → maxQuestions: 11
+
+The engine enforces these budgets strictly. When a section's question count is reached, the conversation automatically transitions to the next section.
+
 OUTPUT FORMAT:
 Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow this structure:
 
@@ -62,21 +75,31 @@ Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow thi
     "greeting": "Opening statement to the candidate",
     "contextStatement": "Brief context about how to approach the session"
   },
-  "foundation": [
-    {
-      "section": "essence|values|work_style|energy|disqualifiers|situation_timeline",
-      "timeAllocation": "X min",
-      "merged_with_dimension": "dimension_id or null",
-      "instruction": "Specific instruction for this section, including opening question",
-      "extractionTarget": "What to extract from responses"
-    }
-  ],
+  "foundation": {
+    "durationMin": 8,
+    "maxQuestions": 12,
+    "subsections": ["essence", "workstyle", "energy", "disqualifiers", "situation"],
+    "sections": [
+      {
+        "sectionId": "essence|workstyle|energy|disqualifiers|situation",
+        "label": "Human-readable label",
+        "type": "foundation",
+        "durationMin": 2,
+        "maxQuestions": 3,
+        "merged_with_dimension": "dimension_id or null",
+        "instruction": "Specific instruction for this section, including opening question",
+        "extractionTarget": "What to extract from responses"
+      }
+    ]
+  },
   "tailored": [
     {
       "dimensionId": "string",
       "label": "string",
+      "type": "tailored",
       "importance": "critical|high|moderate",
-      "timeAllocation": "X-Y min",
+      "durationMin": 4,
+      "maxQuestions": 6,
       "openingQuestions": ["Question 1", "Question 2"],
       "followUpGuidance": {
         "ifStrong": "What to do if candidate gives strong signal",
@@ -123,10 +146,11 @@ Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow thi
 /**
  * Build the user content for session generation
  * @param {Object} dimensions - The reviewed dimensions object
+ * @param {number} foundationDuration - Duration in minutes for foundation (default 8)
  * @param {Object|null} candidateMaterials - Optional candidate materials (resume, etc.)
  * @returns {string} - Formatted content for the API call
  */
-export function buildSessionGenerationContent(dimensions, candidateMaterials = null) {
+export function buildSessionGenerationContent(dimensions, foundationDuration = 8, candidateMaterials = null) {
   const sections = [];
 
   // Role context summary
@@ -138,12 +162,20 @@ export function buildSessionGenerationContent(dimensions, candidateMaterials = n
     }
   }
 
+  // Foundation configuration
+  sections.push("\n=== FOUNDATION CONFIGURATION ===");
+  sections.push(`Total foundation duration: ${foundationDuration} minutes`);
+  sections.push("Subsections: essence, workstyle, energy, disqualifiers, situation");
+  sections.push("NOTE: Distribute foundation time across subsections internally. Values is NOT a foundation subsection.");
+
   // Dimensions to explore
   sections.push("\n=== DIMENSIONS TO EXPLORE ===");
   if (dimensions.dimensions && dimensions.dimensions.length > 0) {
     dimensions.dimensions.forEach((dim, i) => {
-      sections.push(`\n${i + 1}. ${dim.label} [${dim.importance}]`);
+      const durationMin = dim.durationMin || 4;
+      sections.push(`\n${i + 1}. ${dim.label} [${dim.importance}] — ${durationMin} min`);
       sections.push(`   ID: ${dim.id}`);
+      sections.push(`   Duration: ${durationMin} min`);
       if (dim.whatToExplore) {
         sections.push(`   Explore: ${dim.whatToExplore}`);
       }

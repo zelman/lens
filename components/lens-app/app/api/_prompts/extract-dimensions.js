@@ -36,20 +36,28 @@ Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow thi
     }
   ],
   "foundationOverlaps": {
-    "work_style": "dimension_id or null",
-    "values": "dimension_id or null",
     "essence": "dimension_id or null",
-    "mission_sector": "dimension_id or null",
+    "workstyle": "dimension_id or null",
     "energy": "dimension_id or null",
     "disqualifiers": "dimension_id or null",
-    "situation_timeline": "dimension_id or null"
+    "situation": "dimension_id or null"
   },
+  "valuesWarning": "null or warning if no Values-related dimension found",
   "contextQuality": "rich|adequate|thin",
   "contextWarning": "null or warning message if context is thin"
 }
 
+FOUNDATION SUBSECTIONS (these 5 are fixed):
+- essence: identity patterns, throughline across career contexts
+- workstyle: how they operate day-to-day
+- energy: energy sources and drains
+- disqualifiers: hard no's, dealbreakers
+- situation: urgency, constraints, timeline
+
+IMPORTANT: Values is NOT a foundation subsection. If no dimension addresses Values/Culture alignment, set valuesWarning to flag this. Recruiters should be prompted to add a Values-related dimension.
+
 FOUNDATION OVERLAPS:
-Map standard discovery sections to extracted dimensions where they overlap. When a foundation section overlaps with a tailored dimension, the session will merge them (go deeper instead of duplicating).
+Map foundation subsections to extracted dimensions where they overlap. When a foundation subsection overlaps with a tailored dimension (e.g., a "Work Environment Fit" dimension overlaps with "workstyle"), the session will merge them — explore deeper on the overlapping topic instead of covering it twice.
 
 CONTEXT QUALITY:
 - "rich": Multiple sources, detailed information, clear picture of the role

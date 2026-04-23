@@ -2,6 +2,10 @@
 // System prompts are loaded server-side and NEVER sent to client
 
 import { buildRCSystemPrompt, getSectionOpeningPrompt, buildEstablishedContext } from "../_prompts/rc-discovery";
+import {
+  sectionBudgetFromConfig,
+  getBudgetStatus,
+} from "../../../lib/session-timing";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
@@ -56,6 +60,20 @@ export async function POST(request) {
       if (typeof msg.content !== "string" || msg.content.trim().length === 0) {
         return Response.json(
           { error: "Each message must have non-empty string content" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // SECURITY: Validate message count integrity
+    // Client must send expectedQuestionCount matching actual assistant messages
+    // This adds friction for clients trying to manipulate question count
+    const actualAssistantCount = messages.filter(m => m.role === "assistant").length;
+    if (context?.expectedQuestionCount !== undefined) {
+      if (context.expectedQuestionCount !== actualAssistantCount) {
+        console.warn(`[rc-discover] Question count mismatch: expected ${context.expectedQuestionCount}, got ${actualAssistantCount}`);
+        return Response.json(
+          { error: "Message integrity check failed. Please refresh and try again." },
           { status: 400 }
         );
       }
@@ -116,9 +134,18 @@ export async function POST(request) {
         );
       }
 
+      // Include budget status for section start
+      const { maxQuestions } = sectionBudgetFromConfig(section);
+
       return Response.json({
         response: text,
         sectionComplete: false,
+        budgetStatus: {
+          questionsAsked: 1, // The greeting counts as first question
+          maxQuestions,
+          remaining: maxQuestions - 1,
+          exhausted: false,
+        },
       });
 
     } else if (action === "summarize") {
@@ -176,20 +203,57 @@ Format as flowing narrative text (not JSON). Be specific and use their language.
 
     } else {
       // Regular conversation turn
-      const assistantMsgCount = messages.filter(m => m.role === "assistant").length;
-      const maxQuestions = section.questions || (section.type === "foundation" ? 2 : 3);
+      // Use timing module for budget calculation
+      // SECURITY: Always recalculate maxQuestions from durationMin server-side
+      // Do NOT trust client-provided maxQuestions
+      const { maxQuestions, durationMinHint } = sectionBudgetFromConfig(section);
+      const questionsAsked = messages.filter(m => m.role === "assistant").length;
 
-      // Build completion hint based on question count
+      // CRITICAL: If budget already exhausted, do NOT call AI
+      // Return immediately with transition signal
+      if (questionsAsked >= maxQuestions) {
+        const currentSectionIndex = context?.currentSectionIndex ?? 0;
+        const totalSections = context?.totalSections ?? 1;
+        const hasNextSection = currentSectionIndex + 1 < totalSections;
+
+        return Response.json({
+          response: "Thank you for sharing that. Let me capture what we've covered before we move on.",
+          sectionComplete: true,
+          budgetStatus: {
+            questionsAsked,
+            maxQuestions,
+            remaining: 0,
+            exhausted: true,
+          },
+          transition: {
+            from: section.id,
+            to: hasNextSection ? `section_${currentSectionIndex + 1}` : null,
+            reason: "budget_exhausted",
+            timestamp: new Date().toISOString(),
+            isSessionComplete: !hasNextSection,
+          },
+        });
+      }
+
+      const budgetStatus = getBudgetStatus({ questionsAsked, maxQuestions });
+
+      // Build completion hint based on budget status
       let completionHint = "";
-      if (assistantMsgCount >= maxQuestions) {
-        // Hard cap reached - MUST complete
-        completionHint = `\n\n⚠️ QUESTION LIMIT REACHED: You have asked ${assistantMsgCount} questions in this section. You MUST wrap up now. Briefly reflect what you learned and end with exactly: [SECTION_COMPLETE]\n\nDo NOT ask another question.`;
-      } else if (assistantMsgCount === maxQuestions - 1) {
-        // One question left - warn AI
-        completionHint = `\n\n⚠️ FINAL QUESTION: This is your last question for this section. Make it count, then prepare to wrap up.`;
-      } else if (assistantMsgCount >= 2 && section.type === "foundation") {
+      let forceTransition = false;
+
+      // Check if THIS response will exhaust the budget
+      const willExhaustBudget = questionsAsked + 1 >= maxQuestions;
+
+      if (willExhaustBudget) {
+        // This is the LAST allowed response - tell AI to wrap up
+        forceTransition = true;
+        completionHint = `\n\n⚠️ FINAL QUESTION: This is your last question for this section (${questionsAsked + 1}/${maxQuestions}). Wrap up naturally and end with exactly: [SECTION_COMPLETE]\n\nDo NOT ask another question after this.`;
+      } else if (budgetStatus.nearLimit) {
+        // One question left after this one
+        completionHint = `\n\n⚠️ APPROACHING LIMIT: You have ${maxQuestions - questionsAsked - 1} questions remaining after this one. Start wrapping up soon.`;
+      } else if (questionsAsked >= 2 && section.type === "foundation") {
         // Foundation section minimum met
-        completionHint = `\n\nYou have enough signal for this foundation section. Consider wrapping up with [SECTION_COMPLETE] unless something critical is missing.`;
+        completionHint = `\n\nYou have enough signal for this foundation section (${questionsAsked}/${maxQuestions}). Consider wrapping up with [SECTION_COMPLETE] unless something critical is missing.`;
       }
 
       const systemWithHint = systemPrompt + completionHint;
@@ -228,16 +292,41 @@ Format as flowing narrative text (not JSON). Be specific and use their language.
       }
 
       // Check for section completion marker
-      const isComplete = text.includes("[SECTION_COMPLETE]");
+      const isComplete = text.includes("[SECTION_COMPLETE]") || forceTransition;
       const cleanText = text.replaceAll("[SECTION_COMPLETE]", "").trim();
 
       // If AI only returned the completion marker with no content, provide a fallback
       const finalResponse = cleanText || "Thank you for sharing that. Let me capture what we've covered.";
 
-      return Response.json({
+      // Build response payload with budget status
+      const responsePayload = {
         response: finalResponse,
         sectionComplete: isComplete,
-      });
+        budgetStatus: {
+          questionsAsked: questionsAsked + 1, // +1 for this turn's response
+          maxQuestions,
+          remaining: Math.max(0, maxQuestions - questionsAsked - 1),
+          exhausted: questionsAsked + 1 >= maxQuestions,
+        },
+      };
+
+      // Add transition signal if section is complete
+      if (isComplete) {
+        const reason = forceTransition ? "budget_exhausted" : "section_complete";
+        const currentSectionIndex = context?.currentSectionIndex ?? 0;
+        const totalSections = context?.totalSections ?? 1;
+        const hasNextSection = currentSectionIndex + 1 < totalSections;
+
+        responsePayload.transition = {
+          from: section.id,
+          to: hasNextSection ? `section_${currentSectionIndex + 1}` : null,
+          reason,
+          timestamp: new Date().toISOString(),
+          isSessionComplete: !hasNextSection,
+        };
+      }
+
+      return Response.json(responsePayload);
     }
 
   } catch (err) {
