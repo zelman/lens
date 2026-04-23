@@ -140,17 +140,22 @@ export async function POST(request) {
     }
 
     // Build user content server-side (including document context if available)
-    const userContent = buildSynthesisUserContent({
-      userName,
-      pronouns,
-      status,
-      sectionData,
-      currentDate,
-      documentContext: documentContext || null,
-      rawDocumentText: truncatedRawText,
-    });
-
-    console.log(`[Synthesize] userContent length: ${userContent.length} chars, timeout budget: ${getRemainingTimeout()}ms`);
+    let userContent;
+    try {
+      userContent = buildSynthesisUserContent({
+        userName,
+        pronouns,
+        status,
+        sectionData,
+        currentDate,
+        documentContext: documentContext || null,
+        rawDocumentText: truncatedRawText,
+      });
+      console.log(`[Synthesize] userContent length: ${userContent.length} chars, timeout budget: ${getRemainingTimeout()}ms`);
+    } catch (buildErr) {
+      console.error("[Synthesize] buildSynthesisUserContent failed:", buildErr.message);
+      throw buildErr;
+    }
 
     // Call Anthropic API with shared timeout budget
     const callAnthropic = async (systemPrompt, content, maxTokens = MAX_TOKENS) => {
@@ -195,7 +200,9 @@ export async function POST(request) {
     // ═══════════════════════════════════════════════════════════════════════
     // PHASE 1: Initial Synthesis
     // ═══════════════════════════════════════════════════════════════════════
+    console.log("[Synthesize] Starting Phase 1: Initial Synthesis");
     let lensDoc = await callAnthropic(SYNTHESIS_SYSTEM_PROMPT, userContent);
+    console.log(`[Synthesize] Phase 1 complete, lensDoc length: ${lensDoc.length}`);
 
     // Validate output has enough sections (retry once if malformed)
     const sectionHeadingCount = (lensDoc.match(/^##\s+/gm) || []).length;
