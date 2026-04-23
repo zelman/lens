@@ -164,7 +164,13 @@ export async function POST(request) {
   try {
     const body = await request.json();
     console.log("[generate-session] Parsed body, dimensions count:", body.dimensions?.dimensions?.length);
-    const { dimensions, foundationDuration = 8, candidateMaterials } = body;
+    let { dimensions, foundationDuration = 8, candidateMaterials } = body;
+
+    // Enforce 4-minute floor for foundation duration
+    if (foundationDuration < 4) {
+      console.log(`[generate-session] foundationDuration ${foundationDuration} below floor, clamping to 4`);
+      foundationDuration = 4;
+    }
 
     // Validate dimensions
     if (!dimensions || typeof dimensions !== "object") {
