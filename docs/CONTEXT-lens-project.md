@@ -1,6 +1,6 @@
 # CONTEXT.md — Lens Project
 
-*Last updated: April 21, 2026*
+*Last updated: April 22, 2026*
 
 This is the living context file for the Lens Project — an AI-assisted career identity discovery system with bidirectional signal-based matching. Lives at the root of `zelman/lens` repo. Update when things change.
 
@@ -275,7 +275,9 @@ github.com/zelman/lens/
 
 ## Design Language ("Briefing Style")
 
-Swiss base: white background, black type, #D93025 red primary, zero border-radius, hairline rules. Layered richness: all-caps spaced section labels in red (do NOT use wide characterSpacing on "LENS PROJECT" header), #2D6A2D green for positive signals, #E8590C orange for secondary, monospace for scores, subtle card borders (#EEE), #F0F0F0 container background, tinted signal pills.
+Swiss base: white background, black type, #D93025 red primary, zero border-radius, hairline rules. Layered richness: all-caps spaced section labels in red (do NOT use wide characterSpacing on "LENS PROJECT" header), #2D6A2D green for positive signals, #E8590C orange for secondary, subtle card borders (#EEE), #F0F0F0 container background, tinted signal pills.
+
+**Typography:** sans-serif only. Carlito (SIL OFL) for all prose — display, headlines, body, captions, labels. JetBrains Mono (SIL OFL) for numeric scores, hex codes, identifiers, and metadata. Calibri and Consolas are acceptable fallbacks if the user's system has them, but are never required. Never Georgia or any serif face. No wide letter-spacing on all-caps labels.
 
 ---
 
