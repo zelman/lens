@@ -31,14 +31,16 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token");
 
-    if (!token || token.length < 8) {
+    // Validate token format: 10 chars from URL-safe alphabet (no 0O1lI)
+    const TOKEN_REGEX = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz]{10}$/;
+    if (!token || !TOKEN_REGEX.test(token)) {
       return Response.json(
         { error: "Invalid session token" },
         { status: 400 }
       );
     }
 
-    // Look up session by token
+    // Look up session by token (token is now validated as safe for formula)
     const filterFormula = encodeURIComponent(`{Session Token} = "${token}"`);
     const res = await fetch(
       `${AIRTABLE_API_URL}/${BASE_ID}/${TABLE_ID}?filterByFormula=${filterFormula}&maxRecords=1`,
