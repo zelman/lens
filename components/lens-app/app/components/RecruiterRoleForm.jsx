@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.21-f";
+const BUILD_ID = "2026.04.22-f";
 
 // ── Design tokens (match candidate intake exactly) ──
 const RED = "#D93025";
@@ -1359,12 +1359,66 @@ function DimensionReviewPhase({ dimensions, setDimensions, roleContext, onBack, 
 }
 
 function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
+  const [linkState, setLinkState] = useState("idle"); // idle | loading | success | error
+  const [shareableUrl, setShareableUrl] = useState(null);
+  const [linkError, setLinkError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
   const handleCopyJson = () => {
     navigator.clipboard.writeText(JSON.stringify(sessionConfig || roleContext, null, 2));
   };
 
   const handleLaunchSession = () => {
     window.location.href = "/recruiter/candidate";
+  };
+
+  const handleGenerateLink = async () => {
+    setLinkState("loading");
+    setLinkError(null);
+    setCopied(false);
+
+    try {
+      // Get data from sessionStorage
+      const roleContextStr = sessionStorage.getItem("recruiter-role-context");
+      const sessionConfigStr = sessionStorage.getItem("session-config");
+
+      if (!roleContextStr || !sessionConfigStr) {
+        throw new Error("Session data not found in browser storage");
+      }
+
+      const recruiterRoleContext = JSON.parse(roleContextStr);
+      const sessionConfigData = JSON.parse(sessionConfigStr);
+
+      const res = await fetch("/api/rc-session-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recruiterRoleContext,
+          sessionConfig: sessionConfigData,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to create link (${res.status})`);
+      }
+
+      const data = await res.json();
+      setShareableUrl(data.url);
+      setLinkState("success");
+    } catch (err) {
+      console.error("[ConfirmationPhase] Link generation error:", err);
+      setLinkError(err.message);
+      setLinkState("error");
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (shareableUrl) {
+      navigator.clipboard.writeText(shareableUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const hasSession = !!sessionConfig;
@@ -1421,6 +1475,95 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
         </div>
       )}
 
+      {/* Shareable Link Section */}
+      {hasSession && (
+        <div style={{
+          padding: "20px", background: "#fff", border: `2px solid ${RED}`,
+          marginBottom: "24px",
+        }}>
+          <div style={{
+            fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
+            color: RED, fontWeight: 600, marginBottom: "16px",
+          }}>
+            CANDIDATE LINK
+          </div>
+
+          {linkState === "idle" && (
+            <button
+              onClick={handleGenerateLink}
+              style={{
+                ...primaryButtonStyle,
+                width: "100%",
+                padding: "14px 24px",
+                fontSize: "14px",
+              }}
+            >
+              GENERATE CANDIDATE LINK
+            </button>
+          )}
+
+          {linkState === "loading" && (
+            <div style={{ textAlign: "center", padding: "12px", color: GRY }}>
+              Generating link...
+            </div>
+          )}
+
+          {linkState === "error" && (
+            <div>
+              <div style={{
+                padding: "12px", background: "#fef2f2", border: "1px solid #fecaca",
+                marginBottom: "12px", fontSize: "14px", color: "#dc2626",
+              }}>
+                {linkError}
+              </div>
+              <button
+                onClick={handleGenerateLink}
+                style={{ ...secondaryButtonStyle, width: "100%" }}
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {linkState === "success" && shareableUrl && (
+            <div>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                <input
+                  type="text"
+                  value={shareableUrl}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    padding: "10px 12px",
+                    border: `1px solid ${RULE}`,
+                    background: "#fafafa",
+                    fontFamily: "monospace",
+                    fontSize: "13px",
+                    color: BLK,
+                  }}
+                  onClick={(e) => e.target.select()}
+                />
+                <button
+                  onClick={handleCopyLink}
+                  style={{
+                    ...primaryButtonStyle,
+                    padding: "10px 20px",
+                    minWidth: "100px",
+                  }}
+                >
+                  {copied ? "COPIED" : "COPY LINK"}
+                </button>
+              </div>
+              <p style={{
+                fontSize: "12px", color: GRY, margin: 0, lineHeight: 1.5,
+              }}>
+                Share this link with your candidate. It expires in 30 days.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{
         padding: "20px", background: "#fafafa", border: `1px solid ${RULE}`,
         marginBottom: "32px",
@@ -1429,22 +1572,9 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
           fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
           color: GRY, fontWeight: 600, marginBottom: "12px",
         }}>
-          What's next
+          Developer tools
         </div>
-        <p style={{ fontSize: "14px", lineHeight: 1.7, margin: "0 0 16px" }}>
-          {hasSession ? (
-            <>
-              The session config is stored in your browser session. This would be used to launch
-              a tailored candidate discovery conversation.
-            </>
-          ) : (
-            <>
-              The role context is stored in your browser session. In the full product, this would
-              generate a unique candidate session link that captures these parameters.
-            </>
-          )}
-        </p>
-        <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.6, margin: "0 0 12px" }}>
           <strong>Storage keys:</strong>{" "}
           <code style={{ background: "#eee", padding: "2px 6px" }}>recruiter-role-context</code>
           {hasSession && (
@@ -1455,7 +1585,7 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
 
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
         {hasSession && (
-          <button onClick={handleLaunchSession} style={primaryButtonStyle}>
+          <button onClick={handleLaunchSession} style={secondaryButtonStyle}>
             Preview candidate session
           </button>
         )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
-const BUILD_ID = "2026.04.15-n";
+const BUILD_ID = "2026.04.22-g";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
@@ -211,10 +211,11 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
   // ════════════════════════════════════════
 
   useEffect(() => {
-    const loadSession = () => {
+    const loadSession = async () => {
       try {
-        // Check for demo mode
         const urlParams = new URLSearchParams(window.location.search);
+
+        // Check for demo mode first
         if (urlParams.get("demo") === "true") {
           setSessionConfig(DEMO_SESSION_CONFIG);
           setLens(DEMO_LENS);
@@ -222,6 +223,53 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           return;
         }
 
+        // Check for shareable session token in URL
+        const sessionToken = urlParams.get("session");
+        if (sessionToken) {
+          try {
+            const res = await fetch(`/api/rc-session-fetch?token=${encodeURIComponent(sessionToken)}`);
+
+            if (res.status === 404) {
+              setLoadError("This session link is not valid. Please contact the recruiter who shared it.");
+              setPhase("loading");
+              return;
+            }
+
+            if (res.status === 410) {
+              setLoadError("This session link has expired. Please contact the recruiter for a new link.");
+              setPhase("loading");
+              return;
+            }
+
+            if (!res.ok) {
+              const errorData = await res.json().catch(() => ({}));
+              throw new Error(errorData.error || `Failed to load session (${res.status})`);
+            }
+
+            const data = await res.json();
+
+            if (!data.sessionConfig) {
+              throw new Error("Invalid session data received");
+            }
+
+            // Store in sessionStorage for state persistence
+            sessionStorage.setItem("session-config", JSON.stringify(data.sessionConfig));
+            if (data.recruiterRoleContext) {
+              sessionStorage.setItem("recruiter-role-context", JSON.stringify(data.recruiterRoleContext));
+            }
+
+            // Continue with normal loading using the fetched config
+            loadConfigIntoState(data.sessionConfig);
+            return;
+          } catch (err) {
+            console.error("[RecruiterCandidateIntake] Session fetch error:", err);
+            setLoadError(err.message || "Failed to load session. Please try again or contact the recruiter.");
+            setPhase("loading");
+            return;
+          }
+        }
+
+        // Fall back to sessionStorage (existing behavior)
         const configStr = sessionStorage.getItem("session-config");
         if (!configStr) {
           setLoadError("No session configuration found. Please start from the recruiter dashboard.");
@@ -230,101 +278,103 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
         }
 
         const config = JSON.parse(configStr);
-
-        // Validate required fields
-        if (!config.sessionId) {
-          setLoadError("Invalid session: missing sessionId. Please regenerate from the recruiter dashboard.");
-          setPhase("loading");
-          return;
-        }
-
-        if (!config.foundation && !config.tailored) {
-          setLoadError("Invalid session: missing sections. Please regenerate from the recruiter dashboard.");
-          setPhase("loading");
-          return;
-        }
-
-        // Build unified sections array from foundation + tailored
-        const allSections = [];
-
-        // Add foundation sections
-        if (config.foundation && Array.isArray(config.foundation)) {
-          for (const f of config.foundation) {
-            const sectionId = f.sectionId || f.section || f.id;
-            allSections.push({
-              id: sectionId,
-              label: f.label || formatSectionLabel(sectionId),
-              type: "foundation",
-              instruction: f.instruction,
-              extractionTarget: f.extractionTarget,
-              mergedWith: f.merged_with_dimension,
-              timeAllocation: f.timeAllocation || "2 min",
-              questions: 2, // Foundation sections are brief
-            });
-          }
-        }
-
-        // Add tailored sections
-        if (config.tailored && Array.isArray(config.tailored)) {
-          for (const t of config.tailored) {
-            const dimensionId = t.dimensionId || t.id;
-            allSections.push({
-              id: dimensionId,
-              label: t.label || formatSectionLabel(dimensionId),
-              type: "tailored",
-              importance: t.importance || "moderate",
-              openingQuestions: t.openingQuestions,
-              followUpGuidance: t.followUpGuidance,
-              extractionSchema: t.extractionSchema,
-              signals: t.signals,
-              redFlags: t.redFlags,
-              whatToExplore: t.whatToExplore,
-              timeAllocation: t.timeAllocation || "3-4 min",
-              questions: t.importance === "critical" ? 4 : t.importance === "high" ? 3 : 2,
-            });
-          }
-        }
-
-        if (allSections.length === 0) {
-          setLoadError("Session has no sections defined. Please regenerate from the recruiter dashboard.");
-          setPhase("loading");
-          return;
-        }
-
-        // Check for saved state from this session
-        try {
-          const savedStr = localStorage.getItem(RC_STORAGE_KEY);
-          if (savedStr) {
-            const saved = JSON.parse(savedStr);
-            if (saved.sessionId === config.sessionId && saved.version === STORAGE_VERSION) {
-              // Restore state from same session
-              setCurrentSection(saved.currentSection || 0);
-              setMessages(saved.messages || []);
-              setSectionData(saved.sectionData || {});
-              setGreetingDone(saved.greetingDone || false);
-              setSectionComplete(saved.sectionComplete || false);
-              // If we were in discovery, stay there
-              if (saved.phase === "discovery" && saved.currentSection < allSections.length) {
-                setSections(allSections);
-                setSessionConfig(config);
-                setPhase("discovery");
-                return;
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Failed to restore saved state:", e);
-        }
-
-        setSections(allSections);
-        setSessionConfig(config);
-        setPhase("intro");
-
+        loadConfigIntoState(config);
       } catch (err) {
-        console.error("Failed to load session config:", err);
-        setLoadError("Failed to load session. Please try again.");
+        console.error("[RecruiterCandidateIntake] Session load error:", err);
+        setLoadError("Failed to load session configuration.");
         setPhase("loading");
       }
+    };
+
+    const loadConfigIntoState = (config) => {
+      // Validate required fields
+      if (!config.sessionId) {
+        setLoadError("Invalid session: missing sessionId. Please regenerate from the recruiter dashboard.");
+        setPhase("loading");
+        return;
+      }
+
+      if (!config.foundation && !config.tailored) {
+        setLoadError("Invalid session: missing sections. Please regenerate from the recruiter dashboard.");
+        setPhase("loading");
+        return;
+      }
+
+      // Build unified sections array from foundation + tailored
+      const allSections = [];
+
+      // Add foundation sections
+      if (config.foundation && Array.isArray(config.foundation)) {
+        for (const f of config.foundation) {
+          const sectionId = f.sectionId || f.section || f.id;
+          allSections.push({
+            id: sectionId,
+            label: f.label || formatSectionLabel(sectionId),
+            type: "foundation",
+            instruction: f.instruction,
+            extractionTarget: f.extractionTarget,
+            mergedWith: f.merged_with_dimension,
+            timeAllocation: f.timeAllocation || "2 min",
+            questions: 2, // Foundation sections are brief
+          });
+        }
+      }
+
+      // Add tailored sections
+      if (config.tailored && Array.isArray(config.tailored)) {
+        for (const t of config.tailored) {
+          const dimensionId = t.dimensionId || t.id;
+          allSections.push({
+            id: dimensionId,
+            label: t.label || formatSectionLabel(dimensionId),
+            type: "tailored",
+            importance: t.importance || "moderate",
+            openingQuestions: t.openingQuestions,
+            followUpGuidance: t.followUpGuidance,
+            extractionSchema: t.extractionSchema,
+            signals: t.signals,
+            redFlags: t.redFlags,
+            whatToExplore: t.whatToExplore,
+            timeAllocation: t.timeAllocation || "3-4 min",
+            questions: t.importance === "critical" ? 4 : t.importance === "high" ? 3 : 2,
+          });
+        }
+      }
+
+      if (allSections.length === 0) {
+        setLoadError("Session has no sections defined. Please regenerate from the recruiter dashboard.");
+        setPhase("loading");
+        return;
+      }
+
+      // Check for saved state from this session
+      try {
+        const savedStr = localStorage.getItem(RC_STORAGE_KEY);
+        if (savedStr) {
+          const saved = JSON.parse(savedStr);
+          if (saved.sessionId === config.sessionId && saved.version === STORAGE_VERSION) {
+            // Restore state from same session
+            setCurrentSection(saved.currentSection || 0);
+            setMessages(saved.messages || []);
+            setSectionData(saved.sectionData || {});
+            setGreetingDone(saved.greetingDone || false);
+            setSectionComplete(saved.sectionComplete || false);
+            // If we were in discovery, stay there
+            if (saved.phase === "discovery" && saved.currentSection < allSections.length) {
+              setSections(allSections);
+              setSessionConfig(config);
+              setPhase("discovery");
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to restore saved state:", e);
+      }
+
+      setSections(allSections);
+      setSessionConfig(config);
+      setPhase("intro");
     };
 
     loadSession();

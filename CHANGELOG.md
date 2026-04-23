@@ -2,6 +2,38 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-22] R→C Shareable Candidate Links
+
+### lens-app 2026.04.22-f/g (Shareable Session Links)
+Adds shareable link generation for R→C workflow. Recruiters can generate a unique URL to share with candidates, allowing candidates to complete the discovery flow without the recruiter being present.
+
+**New API Routes:**
+- `/api/rc-session-create` — POST creates session in Airtable, returns unique 10-char token + URL
+- `/api/rc-session-fetch` — GET retrieves session by token, handles 404/410 for invalid/expired
+
+**Airtable Table:** R→C Sessions (`tbleGAd6aEFbDm5nK`)
+- Fields: Session Token, Recruiter Role Context (JSON), Session Config (JSON), Expires At (30 days), Claimed At, Recruiter Name
+
+**RecruiterRoleForm.jsx (2026.04.22-f):**
+- ConfirmationPhase now includes "GENERATE CANDIDATE LINK" button
+- Copy to clipboard with "COPIED" feedback
+- Swiss Style UI with RED border accent
+
+**RecruiterCandidateIntake.jsx (2026.04.22-g):**
+- URL parameter hydration: reads `?session=xxx` from URL
+- Falls back to sessionStorage for existing flow
+- Error states for 404 (invalid link) and 410 (expired link)
+
+**Files Created:**
+- `app/api/rc-session-create/route.js`
+- `app/api/rc-session-fetch/route.js`
+
+**Files Modified:**
+- `app/components/RecruiterRoleForm.jsx`
+- `app/components/RecruiterCandidateIntake.jsx`
+
+---
+
 ## [2026-04-15] Team Identity Validation Experiment
 
 ### lens-app 2026.04.15-p (Team Identity Form)
