@@ -9,7 +9,7 @@ import {
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-opus-4-7";  // Opus for reliable complex JSON
-const MAX_TOKENS = 4000; // Enough for full session config JSON
+const MAX_TOKENS = 16000; // Session configs can be large with many dimensions
 // Note: temperature param removed — deprecated in Claude 4.5+ models
 const MAX_RETRIES = 2;
 
