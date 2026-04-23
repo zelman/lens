@@ -200,9 +200,18 @@ export async function POST(request) {
     // ═══════════════════════════════════════════════════════════════════════
     // PHASE 1: Initial Synthesis
     // ═══════════════════════════════════════════════════════════════════════
-    console.log("[Synthesize] Starting Phase 1: Initial Synthesis");
-    let lensDoc = await callAnthropic(SYNTHESIS_SYSTEM_PROMPT, userContent);
-    console.log(`[Synthesize] Phase 1 complete, lensDoc length: ${lensDoc.length}`);
+    const phase1Budget = getRemainingTimeout();
+    console.log(`[Synthesize] Phase 1 starting, budget: ${Math.round(phase1Budget / 1000)}s, prompt: ${SYNTHESIS_SYSTEM_PROMPT.length} chars`);
+    let lensDoc;
+    try {
+      lensDoc = await callAnthropic(SYNTHESIS_SYSTEM_PROMPT, userContent);
+      console.log(`[Synthesize] Phase 1 complete, lensDoc length: ${lensDoc.length}`);
+    } catch (apiErr) {
+      // Distinguish timeout from other errors
+      const isTimeout = apiErr.name === 'TimeoutError' || apiErr.name === 'AbortError' || apiErr.message?.includes('timeout');
+      console.error(`[Synthesize] Phase 1 FAILED: ${apiErr.name} - ${apiErr.message} (isTimeout: ${isTimeout})`);
+      throw apiErr;
+    }
 
     // Validate output has enough sections (retry once if malformed)
     const sectionHeadingCount = (lensDoc.match(/^##\s+/gm) || []).length;
