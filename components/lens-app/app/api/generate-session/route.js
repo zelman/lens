@@ -113,7 +113,20 @@ function parseJsonWithRepairs(text, prefilled = false) {
 
   // Log first 100 chars for debugging
   console.log("[generate-session] cleanText first 100:", cleanText.slice(0, 100));
-  console.log("[generate-session] cleanText char codes:", Array.from(cleanText.slice(0, 20)).map(c => c.charCodeAt(0)));
+
+  // Handle case where JSON is wrapped in quotes (model outputs string literal)
+  if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
+    console.log("[generate-session] Detected quoted JSON string, unwrapping...");
+    try {
+      const unwrapped = JSON.parse(cleanText); // Parse the outer string to get inner JSON
+      if (typeof unwrapped === 'string' && unwrapped.startsWith('{')) {
+        cleanText = unwrapped;
+        console.log("[generate-session] Successfully unwrapped to:", cleanText.slice(0, 50));
+      }
+    } catch (e) {
+      console.log("[generate-session] Failed to unwrap quoted string:", e.message);
+    }
+  }
 
   // Attempt 1: Direct parse
   try {
