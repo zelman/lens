@@ -217,14 +217,13 @@ export async function POST(request) {
           },
         ],
         foundationOverlaps: {
-          work_style: null,
-          values: "culture_alignment",
           essence: null,
-          mission_sector: null,
+          workstyle: null,
           energy: "motivation",
           disqualifiers: null,
-          situation_timeline: "motivation",
+          situation: "motivation",
         },
+        valuesWarning: "Consider adding a Values/Culture dimension for comprehensive candidate assessment.",
         contextQuality: "thin",
         contextWarning: "Unable to parse AI response. Using fallback dimensions. Add more context (documents, detailed objectives) for better results.",
       });
@@ -247,14 +246,25 @@ export async function POST(request) {
 
     if (!dimensionResult.foundationOverlaps) {
       dimensionResult.foundationOverlaps = {
-        work_style: null,
-        values: null,
         essence: null,
-        mission_sector: null,
+        workstyle: null,
         energy: null,
         disqualifiers: null,
-        situation_timeline: null,
+        situation: null,
       };
+    }
+
+    // Add valuesWarning if not present and no values-adjacent dimension exists
+    if (!dimensionResult.valuesWarning && dimensionResult.dimensions) {
+      const hasValuesRelated = dimensionResult.dimensions.some(d =>
+        d.label.toLowerCase().includes("value") ||
+        d.label.toLowerCase().includes("culture") ||
+        d.id.includes("value") ||
+        d.id.includes("culture")
+      );
+      if (!hasValuesRelated) {
+        dimensionResult.valuesWarning = "No Values/Culture dimension found. Consider adding one for comprehensive assessment.";
+      }
     }
 
     return Response.json(dimensionResult);

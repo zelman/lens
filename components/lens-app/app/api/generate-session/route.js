@@ -164,7 +164,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
     console.log("[generate-session] Parsed body, dimensions count:", body.dimensions?.dimensions?.length);
-    const { dimensions, candidateMaterials } = body;
+    const { dimensions, foundationDuration = 8, candidateMaterials } = body;
 
     // Validate dimensions
     if (!dimensions || typeof dimensions !== "object") {
@@ -200,8 +200,8 @@ export async function POST(request) {
       );
     }
 
-    // Build user content from dimensions and candidate materials
-    const userContent = buildSessionGenerationContent(dimensions, candidateMaterials);
+    // Build user content from dimensions, foundation duration, and candidate materials
+    const userContent = buildSessionGenerationContent(dimensions, foundationDuration, candidateMaterials);
     console.log(`[generate-session] User content length: ${userContent.length} chars`);
 
     // Try generating session config with retries
