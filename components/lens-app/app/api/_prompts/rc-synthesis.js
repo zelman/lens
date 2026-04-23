@@ -184,7 +184,7 @@ export function buildRCSynthesisUserContent({ sessionConfig, sectionData, candid
   sections.push("DISCOVERY CONVERSATION - FOUNDATION");
   sections.push("══════════════════════════════════════════════════════════════════════════════");
 
-  const foundationIds = ["essence", "work_style", "values", "energy", "disqualifiers", "situation_timeline"];
+  const foundationIds = ["essence", "workstyle", "values", "energy", "disqualifiers", "situation"];
   for (const fId of foundationIds) {
     const data = sectionData[fId];
     if (data) {

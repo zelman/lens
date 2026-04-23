@@ -1140,7 +1140,7 @@ const importanceColors = { critical: RED, high: ORANGE, moderate: GRY };
 const GREEN = "#2D6A2D";
 
 // ── Foundation subsections (fixed for all sessions) ──
-const FOUNDATION_SUBSECTIONS = ["essence", "workstyle", "energy", "disqualifiers", "situation"];
+const FOUNDATION_SUBSECTIONS = ["essence", "workstyle", "energy", "disqualifiers", "situation", "values"];
 
 function DimensionReviewPhase({ dimensions, setDimensions, roleContext, foundationDuration, setFoundationDuration, onBack, onGenerate, isGenerating, generateError }) {
   const [editingId, setEditingId] = useState(null);

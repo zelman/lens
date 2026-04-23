@@ -226,6 +226,7 @@ export async function POST(request) {
           energy: "motivation",
           disqualifiers: null,
           situation: "motivation",
+          values: null,
         },
         contextQuality: "thin",
         contextWarning: "Unable to parse AI response. Using fallback dimensions. Add more context (documents, detailed objectives) for better results.",
@@ -254,6 +255,7 @@ export async function POST(request) {
         energy: null,
         disqualifiers: null,
         situation: null,
+        values: null,
       };
     }
 

@@ -82,7 +82,7 @@ export const FOUNDATION_CONTEXTS = {
     extractionTarget: "Core patterns, builder vs maintainer signal, career narrative",
     opener: "Before we dive into the specifics, I'd love to understand the throughline across your career. What pattern do you see in the work that's energized you most?",
   },
-  work_style: {
+  workstyle: {
     instruction: "How they actually work day-to-day",
     extractionTarget: "Remote preference, autonomy needs, collaboration style, pace",
     opener: "Tell me about a recent workday that went really well. What made it good — the pace, the people, the type of work?",
@@ -102,7 +102,7 @@ export const FOUNDATION_CONTEXTS = {
     extractionTarget: "Concrete exclusion criteria for job matching",
     opener: "What would make you walk away from an opportunity, even if everything else looked good?",
   },
-  situation_timeline: {
+  situation: {
     instruction: "Current search status and constraints",
     extractionTarget: "Timeline, compensation expectations, location constraints, notice period",
     opener: "Where are you in your search, and what constraints or timelines should I know about?",
