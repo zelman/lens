@@ -15,9 +15,9 @@ const FIELDS = {
   claimedAt: "fldAYxjLyvPs24I1L",
   recruiterName: "fldIypcMRmtbUrGk8",
   // New fields for candidate fan-out
-  candidateName: "fldCandidateName", // Will be set after user creates field
-  candidateResume: "fldCandidateResume", // Will be set after user creates field
-  candidateEmail: "fldCandidateEmail", // Will be set after user creates field
+  candidateName: "flddzuiohWbL8ew3p",
+  candidateResume: "fldtcb8BLS7WynjiT",
+  candidateEmail: "fldGCjvYTycxIRvgy",
 };
 
 // Max chars for resume text (Airtable long text limit)
