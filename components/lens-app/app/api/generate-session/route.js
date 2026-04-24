@@ -135,7 +135,7 @@ function escapeNewlinesInStrings(text) {
     }
 
     if (inString) {
-      // Escape literal newlines/tabs inside strings
+      // Escape literal control chars inside strings
       if (char === '\n') {
         result += '\\n';
         continue;
@@ -146,6 +146,14 @@ function escapeNewlinesInStrings(text) {
       }
       if (char === '\t') {
         result += '\\t';
+        continue;
+      }
+      if (char === '\f') {
+        result += '\\f';
+        continue;
+      }
+      if (char === '\b') {
+        result += '\\b';
         continue;
       }
     }
@@ -220,8 +228,8 @@ function parseJsonWithRepairs(text, prefilled = false) {
     }
   }
 
-  // Attempt 3: Basic repairs (control chars, trailing commas)
-  let repairedText = cleanText
+  // Attempt 3: Basic repairs (control chars, trailing commas) — cascade from escapedText
+  let repairedText = escapedText
     .replace(/[\x00-\x1F\x7F]/g, (char) => {
       if (char === '\n' || char === '\r' || char === '\t') return ' '; // Replace with space instead of keeping
       return '';
@@ -235,8 +243,8 @@ function parseJsonWithRepairs(text, prefilled = false) {
     console.log("[generate-session] Basic repair parse failed:", err2.message);
   }
 
-  // Attempt 4: Find longest valid JSON prefix
-  const truncated = findLastValidJson(cleanText);
+  // Attempt 4: Find longest valid JSON prefix — cascade from repairedText
+  const truncated = findLastValidJson(repairedText);
   if (truncated) {
     try {
       const result = JSON.parse(truncated);
