@@ -2,6 +2,23 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-24] JSON Parsing Reliability Fix
+
+### generate-session Route Fix
+Fixes JSON parsing failures in `/api/generate-session` where model output with literal newlines in strings caused parse errors despite successful completion (stop_reason: "end_turn").
+
+**Root Cause:** Model occasionally outputs literal `\n` characters inside JSON string values instead of escaped `\\n`. Previous fix (22a2f54) added escape handling but had a cascade bug where later repair attempts operated on the original text instead of cascading from repaired versions.
+
+**Fixes Applied (5547fe2):**
+- Repair cascade now flows: `cleanText → escapedText → repairedText → truncated`
+- Added `\f` (form feed) and `\b` (backspace) control character escaping
+- Previous attempts built from `cleanText` discarding earlier repairs
+
+**Files Modified:**
+- `app/api/generate-session/route.js`
+
+---
+
 ## [2026-04-22] R→C Shareable Candidate Links
 
 ### lens-app 2026.04.22-f/g (Shareable Session Links)
