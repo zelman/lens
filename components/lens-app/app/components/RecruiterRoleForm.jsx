@@ -7,7 +7,10 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.23-g";
+const BUILD_ID = "2026.04.24-a";
+
+// ── Candidate roster storage ──
+const ROSTER_STORAGE_KEY = "recruiter-candidate-roster";
 
 // ── Design tokens (match candidate intake exactly) ──
 const RED = "#D93025";
@@ -691,9 +694,11 @@ function RolePhase({ formData, setFormData, onContinue, onBack }) {
   );
 }
 
-function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, previousFiles }) {
+function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, previousFiles, candidateRoster, onRosterAdd, onRosterRemove, onRosterUpdate }) {
   const [extracting, setExtracting] = useState({});
+  const [rosterExtracting, setRosterExtracting] = useState(false);
   const fileInputRefs = useRef({});
+  const rosterInputRef = useRef(null);
 
   const handleFileSelect = async (categoryId, event) => {
     const selectedFiles = Array.from(event.target.files);
@@ -717,6 +722,52 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, previousFiles
     // Clear input so same file can be re-selected
     if (fileInputRefs.current[categoryId]) {
       fileInputRefs.current[categoryId].value = "";
+    }
+  };
+
+  // Handle candidate roster file upload
+  const handleRosterFileSelect = async (event) => {
+    const selectedFiles = Array.from(event.target.files);
+    if (selectedFiles.length === 0) return;
+
+    setRosterExtracting(true);
+
+    const processed = await Promise.all(selectedFiles.map(async (file, idx) => {
+      const text = await extractText(file);
+
+      // Try to extract name from resume text (first line often has name)
+      let extractedName = null;
+      if (text) {
+        const firstLine = text.split('\n')[0]?.trim();
+        // Simple heuristic: if first line is short (< 50 chars) and no obvious header words
+        if (firstLine && firstLine.length < 50 && !firstLine.toLowerCase().includes('resume') && !firstLine.toLowerCase().includes('curriculum')) {
+          extractedName = firstLine;
+        }
+      }
+
+      // Try to extract email from resume text
+      let extractedEmail = null;
+      if (text) {
+        const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+        if (emailMatch) {
+          extractedEmail = emailMatch[0];
+        }
+      }
+
+      return {
+        name: extractedName || `Candidate ${(candidateRoster?.length || 0) + idx + 1}`,
+        resumeText: text || "",
+        email: extractedEmail || "",
+        fileName: file.name,
+      };
+    }));
+
+    onRosterAdd(processed);
+    setRosterExtracting(false);
+
+    // Clear input
+    if (rosterInputRef.current) {
+      rosterInputRef.current.value = "";
     }
   };
 
@@ -833,6 +884,118 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, previousFiles
             </div>
           );
         })}
+      </div>
+
+      {/* Candidate Roster Section (separate from role documents) */}
+      <div style={{
+        marginBottom: "40px", padding: "20px", background: "#fff",
+        border: `2px solid ${BLK}`,
+      }}>
+        <div style={{
+          fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
+          color: BLK, fontWeight: 600, marginBottom: "8px",
+        }}>
+          CANDIDATES (optional)
+        </div>
+        <p style={{ fontSize: "13px", color: GRY, margin: "0 0 16px", lineHeight: 1.6 }}>
+          Upload candidate resumes to generate per-candidate discovery links.
+        </p>
+
+        {/* Roster list */}
+        {candidateRoster && candidateRoster.length > 0 && (
+          <div style={{ marginBottom: "16px" }}>
+            {candidateRoster.map((candidate, idx) => (
+              <div key={idx} style={{
+                display: "flex", alignItems: "center", gap: "12px",
+                padding: "12px", background: "#fafafa", border: `1px solid ${RULE}`,
+                marginBottom: "8px",
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                    <input
+                      type="text"
+                      value={candidate.name}
+                      onChange={(e) => onRosterUpdate(idx, "name", e.target.value)}
+                      placeholder="Candidate name"
+                      style={{
+                        flex: 1, padding: "8px 10px", fontFamily: FONT, fontSize: "13px",
+                        border: `1px solid ${RULE}`, borderRadius: 0,
+                      }}
+                    />
+                    <input
+                      type="email"
+                      value={candidate.email || ""}
+                      onChange={(e) => onRosterUpdate(idx, "email", e.target.value)}
+                      placeholder="Email (optional)"
+                      style={{
+                        flex: 1, padding: "8px 10px", fontFamily: FONT, fontSize: "13px",
+                        border: `1px solid ${RULE}`, borderRadius: 0,
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: "11px", color: GRY }}>
+                    {candidate.fileName}
+                    {candidate.resumeText && (
+                      <span style={{ color: "#2D6A2D", marginLeft: "8px" }}>
+                        ✓ {candidate.resumeText.length.toLocaleString()} chars extracted
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => onRosterRemove(idx)}
+                  style={{
+                    background: "none", border: "none", color: GRY, cursor: "pointer",
+                    fontSize: "18px", padding: "4px",
+                  }}
+                  title="Remove candidate"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty state or upload button */}
+        {(!candidateRoster || candidateRoster.length === 0) && (
+          <div style={{
+            padding: "24px", border: `1px dashed ${RULE}`, textAlign: "center",
+            marginBottom: "16px",
+          }}>
+            <div style={{ fontSize: "13px", color: LT, marginBottom: "12px" }}>
+              No candidates added yet
+            </div>
+          </div>
+        )}
+
+        {/* Upload button */}
+        <label style={{
+          display: "inline-block", padding: "10px 20px",
+          border: `1px solid ${BLK}`, cursor: "pointer",
+          fontFamily: FONT, fontSize: "13px", fontWeight: 500,
+          background: "#fff",
+        }}>
+          {rosterExtracting ? "Processing..." : "Upload candidate resumes"}
+          <input
+            ref={rosterInputRef}
+            type="file"
+            accept=".pdf,.docx,.doc,.txt"
+            multiple
+            onChange={handleRosterFileSelect}
+            style={{ display: "none" }}
+            disabled={rosterExtracting}
+          />
+        </label>
+
+        {/* Privacy notice */}
+        <p style={{
+          fontSize: "11px", color: GRY, margin: "16px 0 0", lineHeight: 1.6,
+          padding: "12px", background: "#fafafa", border: `1px solid ${RULE}`,
+        }}>
+          Candidate resumes you upload are used to create per-candidate discovery links.
+          They are not stored by Lens until you generate links; at that point they persist for 30 days.
+        </p>
       </div>
 
       <div style={{ display: "flex", gap: "12px" }}>
@@ -1737,6 +1900,9 @@ export default function RecruiterRoleForm() {
   const [roleContext, setRoleContext] = useState(null);
   const [storageWarning, setStorageWarning] = useState(null);
 
+  // Candidate roster state (separate from role documents)
+  const [candidateRoster, setCandidateRoster] = useState([]);
+
   // Dimension extraction state
   const [dimensions, setDimensions] = useState(null);
   const [foundationDuration, setFoundationDuration] = useState(8); // Default 8 min for foundation
@@ -1773,6 +1939,21 @@ export default function RecruiterRoleForm() {
       ...prev,
       [categoryId]: (prev[categoryId] || []).filter((_, i) => i !== index),
     }));
+  };
+
+  // Candidate roster handlers
+  const handleRosterAdd = (newCandidates) => {
+    setCandidateRoster(prev => [...prev, ...newCandidates]);
+  };
+
+  const handleRosterRemove = (index) => {
+    setCandidateRoster(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRosterUpdate = (index, field, value) => {
+    setCandidateRoster(prev => prev.map((c, i) =>
+      i === index ? { ...c, [field]: value } : c
+    ));
   };
 
   // Navigation
@@ -1908,7 +2089,14 @@ export default function RecruiterRoleForm() {
     setSessionConfig(null);
     setExtractionError(null);
     setGenerateError(null);
+    setCandidateRoster([]);
     clearSession();
+    // Clear roster from sessionStorage
+    try {
+      sessionStorage.removeItem(ROSTER_STORAGE_KEY);
+    } catch (e) {
+      console.warn("Failed to clear candidate roster:", e);
+    }
   };
 
   const handleStartOver = () => {
@@ -1926,6 +2114,15 @@ export default function RecruiterRoleForm() {
       if (session.fileMeta) setPreviousFiles(session.fileMeta);
       if (session.roleContext) setRoleContext(session.roleContext);
       if (session.dimensions) setDimensions(session.dimensions);
+    }
+    // Load candidate roster from sessionStorage
+    try {
+      const savedRoster = sessionStorage.getItem(ROSTER_STORAGE_KEY);
+      if (savedRoster) {
+        setCandidateRoster(JSON.parse(savedRoster));
+      }
+    } catch (e) {
+      console.warn("Failed to load candidate roster:", e);
     }
     setLoaded(true);
   }, []);
@@ -1959,6 +2156,16 @@ export default function RecruiterRoleForm() {
       setStorageWarning("dropped");
     }
   }, [loaded, phase, formData, files, roleContext, dimensions]);
+
+  // Save candidate roster to sessionStorage on changes
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      sessionStorage.setItem(ROSTER_STORAGE_KEY, JSON.stringify(candidateRoster));
+    } catch (e) {
+      console.warn("Failed to save candidate roster:", e);
+    }
+  }, [loaded, candidateRoster]);
 
   if (!loaded) {
     return (
@@ -2054,6 +2261,10 @@ export default function RecruiterRoleForm() {
           onContinue={() => setPhase("review")}
           onBack={() => setPhase("role")}
           previousFiles={previousFiles}
+          candidateRoster={candidateRoster}
+          onRosterAdd={handleRosterAdd}
+          onRosterRemove={handleRosterRemove}
+          onRosterUpdate={handleRosterUpdate}
         />
       )}
 
