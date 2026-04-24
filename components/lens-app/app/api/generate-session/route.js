@@ -99,6 +99,63 @@ async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
   return { fullText, stopReason };
 }
 
+// Helper: Extract error position from JSON parse error
+function getErrorPosition(errorMessage) {
+  const posMatch = errorMessage.match(/position\s+(\d+)/i);
+  return posMatch ? parseInt(posMatch[1]) : null;
+}
+
+// Helper: Escape unescaped newlines/tabs inside JSON strings
+function escapeNewlinesInStrings(text) {
+  // This regex finds string contents and escapes unescaped newlines
+  // Match strings: "..." but handle escaped quotes inside
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
+    if (escaped) {
+      result += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escaped = true;
+      result += char;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      result += char;
+      continue;
+    }
+
+    if (inString) {
+      // Escape literal newlines/tabs inside strings
+      if (char === '\n') {
+        result += '\\n';
+        continue;
+      }
+      if (char === '\r') {
+        result += '\\r';
+        continue;
+      }
+      if (char === '\t') {
+        result += '\\t';
+        continue;
+      }
+    }
+
+    result += char;
+  }
+
+  return result;
+}
+
 // Helper: Parse JSON with repair attempts
 function parseJsonWithRepairs(text, prefilled = false) {
   let cleanText = text
@@ -109,6 +166,14 @@ function parseJsonWithRepairs(text, prefilled = false) {
   // If we used prefill, prepend the opening brace
   if (prefilled && !cleanText.startsWith("{")) {
     cleanText = "{" + cleanText;
+  }
+
+  // Extract just the JSON object if there's text before/after
+  const jsonStart = cleanText.indexOf('{');
+  const jsonEnd = cleanText.lastIndexOf('}');
+  if (jsonStart > 0 || (jsonEnd > 0 && jsonEnd < cleanText.length - 1)) {
+    console.log("[generate-session] Extracting JSON object from position", jsonStart, "to", jsonEnd);
+    cleanText = cleanText.slice(jsonStart, jsonEnd + 1);
   }
 
   // Log first 100 chars for debugging
@@ -128,17 +193,37 @@ function parseJsonWithRepairs(text, prefilled = false) {
     }
   }
 
+  // Track last error for debugging
+  let lastError = null;
+  let lastErrorPos = null;
+
   // Attempt 1: Direct parse
   try {
     return JSON.parse(cleanText);
   } catch (err1) {
-    console.log("[generate-session] Direct parse failed:", err1.message);
+    lastError = err1.message;
+    lastErrorPos = getErrorPosition(err1.message);
+    console.log("[generate-session] Direct parse failed at position", lastErrorPos, ":", err1.message);
+    if (lastErrorPos) {
+      console.log("[generate-session] Context around error:", cleanText.slice(Math.max(0, lastErrorPos - 50), lastErrorPos + 50));
+    }
   }
 
-  // Attempt 2: Basic repairs (control chars, trailing commas)
+  // Attempt 2: Escape unescaped newlines in strings (common model error)
+  const escapedText = escapeNewlinesInStrings(cleanText);
+  if (escapedText !== cleanText) {
+    console.log("[generate-session] Applied newline escaping, diff length:", escapedText.length - cleanText.length);
+    try {
+      return JSON.parse(escapedText);
+    } catch (err2a) {
+      console.log("[generate-session] Newline escape parse failed:", err2a.message);
+    }
+  }
+
+  // Attempt 3: Basic repairs (control chars, trailing commas)
   let repairedText = cleanText
     .replace(/[\x00-\x1F\x7F]/g, (char) => {
-      if (char === '\n' || char === '\r' || char === '\t') return char;
+      if (char === '\n' || char === '\r' || char === '\t') return ' '; // Replace with space instead of keeping
       return '';
     })
     .replace(/,\s*}/g, '}')
@@ -147,10 +232,10 @@ function parseJsonWithRepairs(text, prefilled = false) {
   try {
     return JSON.parse(repairedText);
   } catch (err2) {
-    console.log("[generate-session] Repair parse failed:", err2.message);
+    console.log("[generate-session] Basic repair parse failed:", err2.message);
   }
 
-  // Attempt 3: Find longest valid JSON prefix
+  // Attempt 4: Find longest valid JSON prefix
   const truncated = findLastValidJson(cleanText);
   if (truncated) {
     try {
@@ -266,11 +351,25 @@ export async function POST(request) {
 
         // Store debug info for last failed attempt
         const cleanText = fullText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
+        // Try to find where the parse error occurred
+        let contextAroundError = null;
+        try {
+          JSON.parse(cleanText);
+        } catch (parseErr) {
+          const posMatch = parseErr.message.match(/position\s+(\d+)/i);
+          if (posMatch) {
+            const pos = parseInt(posMatch[1]);
+            contextAroundError = cleanText.slice(Math.max(0, pos - 100), pos + 100);
+          }
+        }
+
         lastError = "Failed to parse JSON";
         lastDebug = {
           parseError: "JSON parse failed after all repair attempts",
           responseStart: fullText.slice(0, 500),
           responseEnd: fullText.slice(-300),
+          contextAroundError,
           stopReason,
           responseLength: fullText.length,
           attempt
