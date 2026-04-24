@@ -426,10 +426,11 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
             }
 
             // Store candidate data if present (fan-out sessions)
+            // Scope by session token to avoid multi-tab collision
             if (data.candidate) {
               setCandidateData(data.candidate);
-              // Also store in sessionStorage for state restoration
-              sessionStorage.setItem("rc-candidate-data", JSON.stringify(data.candidate));
+              // Store with token-scoped key for state restoration
+              sessionStorage.setItem(`rc-candidate-data-${sessionToken}`, JSON.stringify(data.candidate));
             }
 
             // Continue with normal loading using the fetched config
@@ -451,15 +452,9 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           return;
         }
 
-        // Restore candidate data from sessionStorage if present
-        try {
-          const candidateStr = sessionStorage.getItem("rc-candidate-data");
-          if (candidateStr) {
-            setCandidateData(JSON.parse(candidateStr));
-          }
-        } catch (e) {
-          console.warn("Failed to restore candidate data:", e);
-        }
+        // Note: For fallback path (no session token), candidate data is not available
+        // since fan-out sessions always use the ?session= URL path.
+        // The unscoped rc-candidate-data key is no longer used to avoid collisions.
 
         const config = JSON.parse(configStr);
         loadConfigIntoState(config);

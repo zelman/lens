@@ -114,9 +114,10 @@ export const FOUNDATION_CONTEXTS = {
  * @param {Object} section - The current section config from session-config
  * @param {Object} sessionConfig - The full session configuration
  * @param {string|null} establishedContext - Summary of prior sections
+ * @param {Object|null} candidateMaterials - Optional candidate materials from fan-out session { resume, candidateName }
  * @returns {string} Complete system prompt
  */
-export function buildRCSystemPrompt(section, sessionConfig, establishedContext = null) {
+export function buildRCSystemPrompt(section, sessionConfig, establishedContext = null, candidateMaterials = null) {
   const roleContext = sessionConfig.metadata || {};
   let systemPrompt = RC_SYSTEM_BASE;
 
@@ -173,7 +174,18 @@ ${establishedContext}
 CRITICAL: Do NOT re-ask about topics already covered above. Reference established facts and go deeper.`;
   }
 
-  // Add candidate preload context if available
+  // Add candidate materials from fan-out session (resume text from recruiter upload)
+  if (candidateMaterials?.resume) {
+    systemPrompt += `\n\n══════════════════════════════════════════════════════════════════════════════
+CANDIDATE RESUME (pre-loaded by recruiter)
+══════════════════════════════════════════════════════════════════════════════
+${candidateMaterials.candidateName ? `Candidate: ${candidateMaterials.candidateName}\n` : ""}
+${candidateMaterials.resume.slice(0, 8000)}${candidateMaterials.resume.length > 8000 ? "\n[Resume truncated for context window...]" : ""}
+
+INSTRUCTIONS: Use this resume to personalize your questions. Reference specific roles, companies, or experiences when relevant. Do NOT re-ask about facts clearly stated in the resume — go deeper instead.`;
+  }
+
+  // Add candidate preload context if available (from session config, not fan-out)
   const preload = sessionConfig.candidatePreloadAdjustments;
   if (preload?.resumeAvailable && preload?.keyFactsExtracted?.length > 0) {
     systemPrompt += `\n\n══════════════════════════════════════════════════════════════════════════════

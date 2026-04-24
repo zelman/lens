@@ -23,7 +23,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { sessionConfig, section, messages, action, context } = body;
+    const { sessionConfig, section, messages, action, context, candidateMaterials } = body;
 
     // Validate session config
     if (!sessionConfig || !sessionConfig.sessionId) {
@@ -81,7 +81,7 @@ export async function POST(request) {
 
     // Build established context from prior sections
     const establishedContext = context?.establishedContext || null;
-    const systemPrompt = buildRCSystemPrompt(section, sessionConfig, establishedContext);
+    const systemPrompt = buildRCSystemPrompt(section, sessionConfig, establishedContext, candidateMaterials);
 
     // Handle different actions
     if (action === "greeting") {
