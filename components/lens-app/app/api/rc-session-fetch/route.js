@@ -132,10 +132,21 @@ export async function GET(request) {
       console.error("[rc-session-fetch] Failed to parse sessionConfig:", e.message);
     }
 
-    if (!sessionConfig) {
+    // Null-content safety check: if roleContext is null (e.g., after retention purge),
+    // treat as expired rather than returning partial data
+    if (!recruiterRoleContext) {
+      console.log(`[rc-session-fetch] Null roleContext (purged?): ${token}`);
       return Response.json(
-        { error: "Invalid session data" },
-        { status: 500 }
+        { error: "expired" },
+        { status: 410 }
+      );
+    }
+
+    if (!sessionConfig) {
+      console.log(`[rc-session-fetch] Null sessionConfig: ${token}`);
+      return Response.json(
+        { error: "expired" },
+        { status: 410 }
       );
     }
 

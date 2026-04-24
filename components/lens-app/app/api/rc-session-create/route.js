@@ -86,17 +86,14 @@ export async function POST(request) {
     // Calculate expiration (30 days from now)
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    // ─────────────────────────────────────────────────────────────────
-    // Fan-out path: candidates array provided
-    // ─────────────────────────────────────────────────────────────────
-    if (candidates && Array.isArray(candidates)) {
-      if (candidates.length === 0) {
-        return Response.json(
-          { error: "Candidates array cannot be empty" },
-          { status: 400 }
-        );
-      }
+    // Apply truncation to large JSON fields
+    const truncatedRoleContextStr = truncateField(roleContextStr);
+    const truncatedSessionConfigStr = truncateField(sessionConfigStr);
 
+    // ─────────────────────────────────────────────────────────────────
+    // Fan-out path: candidates array provided with content
+    // ─────────────────────────────────────────────────────────────────
+    if (candidates && Array.isArray(candidates) && candidates.length > 0) {
       if (candidates.length > 50) {
         return Response.json(
           { error: "Maximum 50 candidates per batch" },
@@ -117,8 +114,8 @@ export async function POST(request) {
         const record = {
           fields: {
             [FIELDS.sessionToken]: token,
-            [FIELDS.recruiterRoleContext]: roleContextStr,
-            [FIELDS.sessionConfig]: sessionConfigStr,
+            [FIELDS.recruiterRoleContext]: truncatedRoleContextStr,
+            [FIELDS.sessionConfig]: truncatedSessionConfigStr,
             [FIELDS.expiresAt]: expiresAt,
           },
           typecast: true,
@@ -191,24 +188,25 @@ export async function POST(request) {
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Legacy path: no candidates array (backward compatibility)
+    // Legacy path: no candidates array OR empty array (single-link mode)
     // ─────────────────────────────────────────────────────────────────
-    console.log(`[rc-session-create] Legacy path: single session`);
+    console.log(`[rc-session-create] Legacy path: single session (no candidates)`);
 
-    const totalSize = roleContextStr.length + sessionConfigStr.length;
-    console.log(`[rc-session-create] Payload size: ${totalSize} chars (roleContext: ${roleContextStr.length}, sessionConfig: ${sessionConfigStr.length})`);
+    const totalSize = truncatedRoleContextStr.length + truncatedSessionConfigStr.length;
+    console.log(`[rc-session-create] Payload size: ${totalSize} chars`);
 
     // Generate unique token
     const token = generateToken();
 
-    // Build Airtable record
+    // Build Airtable record - no candidate fields (candidate uploads own resume)
     const record = {
       fields: {
         [FIELDS.sessionToken]: token,
-        [FIELDS.recruiterRoleContext]: roleContextStr,
-        [FIELDS.sessionConfig]: sessionConfigStr,
+        [FIELDS.recruiterRoleContext]: truncatedRoleContextStr,
+        [FIELDS.sessionConfig]: truncatedSessionConfigStr,
         [FIELDS.expiresAt]: expiresAt,
       },
+      typecast: true,
     };
 
     // Add optional recruiter name

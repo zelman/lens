@@ -2,6 +2,63 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-24] R→C Session Fan-Out Hardening
+
+### lens-app 2026.04.24-d (API Hardening)
+
+**Fixes per fan-out build brief:**
+
+**rc-session-create:**
+- Empty `candidates: []` now creates single-link session (was erroring)
+- Apply `truncateField(100K)` to roleContext and sessionConfig
+- Added `typecast: true` to legacy path
+
+**rc-session-fetch:**
+- Added null-content safety check: if roleContext is null (after retention purge), return 410 instead of partial data
+- Same for null sessionConfig
+
+**RecruiterCandidateIntake:**
+- Unified error message for 404/410: "This link has expired or is no longer valid. Please contact the recruiter who shared it."
+
+**Files Modified:**
+- `app/api/rc-session-create/route.js`
+- `app/api/rc-session-fetch/route.js`
+- `app/components/RecruiterCandidateIntake.jsx`
+- `app/components/RecruiterRoleForm.jsx` (v2026.04.24-d)
+
+---
+
+## [2026-04-24] Per-Candidate Cards: Validation & Empty Default State
+
+### lens-app 2026.04.24-c (Validation + Two-Path UX)
+
+**Fixes from build brief:** Restructures per-candidate cards to support two paths:
+1. **Fan-out path:** Recruiter adds N candidate cards (each requires resume) → generates N links
+2. **Single-link legacy path:** Recruiter adds 0 cards → generates 1 link → candidate uploads own resume
+
+**UI Changes:**
+- Default state: 0 visible cards + "Add candidate" button (not 1 empty card)
+- Resume marked as REQUIRED with red asterisk
+- Copy updated: "Skip this section to share a single link where the candidate uploads their own resume"
+- Remove button always visible on cards (not conditional on >1 cards)
+
+**Validation:**
+- Empty roster (0 cards) → valid, proceeds to single-link path
+- Card without resume → inline error "Resume required, or remove this candidate" + blocks Continue
+- No silent filtering — user must explicitly resolve incomplete cards
+- Validation errors clear on resume upload or card removal
+
+**SessionStorage:**
+- Only valid cards (with resumeText) serialized to storage
+- Empty array = legacy single-link path
+
+**Bug Fix (Opus P1):** ConfirmationPhase now uses `validCandidates.length` for display counts instead of raw `candidateRoster.length`
+
+**Files Modified:**
+- `app/components/RecruiterRoleForm.jsx` (v2026.04.24-c)
+
+---
+
 ## [2026-04-24] Candidate Fan-Out v2: Per-Candidate Cards with Supporting Docs
 
 ### lens-app 2026.04.24-b (Per-Candidate Cards + Supporting Docs)

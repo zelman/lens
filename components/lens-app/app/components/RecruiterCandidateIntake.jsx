@@ -396,14 +396,8 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           try {
             const res = await fetch(`/api/rc-session-fetch?token=${encodeURIComponent(sessionToken)}`);
 
-            if (res.status === 404) {
-              setLoadError("This session link is not valid. Please contact the recruiter who shared it.");
-              setPhase("loading");
-              return;
-            }
-
-            if (res.status === 410) {
-              setLoadError("This session link has expired. Please contact the recruiter for a new link.");
+            if (res.status === 404 || res.status === 410) {
+              setLoadError("This link has expired or is no longer valid. Please contact the recruiter who shared it.");
               setPhase("loading");
               return;
             }

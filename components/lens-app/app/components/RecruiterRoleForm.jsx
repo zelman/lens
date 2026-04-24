@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.24-b";
+const BUILD_ID = "2026.04.24-d";
 
 // ── Candidate roster storage ──
 const ROSTER_STORAGE_KEY = "recruiter-candidate-roster";
@@ -687,7 +687,7 @@ function RolePhase({ formData, setFormData, onContinue, onBack }) {
   );
 }
 
-function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, previousFiles, candidateRoster, onRosterAddCard, onRosterRemove, onRosterUpdate, onRosterResumeUpload, onRosterSupportingDocAdd, onRosterSupportingDocRemove }) {
+function UploadPhase({ files, onAdd, onRemove, onBack, previousFiles, candidateRoster, onRosterAddCard, onRosterRemove, onRosterUpdate, onRosterResumeUpload, onRosterSupportingDocAdd, onRosterSupportingDocRemove, rosterValidationErrors, onValidateAndContinue }) {
   const [extracting, setExtracting] = useState({});
   const [rosterExtracting, setRosterExtracting] = useState({}); // keyed by candidate index
   const [supportingExtracting, setSupportingExtracting] = useState({}); // keyed by candidate index
@@ -903,136 +903,82 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, previousFiles
           fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
           color: BLK, fontWeight: 600, marginBottom: "8px",
         }}>
-          CANDIDATES (optional)
+          CANDIDATES (OPTIONAL)
         </div>
         <p style={{ fontSize: "13px", color: GRY, margin: "0 0 16px", lineHeight: 1.6 }}>
-          Add candidates to generate per-candidate discovery links.
+          Add candidates to generate per-candidate discovery links. Skip this section to share a single link where the candidate uploads their own resume.
         </p>
 
         {/* Candidate cards */}
-        <div style={{ marginBottom: "16px" }}>
-          {candidateRoster.map((candidate, idx) => (
-            <div key={idx} style={{
-              position: "relative",
-              padding: "16px", background: "#fafafa", border: `1px solid ${RULE}`,
-              marginBottom: "12px",
-            }}>
-              {/* Remove button (top right) */}
-              {candidateRoster.length > 1 && (
-                <button
-                  onClick={() => onRosterRemove(idx)}
-                  style={{
-                    position: "absolute", top: "8px", right: "8px",
-                    background: "none", border: "none", color: GRY, cursor: "pointer",
-                    fontSize: "18px", padding: "4px", lineHeight: 1,
-                  }}
-                  title="Remove candidate"
-                >
-                  ×
-                </button>
-              )}
+        {candidateRoster.length > 0 && (
+          <div style={{ marginBottom: "16px" }}>
+            {candidateRoster.map((candidate, idx) => {
+              const hasError = rosterValidationErrors && rosterValidationErrors[idx];
+              return (
+                <div key={idx} style={{
+                  position: "relative",
+                  padding: "16px", background: "#fafafa",
+                  border: hasError ? `2px solid ${RED}` : `1px solid ${RULE}`,
+                  marginBottom: "12px",
+                }}>
+                  {/* Remove button (top right) - always visible */}
+                  <button
+                    onClick={() => onRosterRemove(idx)}
+                    style={{
+                      position: "absolute", top: "8px", right: "8px",
+                      background: "none", border: "none", color: GRY, cursor: "pointer",
+                      fontSize: "18px", padding: "4px", lineHeight: 1,
+                    }}
+                    title="Remove candidate"
+                  >
+                    ×
+                  </button>
 
-              {/* Card header with name/email */}
-              <div style={{ display: "flex", gap: "12px", marginBottom: "12px", paddingRight: candidateRoster.length > 1 ? "24px" : "0" }}>
-                <input
-                  type="text"
-                  value={candidate.name}
-                  onChange={(e) => onRosterUpdate(idx, "name", e.target.value)}
-                  placeholder={`Candidate ${idx + 1}`}
-                  style={{
-                    flex: 1, padding: "8px 10px", fontFamily: FONT, fontSize: "13px",
-                    border: `1px solid ${RULE}`, borderRadius: 0,
-                  }}
-                />
-                <input
-                  type="email"
-                  value={candidate.email || ""}
-                  onChange={(e) => onRosterUpdate(idx, "email", e.target.value)}
-                  placeholder="Email (optional)"
-                  style={{
-                    flex: 1, padding: "8px 10px", fontFamily: FONT, fontSize: "13px",
-                    border: `1px solid ${RULE}`, borderRadius: 0,
-                  }}
-                />
-              </div>
-
-              {/* Resume upload (single file) */}
-              <div style={{ marginBottom: "12px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 600, color: BLK, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Resume
-                </div>
-                {candidate.resumeFilename ? (
-                  <div style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "8px 12px", background: "#fff", border: `1px solid ${RULE}`,
-                    fontSize: "12px",
-                  }}>
-                    <span>
-                      {candidate.resumeFilename}
-                      {candidate.resumeText && (
-                        <span style={{ color: "#2D6A2D", marginLeft: "8px" }}>
-                          ✓ {candidate.resumeText.length.toLocaleString()} chars
-                        </span>
-                      )}
-                    </span>
-                    <button
-                      onClick={() => onRosterResumeUpload(idx, "", "", null)}
-                      style={{
-                        background: "none", border: "none", color: LT, cursor: "pointer",
-                        fontSize: "14px", padding: "0",
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ) : (
-                  <label style={{
-                    display: "inline-block", padding: "6px 12px",
-                    border: `1px solid ${BLK}`, cursor: "pointer",
-                    fontFamily: FONT, fontSize: "11px", fontWeight: 500,
-                    background: "#fff",
-                  }}>
-                    {rosterExtracting[idx] ? "Processing..." : "Choose file"}
+                  {/* Card header with name/email */}
+                  <div style={{ display: "flex", gap: "12px", marginBottom: "12px", paddingRight: "24px" }}>
                     <input
-                      ref={el => resumeInputRefs.current[idx] = el}
-                      type="file"
-                      accept=".pdf,.docx,.doc,.txt"
-                      onChange={e => handleResumeSelect(idx, e)}
-                      style={{ display: "none" }}
-                      disabled={rosterExtracting[idx]}
+                      type="text"
+                      value={candidate.name}
+                      onChange={(e) => onRosterUpdate(idx, "name", e.target.value)}
+                      placeholder={`Candidate ${idx + 1}`}
+                      style={{
+                        flex: 1, padding: "8px 10px", fontFamily: FONT, fontSize: "13px",
+                        border: `1px solid ${RULE}`, borderRadius: 0,
+                      }}
                     />
-                  </label>
-                )}
-              </div>
+                    <input
+                      type="email"
+                      value={candidate.email || ""}
+                      onChange={(e) => onRosterUpdate(idx, "email", e.target.value)}
+                      placeholder="Email (optional)"
+                      style={{
+                        flex: 1, padding: "8px 10px", fontFamily: FONT, fontSize: "13px",
+                        border: `1px solid ${RULE}`, borderRadius: 0,
+                      }}
+                    />
+                  </div>
 
-              {/* Supporting documents (multi-file) */}
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 600, color: BLK, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Supporting Documents
-                </div>
-                <p style={{ fontSize: "11px", color: GRY, margin: "0 0 8px" }}>
-                  LinkedIn exports, portfolio, reference letters, recruiter notes, anything else.
-                </p>
-
-                {/* List of supporting docs */}
-                {candidate.supportingDocs?.length > 0 && (
-                  <div style={{ marginBottom: "8px" }}>
-                    {candidate.supportingDocs.map((doc, docIdx) => (
-                      <div key={docIdx} style={{
+                  {/* Resume upload (single file, REQUIRED) */}
+                  <div style={{ marginBottom: "12px" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 600, color: BLK, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Resume <span style={{ color: RED }}>*</span>
+                    </div>
+                    {candidate.resumeFilename ? (
+                      <div style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "6px 10px", background: "#fff", border: `1px solid ${RULE}`,
-                        marginBottom: "4px", fontSize: "11px",
+                        padding: "8px 12px", background: "#fff", border: `1px solid ${RULE}`,
+                        fontSize: "12px",
                       }}>
                         <span>
-                          {doc.filename}
-                          {doc.text && (
-                            <span style={{ color: "#2D6A2D", marginLeft: "6px" }}>
-                              ✓ {doc.text.length.toLocaleString()} chars
+                          {candidate.resumeFilename}
+                          {candidate.resumeText && (
+                            <span style={{ color: "#2D6A2D", marginLeft: "8px" }}>
+                              ✓ {candidate.resumeText.length.toLocaleString()} chars
                             </span>
                           )}
                         </span>
                         <button
-                          onClick={() => onRosterSupportingDocRemove(idx, docIdx)}
+                          onClick={() => onRosterResumeUpload(idx, "", "", null)}
                           style={{
                             background: "none", border: "none", color: LT, cursor: "pointer",
                             fontSize: "14px", padding: "0",
@@ -1041,33 +987,97 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, previousFiles
                           ×
                         </button>
                       </div>
-                    ))}
+                    ) : (
+                      <label style={{
+                        display: "inline-block", padding: "6px 12px",
+                        border: `1px solid ${BLK}`, cursor: "pointer",
+                        fontFamily: FONT, fontSize: "11px", fontWeight: 500,
+                        background: "#fff",
+                      }}>
+                        {rosterExtracting[idx] ? "Processing..." : "Choose file"}
+                        <input
+                          ref={el => resumeInputRefs.current[idx] = el}
+                          type="file"
+                          accept=".pdf,.docx,.doc,.txt"
+                          onChange={e => handleResumeSelect(idx, e)}
+                          style={{ display: "none" }}
+                          disabled={rosterExtracting[idx]}
+                        />
+                      </label>
+                    )}
+                    {/* Inline validation error */}
+                    {hasError && (
+                      <div style={{ marginTop: "8px", fontSize: "12px", color: RED }}>
+                        {rosterValidationErrors[idx]}
+                      </div>
+                    )}
                   </div>
-                )}
 
-                <label style={{
-                  display: "inline-block", padding: "6px 12px",
-                  border: `1px solid ${RULE}`, cursor: "pointer",
-                  fontFamily: FONT, fontSize: "11px", fontWeight: 500,
-                  background: "#fff", color: GRY,
-                }}>
-                  {supportingExtracting[idx] ? "Processing..." : "+ Add files"}
-                  <input
-                    ref={el => supportingInputRefs.current[idx] = el}
-                    type="file"
-                    accept=".pdf,.docx,.doc,.txt"
-                    multiple
-                    onChange={e => handleSupportingDocSelect(idx, e)}
-                    style={{ display: "none" }}
-                    disabled={supportingExtracting[idx]}
-                  />
-                </label>
-              </div>
-            </div>
-          ))}
-        </div>
+                  {/* Supporting documents (multi-file, optional) */}
+                  <div>
+                    <div style={{ fontSize: "11px", fontWeight: 600, color: BLK, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Supporting Documents
+                    </div>
+                    <p style={{ fontSize: "11px", color: GRY, margin: "0 0 8px" }}>
+                      LinkedIn exports, portfolio, reference letters, recruiter notes, anything else.
+                    </p>
 
-        {/* Add another candidate button */}
+                    {/* List of supporting docs */}
+                    {candidate.supportingDocs?.length > 0 && (
+                      <div style={{ marginBottom: "8px" }}>
+                        {candidate.supportingDocs.map((doc, docIdx) => (
+                          <div key={docIdx} style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            padding: "6px 10px", background: "#fff", border: `1px solid ${RULE}`,
+                            marginBottom: "4px", fontSize: "11px",
+                          }}>
+                            <span>
+                              {doc.filename}
+                              {doc.text && (
+                                <span style={{ color: "#2D6A2D", marginLeft: "6px" }}>
+                                  ✓ {doc.text.length.toLocaleString()} chars
+                                </span>
+                              )}
+                            </span>
+                            <button
+                              onClick={() => onRosterSupportingDocRemove(idx, docIdx)}
+                              style={{
+                                background: "none", border: "none", color: LT, cursor: "pointer",
+                                fontSize: "14px", padding: "0",
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <label style={{
+                      display: "inline-block", padding: "6px 12px",
+                      border: `1px solid ${RULE}`, cursor: "pointer",
+                      fontFamily: FONT, fontSize: "11px", fontWeight: 500,
+                      background: "#fff", color: GRY,
+                    }}>
+                      {supportingExtracting[idx] ? "Processing..." : "+ Add files"}
+                      <input
+                        ref={el => supportingInputRefs.current[idx] = el}
+                        type="file"
+                        accept=".pdf,.docx,.doc,.txt"
+                        multiple
+                        onChange={e => handleSupportingDocSelect(idx, e)}
+                        style={{ display: "none" }}
+                        disabled={supportingExtracting[idx]}
+                      />
+                    </label>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Add candidate button */}
         <button
           onClick={onRosterAddCard}
           style={{
@@ -1077,7 +1087,7 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, previousFiles
             cursor: "pointer", textAlign: "center",
           }}
         >
-          + Add another candidate
+          {candidateRoster.length === 0 ? "+ Add candidate" : "+ Add another candidate"}
         </button>
 
         {/* Privacy notice */}
@@ -1085,7 +1095,7 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, previousFiles
           fontSize: "11px", color: GRY, margin: "16px 0 0", lineHeight: 1.6,
           padding: "12px", background: "#fafafa", border: `1px solid ${RULE}`,
         }}>
-          Candidate data is stored for 30 days when you generate links.
+          Resumes and documents you upload are extracted to text in your browser and stored only after you generate links. Data is automatically purged 30 days after link creation.
         </p>
       </div>
 
@@ -1093,7 +1103,7 @@ function UploadPhase({ files, onAdd, onRemove, onContinue, onBack, previousFiles
         <button onClick={onBack} style={secondaryButtonStyle}>
           Back
         </button>
-        <button onClick={onContinue} style={primaryButtonStyle}>
+        <button onClick={onValidateAndContinue} style={primaryButtonStyle}>
           {totalFiles > 0 ? `Continue with ${totalFiles} file${totalFiles > 1 ? "s" : ""}` : "Continue without files"}
         </button>
       </div>
@@ -1877,7 +1887,7 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, onStar
               <div><strong>Tailored dimensions:</strong> {sessionConfig.tailored.length}</div>
             )}
             {hasRoster && (
-              <div><strong>Candidates:</strong> {candidateRoster.length}</div>
+              <div><strong>Candidates:</strong> {validCandidates.length}</div>
             )}
           </div>
         </div>
@@ -1893,7 +1903,7 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, onStar
             fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
             color: RED, fontWeight: 600, marginBottom: "16px",
           }}>
-            {hasRoster ? `CANDIDATE LINKS (${candidateRoster.length})` : "CANDIDATE LINK"}
+            {hasRoster ? `CANDIDATE LINKS (${validCandidates.length})` : "CANDIDATE LINK"}
           </div>
 
           {linkState === "idle" && (
@@ -1906,13 +1916,13 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, onStar
                 fontSize: "14px",
               }}
             >
-              {hasRoster ? `GENERATE ${candidateRoster.length} CANDIDATE LINKS` : "GENERATE CANDIDATE LINK"}
+              {hasRoster ? `GENERATE ${validCandidates.length} CANDIDATE LINKS` : "GENERATE CANDIDATE LINK"}
             </button>
           )}
 
           {linkState === "loading" && (
             <div style={{ textAlign: "center", padding: "12px", color: GRY }}>
-              {hasRoster ? `Generating ${candidateRoster.length} links...` : "Generating link..."}
+              {hasRoster ? `Generating ${validCandidates.length} links...` : "Generating link..."}
             </div>
           )}
 
@@ -2105,10 +2115,9 @@ export default function RecruiterRoleForm() {
   const [storageWarning, setStorageWarning] = useState(null);
 
   // Candidate roster state (separate from role documents)
-  // Default: 1 empty candidate card
-  const [candidateRoster, setCandidateRoster] = useState([
-    { name: "", email: "", resumeText: "", resumeFilename: "", supportingDocs: [] }
-  ]);
+  // Default: 0 cards (empty roster = single-link legacy path)
+  const [candidateRoster, setCandidateRoster] = useState([]);
+  const [rosterValidationErrors, setRosterValidationErrors] = useState({}); // { cardIndex: "error message" }
 
   // Dimension extraction state
   const [dimensions, setDimensions] = useState(null);
@@ -2158,6 +2167,8 @@ export default function RecruiterRoleForm() {
 
   const handleRosterRemove = (index) => {
     setCandidateRoster(prev => prev.filter((_, i) => i !== index));
+    // Clear validation errors (re-index not needed since we validate fresh on Continue)
+    setRosterValidationErrors({});
   };
 
   const handleRosterUpdate = (index, field, value) => {
@@ -2177,6 +2188,14 @@ export default function RecruiterRoleForm() {
         name: c.name || extractedName || `Candidate ${index + 1}`,
       };
     }));
+    // Clear validation error for this card if resume was uploaded
+    if (resumeText) {
+      setRosterValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated[index];
+        return updated;
+      });
+    }
   };
 
   const handleRosterSupportingDocAdd = (index, doc) => {
@@ -2191,6 +2210,34 @@ export default function RecruiterRoleForm() {
       if (i !== index) return c;
       return { ...c, supportingDocs: c.supportingDocs.filter((_, di) => di !== docIndex) };
     }));
+  };
+
+  // Validate roster and continue to review phase
+  const handleValidateAndContinue = () => {
+    // Clear previous errors
+    setRosterValidationErrors({});
+
+    // If roster is empty, proceed (single-link legacy path)
+    if (candidateRoster.length === 0) {
+      setPhase("review");
+      return;
+    }
+
+    // Check each card for required resume
+    const errors = {};
+    candidateRoster.forEach((candidate, idx) => {
+      if (!candidate.resumeText || !candidate.resumeText.trim()) {
+        errors[idx] = "Resume required, or remove this candidate.";
+      }
+    });
+
+    if (Object.keys(errors).length > 0) {
+      setRosterValidationErrors(errors);
+      return; // Block continue
+    }
+
+    // All cards valid, proceed
+    setPhase("review");
   };
 
   // Navigation
@@ -2313,6 +2360,7 @@ export default function RecruiterRoleForm() {
     setExtractionError(null);
     setGenerateError(null);
     setCandidateRoster([]);
+    setRosterValidationErrors({});
     clearSession();
     // Clear roster from sessionStorage
     try {
@@ -2338,20 +2386,21 @@ export default function RecruiterRoleForm() {
       if (session.roleContext) setRoleContext(session.roleContext);
       if (session.dimensions) setDimensions(session.dimensions);
     }
-    // Load candidate roster from sessionStorage (migrate old data shape if needed)
+    // Load candidate roster from sessionStorage (only valid cards with resumeText are stored)
     try {
       const savedRoster = sessionStorage.getItem(ROSTER_STORAGE_KEY);
       if (savedRoster) {
         const parsed = JSON.parse(savedRoster);
         // Migrate old data shape: add supportingDocs and resumeFilename if missing
-        const migrated = parsed.map((c, i) => ({
+        const migrated = parsed.map((c) => ({
           name: c.name || "",
           email: c.email || "",
           resumeText: c.resumeText || "",
           resumeFilename: c.resumeFilename || c.fileName || "", // old field was fileName
           supportingDocs: c.supportingDocs || [],
         }));
-        setCandidateRoster(migrated.length > 0 ? migrated : [{ name: "", email: "", resumeText: "", resumeFilename: "", supportingDocs: [] }]);
+        // Keep whatever was stored (empty array = legacy single-link path)
+        setCandidateRoster(migrated);
       }
     } catch (e) {
       console.warn("Failed to load candidate roster:", e);
@@ -2389,11 +2438,13 @@ export default function RecruiterRoleForm() {
     }
   }, [loaded, phase, formData, files, roleContext, dimensions]);
 
-  // Save candidate roster to sessionStorage on changes
+  // Save candidate roster to sessionStorage on changes (only valid cards with resumeText)
   useEffect(() => {
     if (!loaded) return;
     try {
-      sessionStorage.setItem(ROSTER_STORAGE_KEY, JSON.stringify(candidateRoster));
+      // Only persist cards that have a resume uploaded
+      const validCards = candidateRoster.filter(c => c.resumeText && c.resumeText.trim());
+      sessionStorage.setItem(ROSTER_STORAGE_KEY, JSON.stringify(validCards));
     } catch (e) {
       console.warn("Failed to save candidate roster:", e);
     }
@@ -2490,7 +2541,6 @@ export default function RecruiterRoleForm() {
           files={files}
           onAdd={handleAdd}
           onRemove={handleRemove}
-          onContinue={() => setPhase("review")}
           onBack={() => setPhase("role")}
           previousFiles={previousFiles}
           candidateRoster={candidateRoster}
@@ -2500,6 +2550,8 @@ export default function RecruiterRoleForm() {
           onRosterResumeUpload={handleRosterResumeUpload}
           onRosterSupportingDocAdd={handleRosterSupportingDocAdd}
           onRosterSupportingDocRemove={handleRosterSupportingDocRemove}
+          rosterValidationErrors={rosterValidationErrors}
+          onValidateAndContinue={handleValidateAndContinue}
         />
       )}
 
