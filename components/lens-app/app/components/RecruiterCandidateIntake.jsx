@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
-const BUILD_ID = "2026.04.23-a";
+const BUILD_ID = "2026.04.24-b";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
@@ -98,6 +98,7 @@ export default function RecruiterCandidateIntake() {
   // ── Core state ──
   const [phase, setPhase] = useState("loading"); // loading → intro → discovery → synthesis → complete
   const [sessionConfig, setSessionConfig] = useState(null);
+  const [candidateData, setCandidateData] = useState(null); // { name, resumeText, email } from fan-out session
   const [loadError, setLoadError] = useState(null);
 
   // ── Dynamic sections (built from session-config) ──
@@ -424,6 +425,13 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
               sessionStorage.setItem("recruiter-role-context", JSON.stringify(data.recruiterRoleContext));
             }
 
+            // Store candidate data if present (fan-out sessions)
+            if (data.candidate) {
+              setCandidateData(data.candidate);
+              // Also store in sessionStorage for state restoration
+              sessionStorage.setItem("rc-candidate-data", JSON.stringify(data.candidate));
+            }
+
             // Continue with normal loading using the fetched config
             loadConfigIntoState(data.sessionConfig);
             return;
@@ -441,6 +449,16 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           setLoadError("No session configuration found. Please start from the recruiter dashboard.");
           setPhase("loading");
           return;
+        }
+
+        // Restore candidate data from sessionStorage if present
+        try {
+          const candidateStr = sessionStorage.getItem("rc-candidate-data");
+          if (candidateStr) {
+            setCandidateData(JSON.parse(candidateStr));
+          }
+        } catch (e) {
+          console.warn("Failed to restore candidate data:", e);
         }
 
         const config = JSON.parse(configStr);
@@ -609,6 +627,11 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           currentSectionIndex: currentSection,
           totalSections: sections.length,
         },
+        // Include candidate resume if available (fan-out sessions)
+        candidateMaterials: candidateData?.resumeText ? {
+          resume: candidateData.resumeText,
+          candidateName: candidateData.name,
+        } : null,
       }),
     });
 
@@ -719,7 +742,11 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
         body: JSON.stringify({
           sessionConfig,
           sectionData,
-          candidateContext: null, // Could be enhanced with candidate name, etc.
+          candidateContext: candidateData ? {
+            name: candidateData.name,
+            resumeText: candidateData.resumeText,
+            email: candidateData.email,
+          } : null,
         }),
       });
 
@@ -835,6 +862,11 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           <h1 style={{ fontFamily: FONT, fontSize: "26px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
             {meta.roleTitle || "Role"} at {meta.company || "Company"}
           </h1>
+          {candidateData?.name && (
+            <div style={{ fontSize: "14px", color: GRY, marginTop: "8px" }}>
+              Session prepared for: <strong style={{ color: BLK }}>{candidateData.name}</strong>
+            </div>
+          )}
         </div>
 
         {/* Context */}

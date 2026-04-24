@@ -1,5 +1,6 @@
-// /api/rc-session-create - Create shareable R→C session link
-// Writes session config to Airtable, returns unique token + URL
+// /api/rc-session-create - Create shareable R→C session link(s)
+// Writes session config to Airtable, returns unique token + URL per candidate
+// Supports fan-out: one role context → N candidate sessions
 
 const AIRTABLE_API_URL = "https://api.airtable.com/v0";
 const BASE_ID = "appFO5zLT7ZehXaBo";
@@ -13,7 +14,14 @@ const FIELDS = {
   expiresAt: "fldaofxjXJVRw3TYt",
   claimedAt: "fldAYxjLyvPs24I1L",
   recruiterName: "fldIypcMRmtbUrGk8",
+  // New fields for candidate fan-out
+  candidateName: "fldCandidateName", // Will be set after user creates field
+  candidateResume: "fldCandidateResume", // Will be set after user creates field
+  candidateEmail: "fldCandidateEmail", // Will be set after user creates field
 };
+
+// Max chars for resume text (Airtable long text limit)
+const MAX_RESUME_CHARS = 100000;
 
 // URL-safe alphabet for token generation (no lookalikes: 0O1lI)
 const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz";
@@ -29,6 +37,12 @@ function generateToken() {
   return token;
 }
 
+function truncateField(value, limit = MAX_RESUME_CHARS) {
+  if (typeof value !== "string") return value;
+  if (value.length <= limit) return value;
+  return value.slice(0, limit - 50) + "\n\n[TRUNCATED - exceeded " + limit + " chars]";
+}
+
 export async function POST(request) {
   const apiKey = process.env.AIRTABLE_API_KEY;
 
@@ -42,7 +56,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { recruiterRoleContext, sessionConfig, recruiterName } = body;
+    const { recruiterRoleContext, sessionConfig, recruiterName, candidates } = body;
 
     // Validate required fields
     if (!recruiterRoleContext || typeof recruiterRoleContext !== "object") {
@@ -59,17 +73,129 @@ export async function POST(request) {
       );
     }
 
-    // Log payload size for budget tuning
+    // Serialize context objects
     const roleContextStr = JSON.stringify(recruiterRoleContext);
     const sessionConfigStr = JSON.stringify(sessionConfig);
+
+    // Build base URL for shareable links
+    const origin = request.headers.get("origin") || request.headers.get("host") || "https://lens-app-five.vercel.app";
+    const protocol = origin.startsWith("localhost") ? "http://" : "https://";
+    const baseUrl = origin.startsWith("http") ? origin : `${protocol}${origin}`;
+
+    // Calculate expiration (30 days from now)
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    // ─────────────────────────────────────────────────────────────────
+    // Fan-out path: candidates array provided
+    // ─────────────────────────────────────────────────────────────────
+    if (candidates && Array.isArray(candidates)) {
+      if (candidates.length === 0) {
+        return Response.json(
+          { error: "Candidates array cannot be empty" },
+          { status: 400 }
+        );
+      }
+
+      if (candidates.length > 50) {
+        return Response.json(
+          { error: "Maximum 50 candidates per batch" },
+          { status: 400 }
+        );
+      }
+
+      console.log(`[rc-session-create] Fan-out: creating ${candidates.length} sessions`);
+
+      // Create records for each candidate
+      const sessions = [];
+      const errors = [];
+
+      for (const candidate of candidates) {
+        const token = generateToken();
+        const candidateName = candidate.name || "Unnamed Candidate";
+
+        const record = {
+          fields: {
+            [FIELDS.sessionToken]: token,
+            [FIELDS.recruiterRoleContext]: roleContextStr,
+            [FIELDS.sessionConfig]: sessionConfigStr,
+            [FIELDS.expiresAt]: expiresAt,
+          },
+          typecast: true,
+        };
+
+        // Add optional fields
+        if (recruiterName && typeof recruiterName === "string") {
+          record.fields[FIELDS.recruiterName] = recruiterName.slice(0, 100);
+        }
+
+        // Add candidate-specific fields
+        if (candidateName) {
+          record.fields[FIELDS.candidateName] = candidateName.slice(0, 200);
+        }
+        if (candidate.resumeText) {
+          record.fields[FIELDS.candidateResume] = truncateField(candidate.resumeText);
+        }
+        if (candidate.email) {
+          record.fields[FIELDS.candidateEmail] = candidate.email.slice(0, 200);
+        }
+
+        // Submit to Airtable
+        try {
+          const res = await fetch(`${AIRTABLE_API_URL}/${BASE_ID}/${TABLE_ID}`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(record),
+          });
+
+          if (!res.ok) {
+            const errorBody = await res.text().catch(() => "unknown");
+            console.error(`[rc-session-create] Airtable error for ${candidateName}:`, res.status, errorBody);
+            errors.push({ candidateName, error: `Airtable error: ${res.status}` });
+            continue;
+          }
+
+          const data = await res.json();
+          console.log(`[rc-session-create] Created session ${token} for ${candidateName} (record: ${data.id})`);
+
+          sessions.push({
+            token,
+            url: `${baseUrl}/recruiter/candidate?session=${token}`,
+            candidateName,
+          });
+        } catch (err) {
+          console.error(`[rc-session-create] Failed to create session for ${candidateName}:`, err);
+          errors.push({ candidateName, error: err.message });
+        }
+      }
+
+      // Return results
+      if (sessions.length === 0) {
+        return Response.json(
+          { error: "Failed to create any sessions", errors },
+          { status: 500 }
+        );
+      }
+
+      return Response.json({
+        sessions,
+        errors: errors.length > 0 ? errors : undefined,
+        expiresAt,
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Legacy path: no candidates array (backward compatibility)
+    // ─────────────────────────────────────────────────────────────────
+    console.log(`[rc-session-create] Legacy path: single session`);
+
     const totalSize = roleContextStr.length + sessionConfigStr.length;
     console.log(`[rc-session-create] Payload size: ${totalSize} chars (roleContext: ${roleContextStr.length}, sessionConfig: ${sessionConfigStr.length})`);
 
     // Generate unique token
     const token = generateToken();
-
-    // Calculate expiration (30 days from now)
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     // Build Airtable record
     const record = {
@@ -109,9 +235,6 @@ export async function POST(request) {
     console.log(`[rc-session-create] Created session ${token} (record: ${data.id})`);
 
     // Build shareable URL
-    const origin = request.headers.get("origin") || request.headers.get("host") || "https://lens-app-five.vercel.app";
-    const protocol = origin.startsWith("localhost") ? "http://" : "https://";
-    const baseUrl = origin.startsWith("http") ? origin : `${protocol}${origin}`;
     const url = `${baseUrl}/recruiter/candidate?session=${token}`;
 
     return Response.json({

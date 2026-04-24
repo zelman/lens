@@ -1639,11 +1639,16 @@ function DimensionReviewPhase({ dimensions, setDimensions, roleContext, foundati
   );
 }
 
-function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
+function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, onStartNew }) {
   const [linkState, setLinkState] = useState("idle"); // idle | loading | success | error
-  const [shareableUrl, setShareableUrl] = useState(null);
+  const [shareableUrl, setShareableUrl] = useState(null); // Single-link mode
+  const [sessions, setSessions] = useState([]); // Fan-out mode
   const [linkError, setLinkError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState(null);
+
+  const hasSession = !!sessionConfig;
+  const hasRoster = candidateRoster && candidateRoster.length > 0;
 
   const handleCopyJson = () => {
     navigator.clipboard.writeText(JSON.stringify(sessionConfig || roleContext, null, 2));
@@ -1653,33 +1658,53 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
     window.location.href = "/recruiter/candidate";
   };
 
-  const handleGenerateLink = async () => {
+  // Generate links (fan-out if roster exists, single otherwise)
+  const handleGenerateLinks = async () => {
     setLinkState("loading");
     setLinkError(null);
     setCopied(false);
+    setCopiedIndex(null);
 
     try {
-      // Use props directly instead of sessionStorage (more reliable)
       if (!roleContext || !sessionConfig) {
         throw new Error("Session data not available. Please complete all steps first.");
+      }
+
+      const payload = {
+        recruiterRoleContext: roleContext,
+        sessionConfig: sessionConfig,
+      };
+
+      // If roster exists, include candidates for fan-out
+      if (hasRoster) {
+        payload.candidates = candidateRoster.map(c => ({
+          name: c.name,
+          resumeText: c.resumeText,
+          email: c.email || null,
+        }));
       }
 
       const res = await fetch("/api/rc-session-create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recruiterRoleContext: roleContext,
-          sessionConfig: sessionConfig,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to create link (${res.status})`);
+        throw new Error(errorData.error || `Failed to create link(s) (${res.status})`);
       }
 
       const data = await res.json();
-      setShareableUrl(data.url);
+
+      if (data.sessions) {
+        // Fan-out mode
+        setSessions(data.sessions);
+      } else if (data.url) {
+        // Legacy single-link mode
+        setShareableUrl(data.url);
+      }
+
       setLinkState("success");
     } catch (err) {
       console.error("[ConfirmationPhase] Link generation error:", err);
@@ -1688,15 +1713,23 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
     }
   };
 
-  const handleCopyLink = () => {
-    if (shareableUrl) {
-      navigator.clipboard.writeText(shareableUrl);
+  const handleCopyLink = (url, index = null) => {
+    navigator.clipboard.writeText(url);
+    if (index !== null) {
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } else {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const hasSession = !!sessionConfig;
+  const handleCopyAllLinks = () => {
+    const text = sessions.map(s => `${s.candidateName}: ${s.url}`).join("\n");
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div style={containerStyle}>
@@ -1746,11 +1779,14 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
             {sessionConfig.tailored && (
               <div><strong>Tailored dimensions:</strong> {sessionConfig.tailored.length}</div>
             )}
+            {hasRoster && (
+              <div><strong>Candidates:</strong> {candidateRoster.length}</div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Shareable Link Section */}
+      {/* Candidate Links Section */}
       {hasSession && (
         <div style={{
           padding: "20px", background: "#fff", border: `2px solid ${RED}`,
@@ -1760,12 +1796,12 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
             fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
             color: RED, fontWeight: 600, marginBottom: "16px",
           }}>
-            CANDIDATE LINK
+            {hasRoster ? `CANDIDATE LINKS (${candidateRoster.length})` : "CANDIDATE LINK"}
           </div>
 
           {linkState === "idle" && (
             <button
-              onClick={handleGenerateLink}
+              onClick={handleGenerateLinks}
               style={{
                 ...primaryButtonStyle,
                 width: "100%",
@@ -1773,13 +1809,13 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
                 fontSize: "14px",
               }}
             >
-              GENERATE CANDIDATE LINK
+              {hasRoster ? `GENERATE ${candidateRoster.length} CANDIDATE LINKS` : "GENERATE CANDIDATE LINK"}
             </button>
           )}
 
           {linkState === "loading" && (
             <div style={{ textAlign: "center", padding: "12px", color: GRY }}>
-              Generating link...
+              {hasRoster ? `Generating ${candidateRoster.length} links...` : "Generating link..."}
             </div>
           )}
 
@@ -1792,7 +1828,7 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
                 {linkError}
               </div>
               <button
-                onClick={handleGenerateLink}
+                onClick={handleGenerateLinks}
                 style={{ ...secondaryButtonStyle, width: "100%" }}
               >
                 Try again
@@ -1800,7 +1836,75 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
             </div>
           )}
 
-          {linkState === "success" && shareableUrl && (
+          {/* Fan-out mode: multiple links */}
+          {linkState === "success" && sessions.length > 0 && (
+            <div>
+              <p style={{
+                fontSize: "12px", color: GRY, margin: "0 0 16px", lineHeight: 1.5,
+              }}>
+                Share each link with the matching candidate. Links expire in 30 days.
+              </p>
+
+              {sessions.map((session, idx) => (
+                <div key={session.token} style={{
+                  display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center",
+                }}>
+                  <div style={{
+                    flex: "0 0 140px", fontSize: "13px", fontWeight: 500,
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>
+                    {session.candidateName}
+                  </div>
+                  <input
+                    type="text"
+                    value={session.url}
+                    readOnly
+                    style={{
+                      flex: 1,
+                      padding: "8px 10px",
+                      border: `1px solid ${RULE}`,
+                      background: "#fafafa",
+                      fontFamily: "monospace",
+                      fontSize: "12px",
+                      color: BLK,
+                    }}
+                    onClick={(e) => e.target.select()}
+                  />
+                  <button
+                    onClick={() => handleCopyLink(session.url, idx)}
+                    style={{
+                      padding: "8px 12px",
+                      background: copiedIndex === idx ? "#2D6A2D" : RED,
+                      color: "#fff",
+                      border: "none",
+                      cursor: "pointer",
+                      fontFamily: FONT,
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      minWidth: "60px",
+                    }}
+                  >
+                    {copiedIndex === idx ? "COPIED" : "COPY"}
+                  </button>
+                </div>
+              ))}
+
+              <button
+                onClick={handleCopyAllLinks}
+                style={{
+                  ...secondaryButtonStyle,
+                  width: "100%",
+                  marginTop: "12px",
+                  padding: "10px 16px",
+                }}
+              >
+                {copied ? "COPIED ALL" : "COPY ALL LINKS (as text list)"}
+              </button>
+            </div>
+          )}
+
+          {/* Single-link mode */}
+          {linkState === "success" && shareableUrl && !sessions.length && (
             <div>
               <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
                 <input
@@ -1819,7 +1923,7 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
                   onClick={(e) => e.target.select()}
                 />
                 <button
-                  onClick={handleCopyLink}
+                  onClick={() => handleCopyLink(shareableUrl)}
                   style={{
                     ...primaryButtonStyle,
                     padding: "10px 20px",
@@ -1855,11 +1959,14 @@ function ConfirmationPhase({ roleContext, sessionConfig, onStartNew }) {
           {hasSession && (
             <>, <code style={{ background: "#eee", padding: "2px 6px" }}>session-config</code></>
           )}
+          {hasRoster && (
+            <>, <code style={{ background: "#eee", padding: "2px 6px" }}>recruiter-candidate-roster</code></>
+          )}
         </p>
       </div>
 
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-        {hasSession && (
+        {hasSession && !hasRoster && (
           <button onClick={handleLaunchSession} style={secondaryButtonStyle}>
             Preview candidate session
           </button>
@@ -2329,6 +2436,7 @@ export default function RecruiterRoleForm() {
         <ConfirmationPhase
           roleContext={roleContext}
           sessionConfig={sessionConfig}
+          candidateRoster={candidateRoster}
           onStartNew={handleStartNew}
         />
       )}

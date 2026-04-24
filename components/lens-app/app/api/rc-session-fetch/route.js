@@ -1,5 +1,6 @@
 // /api/rc-session-fetch - Fetch R→C session by token
 // Returns session config for candidate intake hydration
+// Includes candidate data if available (fan-out sessions)
 
 const AIRTABLE_API_URL = "https://api.airtable.com/v0";
 const BASE_ID = "appFO5zLT7ZehXaBo";
@@ -13,6 +14,10 @@ const FIELDS = {
   expiresAt: "fldaofxjXJVRw3TYt",
   claimedAt: "fldAYxjLyvPs24I1L",
   recruiterName: "fldIypcMRmtbUrGk8",
+  // Candidate fields (fan-out sessions)
+  candidateName: "fldCandidateName", // Will be set after user creates field
+  candidateResume: "fldCandidateResume", // Will be set after user creates field
+  candidateEmail: "fldCandidateEmail", // Will be set after user creates field
 };
 
 export async function GET(request) {
@@ -79,7 +84,7 @@ export async function GET(request) {
     if (expiresAt && new Date(expiresAt) < new Date()) {
       console.log(`[rc-session-fetch] Session expired: ${token}`);
       return Response.json(
-        { error: "Session has expired" },
+        { error: "expired" },
         { status: 410 }
       );
     }
@@ -133,11 +138,26 @@ export async function GET(request) {
       );
     }
 
-    console.log(`[rc-session-fetch] Retrieved session: ${token}`);
+    // Build candidate object if candidate fields exist
+    let candidate = null;
+    const candidateName = fields[FIELDS.candidateName];
+    const candidateResume = fields[FIELDS.candidateResume];
+    const candidateEmail = fields[FIELDS.candidateEmail];
+
+    if (candidateName || candidateResume || candidateEmail) {
+      candidate = {
+        name: candidateName || null,
+        resumeText: candidateResume || null,
+        email: candidateEmail || null,
+      };
+    }
+
+    console.log(`[rc-session-fetch] Retrieved session: ${token}${candidate ? ` (candidate: ${candidate.name})` : ""}`);
 
     return Response.json({
       recruiterRoleContext,
       sessionConfig,
+      candidate,
     });
 
   } catch (err) {

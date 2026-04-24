@@ -2,6 +2,53 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-24] Candidate Fan-Out: Multiple Candidates Per Role
+
+### lens-app 2026.04.24-a/b (Candidate Roster + Fan-Out Links)
+
+Recruiters can now upload multiple candidate resumes and generate per-candidate discovery links from a single role configuration. Enables "I have 5 candidates for this JD" workflow.
+
+**Part 1: Candidate Roster Upload (2026.04.24-a)**
+- New "Candidates (optional)" section in RecruiterRoleForm UploadPhase
+- Multi-file PDF/DOCX upload using existing extraction pipeline
+- Per-candidate row with editable name/email fields
+- Auto-extracts candidate name from resume first line (heuristic)
+- Auto-extracts email via regex
+- Persists to sessionStorage under `recruiter-candidate-roster`
+- Privacy notice: resumes stored for 30 days after link generation
+
+**Part 2: Fan-Out Session Create (2026.04.24-b)**
+- `/api/rc-session-create` now accepts `candidates[]` array
+- Creates N Airtable rows (one per candidate) with shared role context
+- Returns `{ sessions: [{ token, url, candidateName }] }`
+- Backward compatible: no `candidates` key → legacy single-link path
+- New Airtable fields: Candidate Name, Candidate Resume, Candidate Email
+
+**Part 2: Per-Candidate Hydration**
+- `/api/rc-session-fetch` returns `candidate: { name, resumeText, email }`
+- RecruiterCandidateIntake hydrates candidate data on session load
+- Candidate resume passed to discovery API for personalized conversation
+- Intro screen shows "Session prepared for: {candidate name}"
+
+**ConfirmationPhase UI Updates:**
+- Non-empty roster → "GENERATE N CANDIDATE LINKS" button
+- Roster list with per-link Copy buttons
+- "Copy all links" bulk affordance
+- Empty roster → preserves single-link path
+
+**Files Modified:**
+- `app/components/RecruiterRoleForm.jsx` (v2026.04.24-a)
+- `app/components/RecruiterCandidateIntake.jsx` (v2026.04.24-b)
+- `app/api/rc-session-create/route.js`
+- `app/api/rc-session-fetch/route.js`
+
+**Note:** Requires 3 new Airtable fields in R→C Sessions table (`tbleGAd6aEFbDm5nK`):
+- `Candidate Name` (singleLineText)
+- `Candidate Resume` (longText, 100K char limit)
+- `Candidate Email` (singleLineText)
+
+---
+
 ## [2026-04-24] JSON Parsing Reliability Fix
 
 ### generate-session Route Fix
