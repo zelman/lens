@@ -2,6 +2,28 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-24] Continue Button Counter Enhancement
+
+### lens-app 2026.04.24-e
+
+**Continue button now shows semantic counts:**
+
+| Role docs | Candidates | Button label |
+|-----------|-----------|--------------|
+| 0 | 0 | Continue without files |
+| N | 0 | Continue with N document(s) |
+| 0 | M | Continue with M candidate(s) |
+| N | M | Continue with N document(s) and M candidate(s) |
+
+- Candidates counted = cards with valid resume (not individual files within them)
+- Singular/plural handled: "1 document" vs "2 documents", "1 candidate" vs "3 candidates"
+- Updates live as recruiter adds/removes uploads or cards
+
+**Files Modified:**
+- `app/components/RecruiterRoleForm.jsx` (v2026.04.24-e)
+
+---
+
 ## [2026-04-24] R→C Session Fan-Out Hardening
 
 ### lens-app 2026.04.24-d (API Hardening)

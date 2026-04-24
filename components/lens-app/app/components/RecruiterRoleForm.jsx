@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.24-d";
+const BUILD_ID = "2026.04.24-e";
 
 // ── Candidate roster storage ──
 const ROSTER_STORAGE_KEY = "recruiter-candidate-roster";
@@ -780,6 +780,23 @@ function UploadPhase({ files, onAdd, onRemove, onBack, previousFiles, candidateR
   };
 
   const totalFiles = Object.values(files).flat().length;
+  const validCandidateCount = candidateRoster.filter(c => c.resumeText && c.resumeText.trim()).length;
+
+  // Build Continue button label
+  const buildContinueLabel = () => {
+    const docLabel = totalFiles === 1 ? "1 document" : `${totalFiles} documents`;
+    const candLabel = validCandidateCount === 1 ? "1 candidate" : `${validCandidateCount} candidates`;
+
+    if (totalFiles === 0 && validCandidateCount === 0) {
+      return "Continue without files";
+    } else if (totalFiles > 0 && validCandidateCount === 0) {
+      return `Continue with ${docLabel}`;
+    } else if (totalFiles === 0 && validCandidateCount > 0) {
+      return `Continue with ${candLabel}`;
+    } else {
+      return `Continue with ${docLabel} and ${candLabel}`;
+    }
+  };
 
   return (
     <div style={containerStyle}>
@@ -1104,7 +1121,7 @@ function UploadPhase({ files, onAdd, onRemove, onBack, previousFiles, candidateR
           Back
         </button>
         <button onClick={onValidateAndContinue} style={primaryButtonStyle}>
-          {totalFiles > 0 ? `Continue with ${totalFiles} file${totalFiles > 1 ? "s" : ""}` : "Continue without files"}
+          {buildContinueLabel()}
         </button>
       </div>
     </div>
