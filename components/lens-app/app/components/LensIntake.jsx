@@ -502,11 +502,10 @@ function IntroPhase({ onContinue }) {
           margin: 0,
           maxWidth: "500px",
         }}>
-          Everything you share here is used only to generate your lens document.
-          Your inputs are not stored in any database, sold, or shared with third parties.
-          Your conversation is processed by Claude (Anthropic) to generate your lens —
-          the same privacy protections that apply to any Claude conversation apply here.
-          You can close the tab at any time and nothing is retained.
+          This session is recorded to improve the Lens experience.
+          Your conversation and lens document are stored securely to help us refine the system.
+          Your data is not sold or shared with third parties.
+          Processing is handled by Claude (Anthropic) — the same privacy protections that apply to any Claude conversation apply here.
         </p>
       </div>
 
@@ -2840,6 +2839,16 @@ export default function LensIntake() {
   // Legacy alias for backward compatibility
   const showSectionSelector = showModeSelector || showSectionPicker;
 
+  // Refs for telemetry to avoid stale closures in beforeunload
+  const discoveryStateRef = useRef(discoveryState);
+  const lensOutputRef = useRef(lensOutput);
+  const userNameRef = useRef(userName);
+
+  // Keep refs in sync with state
+  useEffect(() => { discoveryStateRef.current = discoveryState; }, [discoveryState]);
+  useEffect(() => { lensOutputRef.current = lensOutput; }, [lensOutput]);
+  useEffect(() => { userNameRef.current = userName; }, [userName]);
+
   // ══════════════════════════════════════════════════════════════════════════
   // SESSION TELEMETRY - tracks timing, file metrics, abandonment for Airtable
   // ══════════════════════════════════════════════════════════════════════════
@@ -2875,6 +2884,9 @@ export default function LensIntake() {
     // Errors
     reflectionResult: null, // Success / Failed / Skipped
     apiErrors: [],
+    // Transcript persistence (added 2026-04-23)
+    flow: "C→C", // Candidate-to-Candidate flow
+    modelName: "claude-sonnet-4-6", // Model used for discover/synthesize
     // Logged flag to prevent double-logging
     _logged: false,
   });
@@ -2953,9 +2965,22 @@ export default function LensIntake() {
     const end = Date.now();
     const totalDuration = Math.round((end - start) / 1000);
 
+    // Use refs for latest state (avoids stale closures in beforeunload)
+    const currentDiscoveryState = discoveryStateRef.current;
+    const currentLensOutput = lensOutputRef.current;
+    const currentUserName = userNameRef.current;
+
+    // Build transcript from discovery messages
+    const transcript = currentDiscoveryState?.messages?.map((msg, idx) => ({
+      role: msg.role,
+      content: msg.content,
+      turn: idx,
+      section: currentDiscoveryState?.currentSection ?? null,
+    })) || [];
+
     const payload = {
       sessionId: t.sessionId,
-      name: userName || null,
+      name: currentUserName || null,
       buildVersion: t.buildVersion,
       userAgent: t.userAgent,
       sessionStart: t.sessionStart,
@@ -2983,14 +3008,21 @@ export default function LensIntake() {
       discoverySectionTiming: t.discoverySectionTiming,
       reflectionResult: t.reflectionResult,
       apiErrors: t.apiErrors.length > 0 ? t.apiErrors : null,
+      // Transcript persistence (added 2026-04-23)
+      transcript: transcript.length > 0 ? transcript : null,
+      finalSynthesisMD: currentLensOutput || null,
+      flow: t.flow,
+      modelName: t.modelName,
     };
 
     // Use sendBeacon for reliability (works on page unload)
     const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
     navigator.sendBeacon("/api/log-session", blob);
-  }, [userName]);
+  }, []); // No dependencies - uses refs for latest state
 
-  // Abandonment detection: beforeunload + visibilitychange
+  // Abandonment detection - only on actual page unload, not tab switches
+  // Note: visibilitychange was removed because it fires on tab switches,
+  // incorrectly logging "Abandoned" and blocking the real completion log.
   useEffect(() => {
     const handleUnload = () => {
       const t = telemetryRef.current;
@@ -3011,18 +3043,10 @@ export default function LensIntake() {
       logTelemetry();
     };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        handleUnload();
-      }
-    };
-
     window.addEventListener("beforeunload", handleUnload);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener("beforeunload", handleUnload);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [phase, discoveryState, logTelemetry]);
 

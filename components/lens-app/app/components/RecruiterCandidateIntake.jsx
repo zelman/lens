@@ -83,6 +83,13 @@ function TypewriterText({ text, speed = 16 }) {
   return <span>{displayed}</span>;
 }
 
+// ── Generate a unique session ID ──
+function generateRCSessionId() {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 8);
+  return `rc-${timestamp}-${random}`;
+}
+
 // ════════════════════════════════════════
 // Main Component
 // ════════════════════════════════════════
@@ -116,6 +123,165 @@ export default function RecruiterCandidateIntake() {
   // ── Refs ──
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Refs for telemetry to avoid stale closures in beforeunload
+  const messagesRef = useRef(messages);
+  const sectionsRef = useRef(sections);
+  const currentSectionRef = useRef(currentSection);
+  const sessionConfigRef = useRef(sessionConfig);
+  const lensRef = useRef(lens);
+
+  // Keep refs in sync with state
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { sectionsRef.current = sections; }, [sections]);
+  useEffect(() => { currentSectionRef.current = currentSection; }, [currentSection]);
+  useEffect(() => { sessionConfigRef.current = sessionConfig; }, [sessionConfig]);
+  useEffect(() => { lensRef.current = lens; }, [lens]);
+
+  // ════════════════════════════════════════
+  // SESSION TELEMETRY (mirrors LensIntake pattern)
+  // ════════════════════════════════════════
+
+  const telemetryRef = useRef({
+    sessionId: generateRCSessionId(),
+    sessionStart: new Date().toISOString(),
+    buildVersion: BUILD_ID,
+    userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    // Phase timestamps
+    discoveryStart: null,
+    discoveryEnd: null,
+    synthesisStart: null,
+    synthesisEnd: null,
+    // Status
+    status: null, // Completed / Abandoned / Error
+    abandonmentPhase: null,
+    abandonmentSection: null,
+    // Errors
+    apiErrors: [],
+    // Transcript persistence
+    flow: "R→C", // Recruiter-to-Candidate flow
+    modelName: "claude-sonnet-4-6",
+    // Logged flag
+    _logged: false,
+  });
+
+  // Track phase transitions
+  const prevPhaseRef = useRef(null);
+  useEffect(() => {
+    const t = telemetryRef.current;
+    const now = new Date().toISOString();
+    const prev = prevPhaseRef.current;
+
+    // Mark end of previous phase
+    if (prev === "discovery" && phase !== "discovery") t.discoveryEnd = now;
+
+    // Mark start of new phase
+    if (phase === "discovery" && prev !== "discovery" && !t.discoveryStart) t.discoveryStart = now;
+    if (phase === "synthesis" && prev !== "synthesis" && !t.synthesisStart) t.synthesisStart = now;
+    if (phase === "complete" && prev !== "complete") {
+      t.synthesisEnd = now;
+      t.status = "Completed";
+    }
+
+    prevPhaseRef.current = phase;
+  }, [phase]);
+
+  // Log telemetry to server (uses refs to avoid stale closures in beforeunload)
+  const logTelemetry = useCallback(() => {
+    const t = telemetryRef.current;
+    if (t._logged) return;
+    t._logged = true;
+
+    const start = new Date(t.sessionStart).getTime();
+    const totalDuration = Math.round((Date.now() - start) / 1000);
+
+    // Use refs for latest state (avoids stale closures in beforeunload)
+    const currentMessages = messagesRef.current;
+    const currentSections = sectionsRef.current;
+    const currentSectionIdx = currentSectionRef.current;
+    const currentSessionConfig = sessionConfigRef.current;
+    const currentLens = lensRef.current;
+
+    // Build transcript from messages
+    const transcript = currentMessages.map((msg, idx) => ({
+      role: msg.role,
+      content: msg.content,
+      turn: idx,
+      section: currentSections[currentSectionIdx]?.id ?? null,
+    }));
+
+    const payload = {
+      sessionId: t.sessionId,
+      name: currentSessionConfig?.candidate_name || null,
+      buildVersion: t.buildVersion,
+      userAgent: t.userAgent,
+      sessionStart: t.sessionStart,
+      sessionEnd: new Date().toISOString(),
+      totalDuration,
+      status: t.status || "Abandoned",
+      abandonmentPhase: t.abandonmentPhase,
+      abandonmentSection: t.abandonmentSection,
+      discoveryStart: t.discoveryStart,
+      discoveryEnd: t.discoveryEnd,
+      synthesisStart: t.synthesisStart,
+      synthesisEnd: t.synthesisEnd,
+      apiErrors: t.apiErrors.length > 0 ? t.apiErrors : null,
+      // Transcript persistence
+      transcript: transcript.length > 0 ? transcript : null,
+      finalSynthesisMD: currentLens || null,
+      sessionConfig: currentSessionConfig || null,
+      flow: t.flow,
+      modelName: t.modelName,
+    };
+
+    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    navigator.sendBeacon("/api/log-session", blob);
+  }, []); // No dependencies - uses refs for latest state
+
+  // Log telemetry when session completes successfully
+  useEffect(() => {
+    if (phase === "complete" && lens) {
+      logTelemetry();
+    }
+  }, [phase, lens, logTelemetry]);
+
+  // Abandonment detection - only on actual page unload, not tab switches
+  // Note: visibilitychange was removed because it fires on tab switches,
+  // incorrectly logging "Abandoned" and blocking the real completion log.
+  useEffect(() => {
+    const handleUnload = () => {
+      const t = telemetryRef.current;
+      if (t._logged) return;
+
+      t.abandonmentPhase = phase === "loading" ? "Loading"
+        : phase === "intro" ? "Intro"
+        : phase === "discovery" ? "Discovery"
+        : phase === "synthesis" ? "Synthesis"
+        : null;
+
+      if (phase === "discovery") {
+        t.abandonmentSection = currentSection + 1;
+      }
+
+      logTelemetry();
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+    };
+  }, [phase, currentSection, logTelemetry]);
+
+  // Track API errors
+  const trackApiError = useCallback((route, statusCode, message) => {
+    telemetryRef.current.apiErrors.push({
+      timestamp: new Date().toISOString(),
+      route,
+      status_code: statusCode,
+      error_message: message,
+    });
+  }, []);
 
   // ════════════════════════════════════════
   // Demo Mode Sample Data
@@ -756,6 +922,35 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
               {meta.estimatedDuration || "15-25 minutes"}
             </span>
           </div>
+        </div>
+
+        {/* Privacy notice */}
+        <div style={{
+          borderTop: `1px solid ${RULE}`,
+          borderBottom: `1px solid ${RULE}`,
+          padding: "16px 0",
+          marginBottom: "24px",
+        }}>
+          <div style={{
+            fontSize: "11px",
+            color: RED,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            fontWeight: 600,
+            marginBottom: "8px",
+          }}>
+            Privacy
+          </div>
+          <p style={{
+            fontSize: "12px",
+            color: GRY,
+            lineHeight: 1.6,
+            margin: 0,
+          }}>
+            This session is recorded to improve the Lens experience.
+            Your conversation and lens document are stored securely.
+            Data is not sold or shared with third parties.
+          </p>
         </div>
 
         {/* Start button */}

@@ -5,6 +5,15 @@ const AIRTABLE_API_URL = "https://api.airtable.com/v0";
 const BASE_ID = "appFO5zLT7ZehXaBo";
 const TABLE_ID = "tblNJ7gBSIlAEhstI";
 
+// Airtable long text fields have 100K char limit
+const MAX_LONG_TEXT = 100000;
+
+function truncateField(value, limit = MAX_LONG_TEXT) {
+  if (typeof value !== "string") return value;
+  if (value.length <= limit) return value;
+  return value.slice(0, limit - 50) + "\n\n[TRUNCATED - exceeded " + limit + " chars]";
+}
+
 // Field ID mapping for Lens Sessions table
 const FIELDS = {
   sessionId: "fldYT3MDxeDQ2GJV2",
@@ -37,6 +46,15 @@ const FIELDS = {
   discoverySectionTiming: "fldvEaccNncp1Njdx",
   reflectionResult: "fldBZdIZIdn1mtQ9Z",
   apiErrors: "fldnlTUhKJqot6A0T",
+  // Transcript persistence fields (added 2026-04-23)
+  transcript: "fldU4mbCALAewzBZa",
+  finalSynthesisMD: "fldflcOeyef07v3dB",
+  finalSynthesisYAML: "fldH6VI9zpXvOHhgI",
+  flow: "fldkS0yXyX83WLQFd",
+  sessionConfig: "fldVd5lSfmoAgLgeK",
+  tester: "fldqoixmTjUaKGXse",
+  modelName: "flddPOV1NGH3Va400",
+  audienceMode: "fldgJ3DvnzfjWL85N",
 };
 
 export async function POST(request) {
@@ -105,6 +123,30 @@ export async function POST(request) {
     if (body.apiErrors) fields[FIELDS.apiErrors] = typeof body.apiErrors === "string"
       ? body.apiErrors
       : JSON.stringify(body.apiErrors);
+
+    // Transcript Persistence (added 2026-04-23)
+    // Transcript: JSON array of conversation turns (truncate to Airtable limit)
+    if (body.transcript) {
+      const transcriptStr = typeof body.transcript === "string"
+        ? body.transcript
+        : JSON.stringify(body.transcript);
+      fields[FIELDS.transcript] = truncateField(transcriptStr);
+    }
+    // Final Synthesis outputs (truncate to Airtable limit)
+    if (body.finalSynthesisMD) fields[FIELDS.finalSynthesisMD] = truncateField(body.finalSynthesisMD);
+    if (body.finalSynthesisYAML) fields[FIELDS.finalSynthesisYAML] = truncateField(body.finalSynthesisYAML);
+    // Flow: "C→C" (candidate-to-candidate) or "R→C" (recruiter-to-candidate)
+    if (body.flow) fields[FIELDS.flow] = body.flow;
+    // Session Config: JSON blob of session configuration
+    if (body.sessionConfig) fields[FIELDS.sessionConfig] = typeof body.sessionConfig === "string"
+      ? body.sessionConfig
+      : JSON.stringify(body.sessionConfig);
+    // Tester: linked record ID(s) to Testers table
+    if (body.tester) fields[FIELDS.tester] = Array.isArray(body.tester) ? body.tester : [body.tester];
+    // Model Name: which Claude model was used
+    if (body.modelName) fields[FIELDS.modelName] = body.modelName;
+    // Audience Mode: discovery audience configuration
+    if (body.audienceMode) fields[FIELDS.audienceMode] = body.audienceMode;
 
     // Write to Airtable
     const res = await fetch(`${AIRTABLE_API_URL}/${BASE_ID}/${TABLE_ID}`, {
