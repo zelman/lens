@@ -18,6 +18,7 @@ const FIELDS = {
   candidateName: "flddzuiohWbL8ew3p",
   candidateResume: "fldtcb8BLS7WynjiT",
   candidateEmail: "fldGCjvYTycxIRvgy",
+  candidateSupportingDocs: "fld4xkxtIO7mnPm1U",
 };
 
 export async function GET(request) {
@@ -143,12 +144,14 @@ export async function GET(request) {
     const candidateName = fields[FIELDS.candidateName];
     const candidateResume = fields[FIELDS.candidateResume];
     const candidateEmail = fields[FIELDS.candidateEmail];
+    const candidateSupportingDocs = fields[FIELDS.candidateSupportingDocs];
 
-    if (candidateName || candidateResume || candidateEmail) {
+    if (candidateName || candidateResume || candidateEmail || candidateSupportingDocs) {
       candidate = {
         name: candidateName || null,
         resumeText: candidateResume || null,
         email: candidateEmail || null,
+        supportingDocsText: candidateSupportingDocs || null,
       };
     }
 

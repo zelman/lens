@@ -622,10 +622,11 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           currentSectionIndex: currentSection,
           totalSections: sections.length,
         },
-        // Include candidate resume if available (fan-out sessions)
+        // Include candidate materials if available (fan-out sessions)
         candidateMaterials: candidateData?.resumeText ? {
           resume: candidateData.resumeText,
           candidateName: candidateData.name,
+          supportingDocs: candidateData.supportingDocsText || null,
         } : null,
       }),
     });
@@ -741,6 +742,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
             name: candidateData.name,
             resumeText: candidateData.resumeText,
             email: candidateData.email,
+            supportingDocsText: candidateData.supportingDocsText || null,
           } : null,
         }),
       });

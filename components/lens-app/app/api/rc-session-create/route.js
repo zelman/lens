@@ -14,10 +14,11 @@ const FIELDS = {
   expiresAt: "fldaofxjXJVRw3TYt",
   claimedAt: "fldAYxjLyvPs24I1L",
   recruiterName: "fldIypcMRmtbUrGk8",
-  // New fields for candidate fan-out
+  // Candidate fan-out fields
   candidateName: "flddzuiohWbL8ew3p",
   candidateResume: "fldtcb8BLS7WynjiT",
   candidateEmail: "fldGCjvYTycxIRvgy",
+  candidateSupportingDocs: "fld4xkxtIO7mnPm1U",
 };
 
 // Max chars for resume text (Airtable long text limit)
@@ -137,6 +138,9 @@ export async function POST(request) {
         }
         if (candidate.email) {
           record.fields[FIELDS.candidateEmail] = candidate.email.slice(0, 200);
+        }
+        if (candidate.supportingDocsText) {
+          record.fields[FIELDS.candidateSupportingDocs] = truncateField(candidate.supportingDocsText);
         }
 
         // Submit to Airtable

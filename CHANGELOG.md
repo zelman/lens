@@ -2,11 +2,61 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
-## [2026-04-24] Candidate Fan-Out: Multiple Candidates Per Role
+## [2026-04-24] Candidate Fan-Out v2: Per-Candidate Cards with Supporting Docs
 
-### lens-app 2026.04.24-a/b (Candidate Roster + Fan-Out Links)
+### lens-app 2026.04.24-b (Per-Candidate Cards + Supporting Docs)
 
-Recruiters can now upload multiple candidate resumes and generate per-candidate discovery links from a single role configuration. Enables "I have 5 candidates for this JD" workflow.
+**Breaking Change from v1:** Restructures candidate roster from bulk multi-file upload to per-candidate cards. Each card is a self-contained unit with resume + supporting documents.
+
+**UI Changes:**
+- Removed "Candidate materials to pre-load" category from role documents (predates fan-out)
+- 1 empty candidate card visible by default
+- Each card contains:
+  - Name input (auto-extracted from resume or fallback "Candidate N")
+  - Email input (optional)
+  - Resume upload (single file)
+  - Supporting Documents (multi-file: LinkedIn, portfolio, reference letters, recruiter notes)
+  - Remove button (disabled if only 1 card)
+- "Add another candidate" button to create new cards
+- Empty cards (no resume) are filtered out on Continue
+
+**Data Shape:**
+```javascript
+// sessionStorage: recruiter-candidate-roster
+[{
+  name: "Jane Doe",
+  email: "jane@example.com",
+  resumeText: "...",
+  resumeFilename: "jane-doe-resume.pdf",
+  supportingDocs: [{ filename: "linkedin.pdf", text: "..." }]
+}]
+```
+
+**API Changes:**
+- `/api/rc-session-create` now accepts `supportingDocsText` in candidates array
+- `/api/rc-session-fetch` returns `supportingDocsText` in candidate object
+- New Airtable field: `Candidate Supporting Docs` (fld4xkxtIO7mnPm1U)
+
+**Prompt Injection:**
+- Resume: 8K char budget in system prompt
+- Supporting docs: 4K char budget (supplementary context)
+
+**Migration:** Old roster data automatically migrated (adds supportingDocs: [], renames fileName→resumeFilename)
+
+**Files Modified:**
+- `app/components/RecruiterRoleForm.jsx` (v2026.04.24-b)
+- `app/components/RecruiterCandidateIntake.jsx`
+- `app/api/rc-session-create/route.js`
+- `app/api/rc-session-fetch/route.js`
+- `app/api/_prompts/rc-discovery.js`
+
+---
+
+## [2026-04-24] Candidate Fan-Out v1 (superseded by v2)
+
+### lens-app 2026.04.24-a (Bulk Resume Upload)
+
+Initial implementation with multi-file bulk upload. Superseded by v2 per-candidate card structure.
 
 **Part 1: Candidate Roster Upload (2026.04.24-a)**
 - New "Candidates (optional)" section in RecruiterRoleForm UploadPhase
@@ -17,7 +67,7 @@ Recruiters can now upload multiple candidate resumes and generate per-candidate 
 - Persists to sessionStorage under `recruiter-candidate-roster`
 - Privacy notice: resumes stored for 30 days after link generation
 
-**Part 2: Fan-Out Session Create (2026.04.24-b)**
+**Part 2: Fan-Out Session Create**
 - `/api/rc-session-create` now accepts `candidates[]` array
 - Creates N Airtable rows (one per candidate) with shared role context
 - Returns `{ sessions: [{ token, url, candidateName }] }`
@@ -36,16 +86,11 @@ Recruiters can now upload multiple candidate resumes and generate per-candidate 
 - "Copy all links" bulk affordance
 - Empty roster → preserves single-link path
 
-**Files Modified:**
-- `app/components/RecruiterRoleForm.jsx` (v2026.04.24-a)
-- `app/components/RecruiterCandidateIntake.jsx` (v2026.04.24-b)
-- `app/api/rc-session-create/route.js`
-- `app/api/rc-session-fetch/route.js`
-
-**Note:** Requires 3 new Airtable fields in R→C Sessions table (`tbleGAd6aEFbDm5nK`):
-- `Candidate Name` (singleLineText)
-- `Candidate Resume` (longText, 100K char limit)
-- `Candidate Email` (singleLineText)
+**Note:** Requires 4 new Airtable fields in R→C Sessions table (`tbleGAd6aEFbDm5nK`):
+- `Candidate Name` (singleLineText) - flddzuiohWbL8ew3p
+- `Candidate Resume` (longText, 100K char limit) - fldtcb8BLS7WynjiT
+- `Candidate Email` (singleLineText) - fldGCjvYTycxIRvgy
+- `Candidate Supporting Docs` (longText) - fld4xkxtIO7mnPm1U
 
 ---
 

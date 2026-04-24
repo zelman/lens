@@ -185,6 +185,19 @@ ${candidateMaterials.resume.slice(0, 8000)}${candidateMaterials.resume.length > 
 INSTRUCTIONS: Use this resume to personalize your questions. Reference specific roles, companies, or experiences when relevant. Do NOT re-ask about facts clearly stated in the resume — go deeper instead.`;
   }
 
+  // Add supporting documents if available (LinkedIn, portfolio, reference letters, recruiter notes)
+  if (candidateMaterials?.supportingDocs) {
+    // Budget: ~4K chars for supporting docs (less than resume since they're supplementary)
+    const docsText = candidateMaterials.supportingDocs.slice(0, 4000);
+    const truncated = candidateMaterials.supportingDocs.length > 4000;
+    systemPrompt += `\n\n══════════════════════════════════════════════════════════════════════════════
+SUPPORTING DOCUMENTS (pre-loaded by recruiter)
+══════════════════════════════════════════════════════════════════════════════
+${docsText}${truncated ? "\n[Supporting docs truncated for context window...]" : ""}
+
+INSTRUCTIONS: Reference specific details from these materials when relevant. They provide additional context beyond the resume — use them to personalize follow-up questions.`;
+  }
+
   // Add candidate preload context if available (from session config, not fan-out)
   const preload = sessionConfig.candidatePreloadAdjustments;
   if (preload?.resumeAvailable && preload?.keyFactsExtracted?.length > 0) {
