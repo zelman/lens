@@ -2,6 +2,35 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-24] Streaming API for Synthesis Timeouts
+
+### lens-app 2026.04.24-a
+
+**Fixed synthesis timeouts caused by 58s Vercel limit:**
+
+Morgan Cohen hit 4 consecutive 500 errors at 02:04-02:08 AM. Root cause: Claude API latency exceeded the hard 58s timeout budget.
+
+**Solution:** Switched `/api/synthesize` from fetch-based calls to Anthropic SDK streaming.
+
+| Before | After |
+|--------|-------|
+| `fetch()` with `AbortSignal.timeout(58s)` | `anthropic.messages.stream()` |
+| Hard 58s timeout cliff | 120s budget (streaming keeps connection alive) |
+| Timeout kills request mid-generation | Chunks flow continuously |
+
+**Changes:**
+- Added `@anthropic-ai/sdk ^0.52.0`
+- Replaced `callAnthropic()` with `callAnthropicStreaming()`
+- Added AbortController with 120s timeout protection
+- Added stream error handling with proper cleanup
+
+**Files Modified:**
+- `app/api/synthesize/route.js` (v1.1 → v1.2)
+- `app/components/LensIntake.jsx` (build bump)
+- `package.json`
+
+---
+
 ## [2026-04-24] Plural-Aware Generate Button & Success Path
 
 ### lens-app 2026.04.24-f
