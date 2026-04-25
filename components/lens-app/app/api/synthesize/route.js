@@ -1,17 +1,19 @@
 // /api/synthesize - Server-side proxy for lens document generation
 // Synthesis prompt is loaded server-side and NEVER sent to client
 // Includes post-synthesis validation gate (v1.1) - now detects hallucinations
+// v1.2: Streaming API to avoid Vercel timeout cliff
 
+import Anthropic from "@anthropic-ai/sdk";
 import { SYNTHESIS_SYSTEM_PROMPT, buildSynthesisUserContent } from "../_prompts/synthesis";
 import { VALIDATION_SYSTEM_PROMPT, buildValidationUserContent, buildRevisionAddendum } from "../_prompts/validation";
 
-const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 6000; // Reduced from 8000 for faster generation (lens typically ~4000 tokens)
 const VALIDATION_MAX_TOKENS = 1500; // Gap report is smaller (reduced from 2000)
 // Note: temperature param removed — deprecated in Claude 4.5+ models
-const REQUEST_DEADLINE_MS = 58000; // Total time budget for all API calls (Vercel Pro = 60s, leave 2s buffer)
-const MIN_VALIDATION_BUDGET_MS = 20000; // Skip validation if less than 20s remaining (need time for validation + potential re-synthesis)
+// Streaming eliminates the hard timeout cliff - Vercel timeout applies to time between bytes, not total request time
+const STREAM_TIMEOUT_MS = 120000; // 2 min total budget now safe with streaming
+const MIN_VALIDATION_BUDGET_MS = 30000; // More time for validation since we're not racing the clock
 
 // ═══════════════════════════════════════════════════════════════════════
 // HARD POST-PROCESSING FILTER - catches clinical labels that slip through
@@ -82,6 +84,9 @@ export async function POST(request) {
     );
   }
 
+  // Initialize Anthropic client
+  const anthropic = new Anthropic({ apiKey });
+
   try {
     const body = await request.json();
     const { sectionData, userName, pronouns, status, documentContext, rawDocumentText } = body;
@@ -129,9 +134,9 @@ export async function POST(request) {
     const now = new Date();
     const currentDate = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
-    // Track request start for shared timeout budget
+    // Track request start for budget logging (streaming removes hard timeout cliff)
     const requestStart = Date.now();
-    const getRemainingTimeout = () => Math.max(5000, REQUEST_DEADLINE_MS - (Date.now() - requestStart));
+    const getElapsedMs = () => Date.now() - requestStart;
 
     // Truncate rawDocumentText for synthesis (sectionData already has insights, don't need full docs)
     // This prevents synthesis timeout - 8K chars (~2K tokens) is enough for evidence grounding
@@ -155,65 +160,84 @@ export async function POST(request) {
         documentContext: documentContext || null,
         rawDocumentText: truncatedRawText,
       });
-      console.log(`[Synthesize] userContent length: ${userContent.length} chars, timeout budget: ${getRemainingTimeout()}ms`);
+      console.log(`[Synthesize] userContent length: ${userContent.length} chars (streaming enabled)`);
     } catch (buildErr) {
       console.error("[Synthesize] buildSynthesisUserContent failed:", buildErr.message);
       throw buildErr;
     }
 
-    // Call Anthropic API with shared timeout budget
-    const callAnthropic = async (systemPrompt, content, maxTokens = MAX_TOKENS) => {
-      const res = await fetch(ANTHROPIC_API_URL, {
-        method: "POST",
-        signal: AbortSignal.timeout(getRemainingTimeout()),
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
+    // Call Anthropic API with streaming to avoid timeout cliff
+    // Vercel's timeout applies to time between bytes, not total request time
+    // A 90-second generation that streams chunks every 500ms will succeed
+    const callAnthropicStreaming = async (systemPrompt, content, maxTokens = MAX_TOKENS) => {
+      const streamStart = Date.now();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+
+      console.log(`[Synthesize] Starting streaming call, max_tokens: ${maxTokens}`);
+
+      let fullResponse = "";
+      let chunkCount = 0;
+
+      try {
+        const stream = await anthropic.messages.stream({
           model: MODEL,
           max_tokens: maxTokens,
           system: systemPrompt,
           messages: [{ role: "user", content }],
-        }),
-      });
+        }, {
+          signal: controller.signal,
+        });
 
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => "Unknown error");
-        console.error("Anthropic API error:", res.status, errorText);
-        throw new Error(`API error: ${res.status}`);
+        for await (const event of stream) {
+          if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
+            fullResponse += event.delta.text;
+            chunkCount++;
+          }
+        }
+
+        clearTimeout(timeoutId);
+
+        const streamDuration = Date.now() - streamStart;
+        console.log(`[Synthesize] Stream complete: ${chunkCount} chunks, ${fullResponse.length} chars, ${Math.round(streamDuration / 1000)}s`);
+
+        if (!fullResponse) {
+          throw new Error("Empty response from AI");
+        }
+
+        // Check final message for stop reason
+        const finalMessage = await stream.finalMessage();
+        if (finalMessage.stop_reason === "max_tokens") {
+          console.warn("[Synthesize] Response was truncated due to max_tokens limit");
+        }
+
+        return fullResponse;
+
+      } catch (error) {
+        clearTimeout(timeoutId);
+
+        const elapsed = Math.round((Date.now() - streamStart) / 1000);
+
+        if (error.name === "AbortError") {
+          console.error(`[Synthesize] Stream timed out after ${elapsed}s`);
+          throw new Error(`Synthesis timed out after ${STREAM_TIMEOUT_MS / 1000}s`);
+        }
+
+        console.error(`[Synthesize] Stream failed after ${elapsed}s, ${chunkCount} chunks: ${error.message}`);
+        throw error;
       }
-
-      const data = await res.json();
-      const text = data.content?.[0]?.text;
-      const stopReason = data.stop_reason;
-
-      if (!text) {
-        throw new Error("Empty response from AI");
-      }
-
-      // Warn if response was truncated due to max_tokens
-      if (stopReason === "max_tokens") {
-        console.warn("Response was truncated due to max_tokens limit");
-      }
-
-      return text;
     };
 
     // ═══════════════════════════════════════════════════════════════════════
-    // PHASE 1: Initial Synthesis
+    // PHASE 1: Initial Synthesis (streaming)
     // ═══════════════════════════════════════════════════════════════════════
-    const phase1Budget = getRemainingTimeout();
-    console.log(`[Synthesize] Phase 1 starting, budget: ${Math.round(phase1Budget / 1000)}s, prompt: ${SYNTHESIS_SYSTEM_PROMPT.length} chars`);
+    console.log(`[Synthesize] Phase 1 starting (streaming), prompt: ${SYNTHESIS_SYSTEM_PROMPT.length} chars`);
     let lensDoc;
     try {
-      lensDoc = await callAnthropic(SYNTHESIS_SYSTEM_PROMPT, userContent);
-      console.log(`[Synthesize] Phase 1 complete, lensDoc length: ${lensDoc.length}`);
+      lensDoc = await callAnthropicStreaming(SYNTHESIS_SYSTEM_PROMPT, userContent);
+      console.log(`[Synthesize] Phase 1 complete, lensDoc length: ${lensDoc.length}, elapsed: ${Math.round(getElapsedMs() / 1000)}s`);
     } catch (apiErr) {
-      // Distinguish timeout from other errors
-      const isTimeout = apiErr.name === 'TimeoutError' || apiErr.name === 'AbortError' || apiErr.message?.includes('timeout');
-      console.error(`[Synthesize] Phase 1 FAILED: ${apiErr.name} - ${apiErr.message} (isTimeout: ${isTimeout})`);
+      console.error(`[Synthesize] Phase 1 FAILED: ${apiErr.name} - ${apiErr.message}`);
       throw apiErr;
     }
 
@@ -221,7 +245,7 @@ export async function POST(request) {
     const sectionHeadingCount = (lensDoc.match(/^##\s+/gm) || []).length;
     if (sectionHeadingCount < 4) {
       console.warn(`Synthesis produced only ${sectionHeadingCount} sections, retrying...`);
-      lensDoc = await callAnthropic(SYNTHESIS_SYSTEM_PROMPT, userContent, MAX_TOKENS);
+      lensDoc = await callAnthropicStreaming(SYNTHESIS_SYSTEM_PROMPT, userContent, MAX_TOKENS);
 
       // Validate retry attempt
       const retryCount = (lensDoc.match(/^##\s+/gm) || []).length;
@@ -235,13 +259,14 @@ export async function POST(request) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // PHASE 2: Validation Gate (only if we have source materials AND time budget)
+    // PHASE 2: Validation Gate (streaming removes time pressure)
     // ═══════════════════════════════════════════════════════════════════════
-    const remainingBudget = getRemainingTimeout();
-    const hasTimeBudget = remainingBudget >= MIN_VALIDATION_BUDGET_MS;
+    const elapsedMs = getElapsedMs();
+    // With streaming, we can afford validation - only skip if we've been running unusually long
+    const hasTimeBudget = elapsedMs < STREAM_TIMEOUT_MS - MIN_VALIDATION_BUDGET_MS;
 
     if (!hasTimeBudget) {
-      console.log(`Skipping validation - only ${Math.round(remainingBudget / 1000)}s remaining (need ${MIN_VALIDATION_BUDGET_MS / 1000}s)`);
+      console.log(`Skipping validation - elapsed ${Math.round(elapsedMs / 1000)}s exceeds budget`);
     }
 
     // Pass truncated text to validation so it only flags gaps from content synthesis actually saw
@@ -253,7 +278,7 @@ export async function POST(request) {
 
     if (validationContent) {
       try {
-        const validationResponse = await callAnthropic(
+        const validationResponse = await callAnthropicStreaming(
           VALIDATION_SYSTEM_PROMPT,
           validationContent,
           VALIDATION_MAX_TOKENS
@@ -280,33 +305,28 @@ export async function POST(request) {
           if (hasHallucinations) reasons.push("hallucinations");
           if (hasSignificantGaps) reasons.push("gaps");
 
-          // Check if we have enough time budget for re-synthesis (~15s minimum)
-          const resynthBudget = getRemainingTimeout();
-          if (resynthBudget < 15000) {
-            console.log(`Validation found issues (${reasons.join(", ")}) but only ${Math.round(resynthBudget / 1000)}s remaining - skipping re-synthesis`);
-          } else {
-            console.log(`Validation found issues: ${reasons.join(", ")}, triggering re-synthesis (${Math.round(resynthBudget / 1000)}s remaining)`);
+          // With streaming, we can always attempt re-synthesis
+          console.log(`Validation found issues: ${reasons.join(", ")}, triggering re-synthesis`);
 
-            // Build revision addendum and append to original synthesis prompt
-            const revisionAddendum = buildRevisionAddendum(gapReport);
-            const revisedSystemPrompt = SYNTHESIS_SYSTEM_PROMPT + revisionAddendum;
+          // Build revision addendum and append to original synthesis prompt
+          const revisionAddendum = buildRevisionAddendum(gapReport);
+          const revisedSystemPrompt = SYNTHESIS_SYSTEM_PROMPT + revisionAddendum;
 
-            // Re-run synthesis with gap instructions
-            try {
-              const revisedLens = await callAnthropic(revisedSystemPrompt, userContent);
+          // Re-run synthesis with gap instructions
+          try {
+            const revisedLens = await callAnthropicStreaming(revisedSystemPrompt, userContent);
 
-              // Validate revised output before accepting it
-              const revisedSectionCount = (revisedLens.match(/^##\s+/gm) || []).length;
-              if (revisedSectionCount < 4) {
-                console.warn(`Re-synthesis produced only ${revisedSectionCount} sections, keeping original`);
-                // Keep original lensDoc (don't overwrite)
-              } else {
-                lensDoc = revisedLens;
-              }
-            } catch (resynthErr) {
-              console.warn("Re-synthesis failed, keeping original:", resynthErr.message);
-              // Keep original lensDoc
+            // Validate revised output before accepting it
+            const revisedSectionCount = (revisedLens.match(/^##\s+/gm) || []).length;
+            if (revisedSectionCount < 4) {
+              console.warn(`Re-synthesis produced only ${revisedSectionCount} sections, keeping original`);
+              // Keep original lensDoc (don't overwrite)
+            } else {
+              lensDoc = revisedLens;
             }
+          } catch (resynthErr) {
+            console.warn("Re-synthesis failed, keeping original:", resynthErr.message);
+            // Keep original lensDoc
           }
         } else {
           console.log(`Validation passed with severity: ${gapReport.gap_severity || "none"}`);
