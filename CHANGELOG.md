@@ -2,6 +2,28 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-24] Plural-Aware Generate Button & Success Path
+
+### lens-app 2026.04.24-f
+
+**Generate button and success path now reflect roster count:**
+
+| sessionCount | Static button | Loading label | Post-generation header |
+|---|---|---|---|
+| 1 | Generate Candidate Session | Generating session… | Session created |
+| N (≥2) | Generate N Candidate Sessions | Generating N sessions… | N sessions created |
+
+**Logic:** `sessionCount = max(1, validCandidates.length)` — 0 cards creates 1 session (legacy path)
+
+**ConfirmationPhase updates:**
+- Header: "Session created" → "N sessions created"
+- Description: "A tailored discovery session..." → "N tailored discovery sessions..."
+
+**Files Modified:**
+- `app/components/RecruiterRoleForm.jsx` (v2026.04.24-f)
+
+---
+
 ## [2026-04-24] Continue Button Counter Enhancement
 
 ### lens-app 2026.04.24-e

@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.24-e";
+const BUILD_ID = "2026.04.24-f";
 
 // ── Candidate roster storage ──
 const ROSTER_STORAGE_KEY = "recruiter-candidate-roster";
@@ -1423,7 +1423,11 @@ const GREEN = "#2D6A2D";
 // ── Foundation subsections (fixed for all sessions) ──
 const FOUNDATION_SUBSECTIONS = ["essence", "workstyle", "energy", "disqualifiers", "situation", "values"];
 
-function DimensionReviewPhase({ dimensions, setDimensions, roleContext, foundationDuration, setFoundationDuration, onBack, onGenerate, isGenerating, generateError }) {
+function DimensionReviewPhase({ dimensions, setDimensions, roleContext, foundationDuration, setFoundationDuration, onBack, onGenerate, isGenerating, generateError, candidateRoster }) {
+  // Count valid candidates for plural-aware labels
+  const validCandidateCount = (candidateRoster || []).filter(c => c.resumeText && c.resumeText.trim()).length;
+  // sessionCount: 0 cards = 1 session (legacy), N cards = N sessions
+  const sessionCount = Math.max(1, validCandidateCount);
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState("");
 
@@ -1750,7 +1754,10 @@ function DimensionReviewPhase({ dimensions, setDimensions, roleContext, foundati
             opacity: isGenerating ? 0.7 : 1,
           }}
         >
-          {isGenerating ? "Generating session..." : "Generate candidate session"}
+          {isGenerating
+            ? (sessionCount === 1 ? "Generating session…" : `Generating ${sessionCount} sessions…`)
+            : (sessionCount === 1 ? "Generate Candidate Session" : `Generate ${sessionCount} Candidate Sessions`)
+          }
         </button>
       </div>
     </div>
@@ -1769,6 +1776,8 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, onStar
   // Filter to candidates with resume text (skip empty cards)
   const validCandidates = (candidateRoster || []).filter(c => c.resumeText && c.resumeText.trim());
   const hasRoster = validCandidates.length > 0;
+  // sessionCount: 0 cards = 1 session (legacy), N cards = N sessions
+  const sessionCount = Math.max(1, validCandidates.length);
 
   const handleCopyJson = () => {
     navigator.clipboard.writeText(JSON.stringify(sessionConfig || roleContext, null, 2));
@@ -1867,13 +1876,22 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, onStar
           ✓
         </div>
         <h2 style={{ fontSize: "24px", fontWeight: 600, margin: "0 0 8px" }}>
-          {hasSession ? "Session generated" : "Role context saved"}
+          {hasSession
+            ? (sessionCount === 1 ? "Session created" : `${sessionCount} sessions created`)
+            : "Role context saved"
+          }
         </h2>
         <p style={{ fontSize: "14px", color: GRY, margin: 0 }}>
           {hasSession ? (
-            <>
-              A tailored discovery session for <strong>{roleContext.roleTitle}</strong> at <strong>{roleContext.company}</strong> is ready.
-            </>
+            sessionCount === 1 ? (
+              <>
+                A tailored discovery session for <strong>{roleContext.roleTitle}</strong> at <strong>{roleContext.company}</strong> is ready.
+              </>
+            ) : (
+              <>
+                {sessionCount} tailored discovery sessions for <strong>{roleContext.roleTitle}</strong> at <strong>{roleContext.company}</strong> are ready.
+              </>
+            )
           ) : (
             <>
               The role context for <strong>{roleContext.roleTitle}</strong> at <strong>{roleContext.company}</strong> has been saved.
@@ -2626,6 +2644,7 @@ export default function RecruiterRoleForm() {
           onGenerate={handleGenerateSession}
           isGenerating={isGenerating}
           generateError={generateError}
+          candidateRoster={candidateRoster}
         />
       )}
 
