@@ -2,9 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import PremiumMatchDocument from "../components/PremiumMatchDocument";
-import candidateLensProfile from "../../config/candidate-lens-profile.json";
 
-const VERSION = "1.4-premium";
+const VERSION = "1.5-dynamic";
 
 const DEFAULT_ROLE_LENS = `Role: Head of Customer Success
 Company: LeanData (Series B, ~150 employees, ~$100M funding)
@@ -215,6 +214,7 @@ export default function ScorerPage() {
   const [reportError, setReportError] = useState(null);
   const [showPremiumDoc, setShowPremiumDoc] = useState(false);
   const [roleProfile, setRoleProfile] = useState(null);
+  const [candidateProfile, setCandidateProfile] = useState(null);
   const [interviewFocus, setInterviewFocus] = useState(null);
   const [jdSuggestions, setJdSuggestions] = useState(null);
 
@@ -234,6 +234,18 @@ export default function ScorerPage() {
       roleTitle: roleMatch ? roleMatch[1].trim() : "Role",
       companyName: companyMatch ? companyMatch[1].split('(')[0].trim() : "",
     };
+  };
+
+  // Extract candidate name from first line of resume (heuristic)
+  const extractCandidateName = () => {
+    const firstLine = candidateInput.split('\n')[0]?.trim();
+    // If first line is short and doesn't look like a header, use it as name
+    if (firstLine && firstLine.length < 50 &&
+        !firstLine.toLowerCase().includes('resume') &&
+        !firstLine.toLowerCase().includes('curriculum')) {
+      return firstLine;
+    }
+    return "Candidate";
   };
 
   const score = async () => {
@@ -272,31 +284,53 @@ export default function ScorerPage() {
 
   const generatePremiumReport = async () => {
     if (!result) return;
+    if (!candidateInput.trim()) {
+      setReportError("Candidate resume/materials required for match report");
+      return;
+    }
     setGeneratingReport(true);
     setReportError(null);
 
     const { roleTitle, companyName } = extractRoleInfo();
-    const candidateDimensions = candidateLensProfile.dimension_scores;
 
     try {
-      // Step 1: Generate role profile from JD
-      console.log("[PremiumReport] Step 1: Generating role profile...");
-      const roleProfileRes = await fetch("/api/role-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jdText: roleLens,
-          roleTitle,
-          companyName,
+      // Step 1: Generate role profile and candidate profile in parallel
+      console.log("[PremiumReport] Step 1: Generating role and candidate profiles...");
+      const [roleProfileRes, candidateProfileRes] = await Promise.all([
+        fetch("/api/role-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jdText: roleLens,
+            roleTitle,
+            companyName,
+          }),
         }),
-      });
+        fetch("/api/candidate-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resumeText: candidateInput,
+            candidateName: extractCandidateName(),
+          }),
+        }),
+      ]);
 
       if (!roleProfileRes.ok) {
         throw new Error("Failed to generate role profile");
       }
+      if (!candidateProfileRes.ok) {
+        throw new Error("Failed to generate candidate profile");
+      }
+
       const roleProfileData = await roleProfileRes.json();
+      const candidateProfileData = await candidateProfileRes.json();
       setRoleProfile(roleProfileData);
+      setCandidateProfile(candidateProfileData);
       console.log("[PremiumReport] Role profile generated:", roleProfileData);
+      console.log("[PremiumReport] Candidate profile generated:", candidateProfileData);
+
+      const candidateDimensions = candidateProfileData.dimension_scores;
 
       // Calculate gaps for subsequent calls
       const { calculateDualAlignment } = await import("../components/DualRadarChart");
@@ -598,8 +632,8 @@ export default function ScorerPage() {
         <PremiumMatchDocument
           roleTitle={roleTitle}
           companyName={companyName}
-          candidateName={candidateLensProfile.name}
-          candidateDimensions={candidateLensProfile.dimension_scores}
+          candidateName={candidateProfile?.name || "Candidate"}
+          candidateDimensions={candidateProfile?.dimension_scores || {}}
           roleDimensions={roleProfile?.dimension_scores}
           roleProfile={roleProfile}
           matchData={result}
