@@ -4,6 +4,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { JD_SUGGESTIONS_SYSTEM_PROMPT, buildJdSuggestionsUserContent } from "../_prompts/jd-suggestions";
+import { validateDimensionScores, DIMENSION_KEYS } from "../../lib/dimensions";
 
 const MODEL = "claude-haiku-4-5-20251001";
 const MAX_TOKENS = 2500;
@@ -39,9 +40,9 @@ export async function POST(request) {
       );
     }
 
-    if (!roleDimensions) {
+    if (!validateDimensionScores(roleDimensions)) {
       return Response.json(
-        { error: "Missing roleDimensions" },
+        { error: "Missing or invalid roleDimensions" },
         { status: 400 }
       );
     }
@@ -123,7 +124,9 @@ export async function POST(request) {
         role_requires: s.role_requires || "",
         jd_communicates: s.jd_communicates || "Not addressed",
         action: s.action || "",
-        source_dimension: s.source_dimension || "unknown",
+        source_dimension: DIMENSION_KEYS.includes(s.source_dimension)
+          ? s.source_dimension
+          : "unknown",
         priority: ["high", "medium", "low"].includes(s.priority) ? s.priority : "medium",
       }));
 

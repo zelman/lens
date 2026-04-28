@@ -25,15 +25,8 @@ const C = {
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif';
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace';
 
-// Dimension labels
-const DIMENSION_LABELS = {
-  essence_clarity: 'Essence Clarity',
-  skill_depth: 'Skills & Experience',
-  values_articulation: 'Values',
-  mission_alignment: 'Mission & Direction',
-  work_style_clarity: 'Work Style',
-  boundaries_defined: 'Non-Negotiables',
-};
+// Import shared dimension constants
+import { DIMENSION_LABELS } from '../lib/dimensions';
 
 // Classification colors
 function getClassificationColor(classification) {
@@ -588,9 +581,9 @@ function InterviewFocusPage({ interviewFocus }) {
         INTERVIEW FOCUS AREAS
       </div>
 
-      {renderGroup(explore, 'Explore — Gaps to Investigate', C.orange, '🔍')}
+      {renderGroup(explore, 'Explore — Gaps to Investigate', C.orange, '●')}
       {renderGroup(validate, 'Validate — Strengths to Confirm', C.green, '✓')}
-      {renderGroup(watch, 'Watch — Risk Signals', C.red, '⚠')}
+      {renderGroup(watch, 'Watch — Risk Signals', C.red, '▲')}
     </div>
   );
 }
@@ -839,7 +832,7 @@ export default function PremiumMatchDocument({
           {isPrinting ? 'Preparing...' : 'Save as PDF'}
         </button>
         <button
-          onClick={onClose}
+          onClick={onClose || (() => {})}
           style={{
             fontFamily: FONT,
             padding: '12px 24px',
@@ -849,6 +842,7 @@ export default function PremiumMatchDocument({
             fontSize: '14px',
             cursor: 'pointer',
           }}
+          aria-label="Close match report"
         >
           Close
         </button>

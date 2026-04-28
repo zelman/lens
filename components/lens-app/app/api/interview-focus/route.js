@@ -4,6 +4,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { INTERVIEW_FOCUS_SYSTEM_PROMPT, buildInterviewFocusUserContent } from "../_prompts/interview-focus";
+import { validateDimensionScores, DIMENSION_KEYS } from "../../lib/dimensions";
 
 const MODEL = "claude-haiku-4-5-20251001";
 const MAX_TOKENS = 2000;
@@ -33,9 +34,9 @@ export async function POST(request) {
     } = body;
 
     // Validate required inputs
-    if (!candidateDimensions || !roleDimensions) {
+    if (!validateDimensionScores(candidateDimensions) || !validateDimensionScores(roleDimensions)) {
       return Response.json(
-        { error: "Missing candidateDimensions or roleDimensions" },
+        { error: "Missing or invalid candidateDimensions or roleDimensions" },
         { status: 400 }
       );
     }
@@ -111,7 +112,9 @@ export async function POST(request) {
         title: item.title || "Focus area",
         question: item.question || "",
         context: item.context || "",
-        source_dimension: item.source_dimension || "unknown",
+        source_dimension: DIMENSION_KEYS.includes(item.source_dimension)
+          ? item.source_dimension
+          : "unknown",
       });
 
       focusAreas.explore = focusAreas.explore.map(validateItem);
