@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import PremiumMatchDocument from "./PremiumMatchDocument";
 import { calculateDualAlignment } from "./DualRadarChart";
-import candidateLensProfile from "../../config/candidate-lens-profile.json";
 
 const STORAGE_KEY = "recruiter-role-session";
 const STORAGE_VERSION = "1.0";
@@ -1775,9 +1774,9 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, files,
   const [copied, setCopied] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
 
-  // Premium Match Document state
+  // Premium Match Document state (per-candidate)
   const [showPremiumDoc, setShowPremiumDoc] = useState(false);
-  const [premiumLoading, setPremiumLoading] = useState(false);
+  const [premiumLoadingIndex, setPremiumLoadingIndex] = useState(null); // Which candidate is loading
   const [premiumError, setPremiumError] = useState(null);
   const [premiumData, setPremiumData] = useState(null);
 
@@ -1873,9 +1872,16 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, files,
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Generate Premium Match Document
-  const handleGeneratePremiumDoc = async () => {
-    setPremiumLoading(true);
+  // Generate Premium Match Document for a specific candidate
+  const handleGeneratePremiumDoc = async (candidateIndex) => {
+    // Get candidate data from validCandidates array
+    const candidate = validCandidates[candidateIndex];
+    if (!candidate || !candidate.resumeText) {
+      setPremiumError("Candidate resume not available");
+      return;
+    }
+
+    setPremiumLoadingIndex(candidateIndex);
     setPremiumError(null);
 
     try {
@@ -1885,21 +1891,39 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, files,
         throw new Error("No job description found. Please upload a JD file.");
       }
 
-      // Step 1: Generate role profile from JD
-      const roleProfileRes = await fetch("/api/role-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jdText }),
-      });
+      // Step 1: Generate role profile and candidate profile in parallel
+      const [roleProfileRes, candidateProfileRes] = await Promise.all([
+        fetch("/api/role-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jdText }),
+        }),
+        fetch("/api/candidate-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resumeText: candidate.resumeText,
+            candidateName: candidate.name,
+            supportingDocsText: candidate.supportingDocs?.map(d => `--- ${d.filename} ---\n${d.text}`).join("\n\n") || "",
+          }),
+        }),
+      ]);
 
       if (!roleProfileRes.ok) {
         const err = await roleProfileRes.json().catch(() => ({}));
         throw new Error(err.error || "Failed to analyze role requirements");
       }
 
+      if (!candidateProfileRes.ok) {
+        const err = await candidateProfileRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to analyze candidate profile");
+      }
+
       const roleProfileData = await roleProfileRes.json();
+      const candidateProfileData = await candidateProfileRes.json();
+
       const roleDimensions = roleProfileData.dimension_scores;
-      const candidateDimensions = candidateLensProfile.dimension_scores;
+      const candidateDimensions = candidateProfileData.dimension_scores;
 
       // Calculate gaps for context
       const alignment = calculateDualAlignment(candidateDimensions, roleDimensions);
@@ -1946,10 +1970,11 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, files,
       setPremiumData({
         roleDimensions,
         roleProfile: roleProfileData,
+        candidateProfile: candidateProfileData,
         interviewFocus,
         jdSuggestions,
         candidateDimensions,
-        candidateName: candidateLensProfile.name,
+        candidateName: candidate.name || "Candidate",
         jdText,
       });
       setShowPremiumDoc(true);
@@ -1958,7 +1983,7 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, files,
       console.error("[PremiumDoc] Generation error:", err);
       setPremiumError(err.message);
     } finally {
-      setPremiumLoading(false);
+      setPremiumLoadingIndex(null);
     }
   };
 
@@ -2085,49 +2110,91 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, files,
                 Share each link with the matching candidate. Links expire in 30 days.
               </p>
 
-              {sessions.map((session, idx) => (
-                <div key={session.token} style={{
-                  display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center",
+              {premiumError && (
+                <div style={{
+                  padding: "12px", background: "#fef2f2", border: "1px solid #fecaca",
+                  marginBottom: "12px", fontSize: "13px", color: "#dc2626",
                 }}>
-                  <div style={{
-                    flex: "0 0 140px", fontSize: "13px", fontWeight: 500,
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                  }}>
-                    {session.candidateName}
-                  </div>
-                  <input
-                    type="text"
-                    value={session.url}
-                    readOnly
-                    style={{
-                      flex: 1,
-                      padding: "8px 10px",
-                      border: `1px solid ${RULE}`,
-                      background: "#fafafa",
-                      fontFamily: "monospace",
-                      fontSize: "12px",
-                      color: BLK,
-                    }}
-                    onClick={(e) => e.target.select()}
-                  />
-                  <button
-                    onClick={() => handleCopyLink(session.url, idx)}
-                    style={{
-                      padding: "8px 12px",
-                      background: copiedIndex === idx ? "#2D6A2D" : RED,
-                      color: "#fff",
-                      border: "none",
-                      cursor: "pointer",
-                      fontFamily: FONT,
-                      fontSize: "11px",
-                      fontWeight: 500,
-                      minWidth: "60px",
-                    }}
-                  >
-                    {copiedIndex === idx ? "COPIED" : "COPY"}
-                  </button>
+                  {premiumError}
                 </div>
-              ))}
+              )}
+
+              {sessions.map((session, idx) => {
+                const hasResume = validCandidates[idx]?.resumeText;
+                const hasJd = !!files?.jd?.[0]?._textContent;
+                const isLoading = premiumLoadingIndex === idx;
+                const canGenerateReport = hasResume && hasJd && !isLoading;
+
+                return (
+                  <div key={session.token} style={{
+                    padding: "12px",
+                    marginBottom: "8px",
+                    border: `1px solid ${RULE}`,
+                    background: "#fafafa",
+                  }}>
+                    <div style={{
+                      display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px",
+                    }}>
+                      <div style={{
+                        flex: "0 0 140px", fontSize: "13px", fontWeight: 600,
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      }}>
+                        {session.candidateName}
+                      </div>
+                      <input
+                        type="text"
+                        value={session.url}
+                        readOnly
+                        style={{
+                          flex: 1,
+                          padding: "6px 8px",
+                          border: `1px solid ${RULE}`,
+                          background: "#fff",
+                          fontFamily: "monospace",
+                          fontSize: "11px",
+                          color: BLK,
+                        }}
+                        onClick={(e) => e.target.select()}
+                      />
+                      <button
+                        onClick={() => handleCopyLink(session.url, idx)}
+                        style={{
+                          padding: "6px 10px",
+                          background: copiedIndex === idx ? "#2D6A2D" : RED,
+                          color: "#fff",
+                          border: "none",
+                          cursor: "pointer",
+                          fontFamily: FONT,
+                          fontSize: "10px",
+                          fontWeight: 500,
+                          minWidth: "50px",
+                        }}
+                      >
+                        {copiedIndex === idx ? "COPIED" : "COPY"}
+                      </button>
+                    </div>
+                    {/* Match Report button per candidate */}
+                    <button
+                      onClick={() => handleGeneratePremiumDoc(idx)}
+                      disabled={!canGenerateReport}
+                      title={!hasResume ? "No resume uploaded for this candidate" : !hasJd ? "No JD uploaded" : ""}
+                      style={{
+                        padding: "6px 12px",
+                        background: canGenerateReport ? ORANGE : "#ddd",
+                        color: canGenerateReport ? "#fff" : GRY,
+                        border: "none",
+                        cursor: canGenerateReport ? "pointer" : "not-allowed",
+                        fontFamily: FONT,
+                        fontSize: "10px",
+                        fontWeight: 500,
+                        letterSpacing: "0.03em",
+                      }}
+                    >
+                      {isLoading ? "GENERATING..." : "MATCH REPORT"}
+                    </button>
+                  </div>
+                );
+              })}
 
               <button
                 onClick={handleCopyAllLinks}
@@ -2204,48 +2271,6 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, files,
           )}
         </p>
       </div>
-
-      {/* Premium Match Report Section */}
-      {files?.jd?.[0]?._textContent && (
-        <div style={{
-          padding: "20px", background: "#fff", border: `2px solid ${ORANGE}`,
-          marginBottom: "24px",
-        }}>
-          <div style={{
-            fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
-            color: ORANGE, fontWeight: 600, marginBottom: "12px",
-          }}>
-            MATCH REPORT
-          </div>
-          <p style={{ fontSize: "13px", color: GRY, margin: "0 0 16px", lineHeight: 1.6 }}>
-            Generate a 5-page match report comparing {candidateLensProfile.name}'s lens profile against the role requirements extracted from your JD.
-          </p>
-
-          {premiumError && (
-            <div style={{
-              padding: "12px", background: "#fef2f2", border: "1px solid #fecaca",
-              marginBottom: "12px", fontSize: "14px", color: "#dc2626",
-            }}>
-              {premiumError}
-            </div>
-          )}
-
-          <button
-            onClick={handleGeneratePremiumDoc}
-            disabled={premiumLoading}
-            style={{
-              ...primaryButtonStyle,
-              width: "100%",
-              padding: "14px 24px",
-              fontSize: "14px",
-              background: premiumLoading ? GRY : ORANGE,
-              cursor: premiumLoading ? "not-allowed" : "pointer",
-            }}
-          >
-            {premiumLoading ? "GENERATING REPORT..." : "DOWNLOAD MATCH REPORT"}
-          </button>
-        </div>
-      )}
 
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
         {hasSession && !hasRoster && (
