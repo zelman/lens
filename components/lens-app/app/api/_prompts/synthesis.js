@@ -326,12 +326,104 @@ export const STATUS_LABELS = {
   transitioning: "In Transition",
 };
 
+// Premium metadata output instructions - appended when includePremiumMetadata is true
+// This produces a fenced JSON block AFTER the markdown narrative that the client parses separately
+export const PREMIUM_METADATA_INSTRUCTIONS = `
+
+## PREMIUM METADATA OUTPUT
+
+After the complete lens document, append a fenced JSON block containing structured metadata for the premium deliverable. This metadata enables visual presentation, actionable guidance, and resume integration.
+
+Format your output as:
+1. The complete lens document (markdown with YAML frontmatter, all 6 sections)
+2. A separator line: \`---PREMIUM_METADATA---\`
+3. A fenced JSON block with the metadata
+
+The JSON block must have this exact structure:
+
+\`\`\`json
+{
+  "essence_statement": "<A single sentence (max 25 words) that captures who this person is professionally - their core identity distilled. This appears on the cover page. Use their own words when vivid.>",
+  "soft_gates": {
+    "essence_clarity": <0-100>,
+    "skill_depth": <0-100>,
+    "values_articulation": <0-100>,
+    "mission_alignment": <0-100>,
+    "work_style_clarity": <0-100>,
+    "boundaries_defined": <0-100>
+  },
+  "key_phrases": [
+    "<2-3 quotable highlights from the lens - phrases that capture the person's essence in 10 words or less>"
+  ],
+  "suggested_targeting": [
+    "<3-5 specific company characteristics this person should look for, based on their lens>"
+  ],
+  "resume_integration_hooks": [
+    {
+      "lens_section": "<which lens section this relates to>",
+      "lens_insight": "<the insight from the lens>",
+      "resume_gap": "<what's missing or underemphasized in typical resumes>",
+      "suggestion": "<specific resume revision suggestion>"
+    }
+  ]
+}
+\`\`\`
+
+### Essence Statement Guidelines:
+
+Write a single sentence (max 25 words) that captures the person's professional identity at its core. This is the first thing readers see on the cover page after the person's name. Use vivid language from the discovery conversation when available. Examples:
+- "A builder who creates customer success organizations from scratch, then systematizes them for scale."
+- "The bridge between technical complexity and human understanding."
+- "A leader who finds order in chaos and brings others along for the journey."
+
+### Soft Gates Scoring Guide:
+
+**CRITICAL CALIBRATION RULE:** Use the full 0-100 range. Most people should have 2-3 dimensions in the 55-75 range and only 1-2 above 85. A score of 90+ means overwhelming, multi-layered evidence with zero ambiguity. A score of 70 means solid signal with some nuance. A score of 55 means the signal is present but not fully articulated. Do not inflate scores to be kind — an honest, differentiated profile is more useful than a flattering uniform one. A near-perfect circle (all scores 85+) defeats the purpose of the radar chart.
+
+Each score corresponds to one of the 6 lens sections and reflects how clearly the person articulated that dimension:
+
+- **essence_clarity** (0-100): How clear is their professional identity? 90+ = vivid, distinctive self-understanding with specific language and multiple reinforcing examples. 70-85 = clear identity with good evidence. 55-70 = general sense of who they are but could be sharper. <55 = still discovering or hasn't articulated clearly.
+- **skill_depth** (0-100): How well do they articulate their skills and experience? 90+ = specific capabilities with metrics, evidence, and differentiated positioning. 70-85 = skills with some evidence. 55-70 = skills listed but generic or lacking proof points. <55 = vague or incomplete.
+- **values_articulation** (0-100): How clearly have they articulated their values? 90+ = specific values with behavioral evidence, stories, and clear hierarchy. 70-85 = values stated with some evidence. 55-70 = stated values but abstract or generic. <55 = values unclear or contradictory.
+- **mission_alignment** (0-100): How clear is their mission and career direction? 90+ = specific next chapter vision with compelling reasoning. 70-85 = clear direction with rationale. 55-70 = general direction but flexible or exploratory. <55 = still exploring or unclear.
+- **work_style_clarity** (0-100): How well do they understand their work style? 90+ = specific preferences with deep self-awareness and examples. 70-85 = clear preferences with context. 55-70 = general preferences stated but not deeply examined. <55 = hasn't reflected deeply or preferences unclear.
+- **boundaries_defined** (0-100): How clearly have they articulated their non-negotiables? 90+ = specific boundaries with reasoning and willingness to walk away. 70-85 = clear boundaries stated. 55-70 = some preferences stated but not firmly held. <55 = very flexible or unclear on dealbreakers.
+
+### Key Phrases Guidelines:
+
+Extract 2-3 phrases that:
+- Capture the person's professional essence in memorable language
+- Could be used as pull quotes in a document header
+- Use their own words when vivid, or synthesize when clearer
+- Examples: "builds the bridge between product and people", "translates chaos into structure", "the calm in the room when others are reactive"
+
+### Suggested Targeting Guidelines:
+
+Generate 3-5 specific company characteristics this person should filter for:
+- Be specific: "Series A-B with $5-20M raised" not "early stage"
+- Include culture signals: "engineering-led with customer empathy" not "good culture"
+- Reference their values: "transparent comp philosophy" if comp transparency emerged as important
+- Examples: "30-150 employees in growth mode", "B2B SaaS serving non-technical users", "founders with domain expertise"
+
+### Resume Integration Hooks Guidelines:
+
+Generate 3-5 specific suggestions connecting lens insights to resume improvements:
+- Each hook ties a lens insight to a concrete resume action
+- Focus on what's likely MISSING from a typical resume, not what's there
+- Be specific enough to act on: "Add a metrics line showing NRR impact" not "quantify more"
+- Examples:
+  - lens_section: "Values", lens_insight: "ownership as first principle", resume_gap: "impact language is passive", suggestion: "Reframe bullet points using 'I drove' and 'I built' language instead of 'Supported' and 'Helped'"
+  - lens_section: "Skills & Experience", lens_insight: "translation between technical and business", resume_gap: "technical skills buried or absent", suggestion: "Add a 'Technical Proficiency' section listing specific tools and frameworks to signal your engineering background"
+
+IMPORTANT: The premium metadata is ADDITIVE. The lens document itself must be complete and identical to non-premium output. The metadata block is appended after, not integrated into, the narrative sections.`;
+
 // Build the user content for synthesis
 // audienceMode determines sensitivity filtering level:
 // - "candidate" (default): Full sensitivity filter, recruiter-safe output (C→R lens)
 // - "employer" (future): Full signal including assessment data, development areas (R→C lens)
 // - "external" (future): Middle ground for external recruiters
-export function buildSynthesisUserContent({ userName, pronouns, status, sectionData, currentDate, documentContext, rawDocumentText, patternExtractions, audienceMode = "candidate" }) {
+// includePremiumMetadata: When true, appends PREMIUM_METADATA_INSTRUCTIONS to prompt for structured JSON output
+export function buildSynthesisUserContent({ userName, pronouns, status, sectionData, currentDate, documentContext, rawDocumentText, patternExtractions, audienceMode = "candidate", includePremiumMetadata = false }) {
   const safeSectionData = sectionData || {};
   const allSections = Object.entries(safeSectionData)
     .filter(([k, v]) => v != null && String(v).trim() !== '')
@@ -376,6 +468,11 @@ Use these pattern extractions per the PATTERN EXTRACTION INTEGRATION rules in yo
     }
   }
 
+  // Build premium metadata instruction if requested
+  const premiumInstruction = includePremiumMetadata
+    ? `\n- PREMIUM OUTPUT: After the complete lens document, append the structured metadata block per the PREMIUM METADATA OUTPUT instructions in your system prompt`
+    : "";
+
   return `Here is the full discovery conversation:
 
 Name: ${userName || "[Name not provided]"}
@@ -396,5 +493,98 @@ Now write the complete lens document following the structure in your instruction
 - Use "${currentDate}" for the date field in the YAML frontmatter
 - 6 sections exactly, YAML frontmatter with the stats field
 - Third person voice, narrative prose (no bullet points), specific and honest
-- IMPORTANT: Integrate document evidence (metrics, companies, career arc) into the narrative per the DOCUMENT CONTEXT INTEGRATION rules`;
+- IMPORTANT: Integrate document evidence (metrics, companies, career arc) into the narrative per the DOCUMENT CONTEXT INTEGRATION rules${premiumInstruction}`;
+}
+
+// Parse premium synthesis response into markdown and metadata
+// Returns { markdown: string, metadata: object | null, parseError: string | null }
+export function parsePremiumSynthesisResponse(response) {
+  const SEPARATOR = "---PREMIUM_METADATA---";
+
+  // Check if response contains the premium separator
+  const separatorIndex = response.indexOf(SEPARATOR);
+
+  if (separatorIndex === -1) {
+    // No premium metadata - but still clean any stray metadata patterns
+    let cleanMarkdown = response.trim();
+    // Strip any JSON blocks that look like metadata
+    cleanMarkdown = cleanMarkdown.replace(/```json\s*\{[\s\S]*?"soft_gates"[\s\S]*?\}[\s\S]*?```/g, '');
+    cleanMarkdown = cleanMarkdown.replace(/\{[\s\S]*?"essence_statement"[\s\S]*?"soft_gates"[\s\S]*?\}/g, '');
+    return {
+      markdown: cleanMarkdown.trim(),
+      metadata: null,
+      parseError: null,
+    };
+  }
+
+  // Split at separator - everything BEFORE the separator is the narrative
+  let markdown = response.slice(0, separatorIndex).trim();
+  const metadataSection = response.slice(separatorIndex + SEPARATOR.length).trim();
+
+  // Also strip the separator line and anything after it from markdown (in case of partial match)
+  // Handle variations: with/without backticks, with/without newlines
+  markdown = markdown.replace(/---PREMIUM_METADATA---[\s\S]*/g, '');
+  markdown = markdown.replace(/```json\s*\{[\s\S]*?"soft_gates"[\s\S]*$/g, '');
+
+  // Extract JSON from fenced code block - try multiple patterns
+  let jsonMatch = metadataSection.match(/```json\s*([\s\S]*?)\s*```/);
+
+  // If no clean fence, try to extract JSON object directly
+  if (!jsonMatch) {
+    jsonMatch = metadataSection.match(/(\{[\s\S]*"soft_gates"[\s\S]*\})/);
+  }
+
+  // Try to find JSON starting with { and containing expected fields
+  if (!jsonMatch) {
+    const jsonStart = metadataSection.indexOf('{');
+    if (jsonStart !== -1) {
+      // Find matching closing brace
+      let braceCount = 0;
+      let jsonEnd = -1;
+      for (let i = jsonStart; i < metadataSection.length; i++) {
+        if (metadataSection[i] === '{') braceCount++;
+        if (metadataSection[i] === '}') braceCount--;
+        if (braceCount === 0) {
+          jsonEnd = i + 1;
+          break;
+        }
+      }
+      if (jsonEnd > jsonStart) {
+        jsonMatch = [null, metadataSection.slice(jsonStart, jsonEnd)];
+      }
+    }
+  }
+
+  if (!jsonMatch) {
+    return {
+      markdown,
+      metadata: null,
+      parseError: "Premium metadata block found but no valid JSON",
+    };
+  }
+
+  try {
+    const metadata = JSON.parse(jsonMatch[1]);
+
+    // Validate expected structure (soft_gates is required, others optional)
+    if (!metadata.soft_gates) {
+      return {
+        markdown,
+        metadata,
+        parseError: "Premium metadata missing soft_gates",
+      };
+    }
+
+    return {
+      markdown,
+      metadata,
+      parseError: null,
+    };
+  } catch (e) {
+    return {
+      markdown,
+      metadata: null,
+      parseError: `Failed to parse premium metadata JSON: ${e.message}`,
+    };
+  }
 }
