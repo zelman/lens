@@ -1,0 +1,19 @@
+{
+  "_comment": "Eric Zelman's C lens dimension scores - hardcoded for R→C premium doc MVP. In production, this would be extracted from the candidate's uploaded lens document.",
+  "_source": "Derived from eric_lens_radar_chart_reference.html (2026-04-28)",
+  "name": "Eric Zelman",
+  "dimension_scores": {
+    "essence_clarity": 75,
+    "skill_depth": 70,
+    "values_articulation": 70,
+    "mission_alignment": 65,
+    "work_style_clarity": 70,
+    "boundaries_defined": 65
+  },
+  "key_phrases": [
+    "builds the playbook where none existed",
+    "constructive friction over false harmony",
+    "the zero-to-one phase where the stakes are real"
+  ],
+  "essence_statement": "Eric is a builder who thrives in the ambiguity of early-stage operations, creating structure and process where none exists while maintaining the flexibility to adapt as the organization evolves."
+}
