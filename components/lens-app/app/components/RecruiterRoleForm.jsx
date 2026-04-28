@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import PremiumMatchDocument from "./PremiumMatchDocument";
+import { calculateDualAlignment } from "./DualRadarChart";
+import candidateLensProfile from "../../config/candidate-lens-profile.json";
 
 const STORAGE_KEY = "recruiter-role-session";
 const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.24-f";
+const BUILD_ID = "2026.04.28-a";
 
 // ── Candidate roster storage ──
 const ROSTER_STORAGE_KEY = "recruiter-candidate-roster";
@@ -1764,13 +1767,19 @@ function DimensionReviewPhase({ dimensions, setDimensions, roleContext, foundati
   );
 }
 
-function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, onStartNew }) {
+function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, files, onStartNew }) {
   const [linkState, setLinkState] = useState("idle"); // idle | loading | success | error
   const [shareableUrl, setShareableUrl] = useState(null); // Single-link mode
   const [sessions, setSessions] = useState([]); // Fan-out mode
   const [linkError, setLinkError] = useState(null);
   const [copied, setCopied] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
+
+  // Premium Match Document state
+  const [showPremiumDoc, setShowPremiumDoc] = useState(false);
+  const [premiumLoading, setPremiumLoading] = useState(false);
+  const [premiumError, setPremiumError] = useState(null);
+  const [premiumData, setPremiumData] = useState(null);
 
   const hasSession = !!sessionConfig;
   // Filter to candidates with resume text (skip empty cards)
@@ -1862,6 +1871,95 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, onStar
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Generate Premium Match Document
+  const handleGeneratePremiumDoc = async () => {
+    setPremiumLoading(true);
+    setPremiumError(null);
+
+    try {
+      // Get JD text from uploaded files
+      const jdText = files?.jd?.[0]?._textContent || "";
+      if (!jdText) {
+        throw new Error("No job description found. Please upload a JD file.");
+      }
+
+      // Step 1: Generate role profile from JD
+      const roleProfileRes = await fetch("/api/role-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jdText }),
+      });
+
+      if (!roleProfileRes.ok) {
+        const err = await roleProfileRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to analyze role requirements");
+      }
+
+      const roleProfileData = await roleProfileRes.json();
+      const roleDimensions = roleProfileData.dimension_scores;
+      const candidateDimensions = candidateLensProfile.dimension_scores;
+
+      // Calculate gaps for context
+      const alignment = calculateDualAlignment(candidateDimensions, roleDimensions);
+
+      // Step 2: Generate interview focus and JD suggestions in parallel
+      const [interviewRes, jdRes] = await Promise.all([
+        fetch("/api/interview-focus", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateDimensions,
+            roleDimensions,
+            gaps: alignment.gaps,
+            matchData: { roleTitle: roleContext.roleTitle, companyName: roleContext.company },
+          }),
+        }),
+        fetch("/api/jd-suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jdText,
+            roleDimensions,
+            candidateDimensions,
+            gaps: alignment.gaps,
+            matchData: { roleTitle: roleContext.roleTitle, companyName: roleContext.company },
+          }),
+        }),
+      ]);
+
+      if (!interviewRes.ok) {
+        const err = await interviewRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to generate interview focus");
+      }
+
+      if (!jdRes.ok) {
+        const err = await jdRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to generate JD suggestions");
+      }
+
+      const interviewFocus = await interviewRes.json();
+      const jdSuggestions = await jdRes.json();
+
+      // Store all data and show modal
+      setPremiumData({
+        roleDimensions,
+        roleProfile: roleProfileData,
+        interviewFocus,
+        jdSuggestions,
+        candidateDimensions,
+        candidateName: candidateLensProfile.name,
+        jdText,
+      });
+      setShowPremiumDoc(true);
+
+    } catch (err) {
+      console.error("[PremiumDoc] Generation error:", err);
+      setPremiumError(err.message);
+    } finally {
+      setPremiumLoading(false);
+    }
   };
 
   return (
@@ -2107,6 +2205,48 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, onStar
         </p>
       </div>
 
+      {/* Premium Match Report Section */}
+      {files?.jd?.[0]?._textContent && (
+        <div style={{
+          padding: "20px", background: "#fff", border: `2px solid ${ORANGE}`,
+          marginBottom: "24px",
+        }}>
+          <div style={{
+            fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
+            color: ORANGE, fontWeight: 600, marginBottom: "12px",
+          }}>
+            MATCH REPORT
+          </div>
+          <p style={{ fontSize: "13px", color: GRY, margin: "0 0 16px", lineHeight: 1.6 }}>
+            Generate a 5-page match report comparing {candidateLensProfile.name}'s lens profile against the role requirements extracted from your JD.
+          </p>
+
+          {premiumError && (
+            <div style={{
+              padding: "12px", background: "#fef2f2", border: "1px solid #fecaca",
+              marginBottom: "12px", fontSize: "14px", color: "#dc2626",
+            }}>
+              {premiumError}
+            </div>
+          )}
+
+          <button
+            onClick={handleGeneratePremiumDoc}
+            disabled={premiumLoading}
+            style={{
+              ...primaryButtonStyle,
+              width: "100%",
+              padding: "14px 24px",
+              fontSize: "14px",
+              background: premiumLoading ? GRY : ORANGE,
+              cursor: premiumLoading ? "not-allowed" : "pointer",
+            }}
+          >
+            {premiumLoading ? "GENERATING REPORT..." : "DOWNLOAD MATCH REPORT"}
+          </button>
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
         {hasSession && !hasRoster && (
           <button onClick={handleLaunchSession} style={secondaryButtonStyle}>
@@ -2120,6 +2260,33 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, onStar
           Define another search
         </button>
       </div>
+
+      {/* Premium Match Document Modal */}
+      {showPremiumDoc && premiumData && (
+        <PremiumMatchDocument
+          roleTitle={roleContext.roleTitle}
+          companyName={roleContext.company}
+          candidateName={premiumData.candidateName}
+          candidateDimensions={premiumData.candidateDimensions}
+          roleDimensions={premiumData.roleDimensions}
+          matchData={{
+            roleTitle: roleContext.roleTitle,
+            companyName: roleContext.company,
+            matchScore: Math.round(
+              Object.keys(premiumData.candidateDimensions).reduce((sum, key) => {
+                const cScore = premiumData.candidateDimensions[key] || 50;
+                const rScore = premiumData.roleDimensions[key] || 50;
+                return sum + (100 - Math.abs(cScore - rScore));
+              }, 0) / 6
+            ),
+            generatedAt: new Date().toISOString(),
+          }}
+          interviewFocus={premiumData.interviewFocus}
+          jdSuggestions={premiumData.jdSuggestions}
+          jdText={premiumData.jdText}
+          onClose={() => setShowPremiumDoc(false)}
+        />
+      )}
     </div>
   );
 }
@@ -2653,6 +2820,7 @@ export default function RecruiterRoleForm() {
           roleContext={roleContext}
           sessionConfig={sessionConfig}
           candidateRoster={candidateRoster}
+          files={files}
           onStartNew={handleStartNew}
         />
       )}
