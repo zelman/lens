@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { parseLens, LensReport, PRINT_CSS } from "./lens-report-renderer";
+import { PRINT_CSS } from "./lens-report-renderer";
+import PremiumLensDocument from "./PremiumLensDocument";
 
 const STORAGE_KEY = "lens-session";
 const STORAGE_VERSION = "1.0";
@@ -10,7 +11,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.24-a";
+const BUILD_ID = "2026.04.28-n";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -1100,6 +1101,15 @@ function DiscoveryPhase({
   const [viewMode, setViewMode] = useState("report"); // 'report' | 'markdown'
   const [sectionComplete, setSectionComplete] = useState(savedDiscoveryState?.sectionComplete || false);
 
+  // ── Premium lens document state ──
+  const [showPremiumDoc, setShowPremiumDoc] = useState(false);
+  const [premiumMetadata, setPremiumMetadata] = useState(null);
+  const [premiumNextSteps, setPremiumNextSteps] = useState(null);
+  const [premiumResumeSuggestions, setPremiumResumeSuggestions] = useState(null);
+  const [hasResumeData, setHasResumeData] = useState(false); // Track if resume was available
+  const [isPremiumLoading, setIsPremiumLoading] = useState(false);
+  const [premiumError, setPremiumError] = useState(null);
+
   // ── Timing instrumentation state ──
   const [sessionRecordId, setSessionRecordId] = useState(null);
   const [sessionStartTime, setSessionStartTime] = useState(null);
@@ -1110,16 +1120,6 @@ function DiscoveryPhase({
   // Ref for startSection to avoid stale closures in re-entry useEffect
   const startSectionRef = useRef(null);
 
-  // Parse lens document for the report renderer
-  const parsedLens = useMemo(() => {
-    if (!lensDoc) return null;
-    try {
-      return parseLens(lensDoc);
-    } catch (e) {
-      console.warn("Failed to parse lens for report view:", e);
-      return null;
-    }
-  }, [lensDoc]);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -1807,6 +1807,111 @@ SIGNALS:
     URL.revokeObjectURL(url);
   }
 
+  // ── Premium Lens Document generation ──
+  async function generatePremiumDoc() {
+    if (isPremiumLoading || !lensDoc) return;
+
+    setIsPremiumLoading(true);
+    setPremiumError(null);
+
+    try {
+      // Step 1: Generate premium synthesis with metadata
+      console.log("[Premium] Generating premium synthesis...");
+      const premiumSynthRes = await fetch("/api/synthesize-premium", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sectionData,
+          userName,
+          pronouns,
+          status,
+          documentContext: documentContext || null,
+          rawDocumentText: fileContext || null,
+        }),
+      });
+
+      if (!premiumSynthRes.ok) {
+        const errorData = await premiumSynthRes.json().catch(() => ({}));
+        throw new Error(errorData.error || `Premium synthesis failed: ${premiumSynthRes.status}`);
+      }
+
+      const premiumData = await premiumSynthRes.json();
+      const premiumLens = premiumData.lens;
+      const metadata = premiumData.metadata || null;
+      setPremiumMetadata(metadata);
+      // Also update the lens doc to use the premium version
+      setLensDoc(premiumLens);
+      console.log("[Premium] Premium synthesis complete, metadata:", metadata ? "present" : "null");
+
+      // Step 2: Generate next steps using premium lens + metadata
+      console.log("[Premium] Generating next steps...");
+      const nextStepsRes = await fetch("/api/next-steps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lensMarkdown: premiumLens,
+          metadata: metadata,
+        }),
+      });
+
+      if (!nextStepsRes.ok) {
+        throw new Error(`Next steps failed: ${nextStepsRes.status}`);
+      }
+
+      const nextStepsData = await nextStepsRes.json();
+      setPremiumNextSteps(nextStepsData);
+      console.log("[Premium] Next steps generated");
+
+      // Step 3: Generate resume suggestions (if we have resume text)
+      // DEBUG: Log resume context availability
+      console.log("[Premium] Resume debug: fileContext exists?", !!fileContext);
+      console.log("[Premium] Resume debug: fileContext length:", fileContext?.length || 0);
+
+      if (fileContext && fileContext.length > 100) {
+        setHasResumeData(true); // Mark that resume data was available
+        console.log("[Premium] Generating resume suggestions...");
+        console.log("[Premium] Resume debug: Calling /api/resume-suggestions with resumeText length:", fileContext.length);
+
+        const resumeRes = await fetch("/api/resume-suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lensMarkdown: premiumLens,
+            resumeText: fileContext,
+            metadata: metadata,
+          }),
+        });
+
+        console.log("[Premium] Resume debug: API response status:", resumeRes.status);
+
+        if (resumeRes.ok) {
+          const resumeData = await resumeRes.json();
+          console.log("[Premium] Resume debug: API response data:", JSON.stringify(resumeData).slice(0, 500));
+          console.log("[Premium] Resume debug: suggestions array?", Array.isArray(resumeData?.suggestions));
+          console.log("[Premium] Resume debug: suggestions count:", resumeData?.suggestions?.length || 0);
+
+          setPremiumResumeSuggestions(resumeData);
+          console.log("[Premium] Resume suggestions generated and stored");
+        } else {
+          const errorText = await resumeRes.text();
+          console.warn("[Premium] Resume suggestions failed:", resumeRes.status, errorText);
+        }
+      } else {
+        console.log("[Premium] Resume debug: Skipping resume suggestions - no fileContext or too short");
+      }
+
+      // Show the premium document
+      console.log("[Premium] About to show premium doc, resumeSuggestions will be:", premiumResumeSuggestions ? "set" : "null");
+      setShowPremiumDoc(true);
+
+    } catch (err) {
+      console.error("[Premium] Generation failed:", err);
+      setPremiumError(err.message || "Failed to generate premium document");
+    } finally {
+      setIsPremiumLoading(false);
+    }
+  }
+
   const sec = SECTIONS[currentSection];
 
   // ── Preview / landing screen ──
@@ -1956,118 +2061,46 @@ SIGNALS:
           </div>
 
           <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, marginBottom: "24px" }}>
-            This is yours. Download it or share it with a recruiter.
+            This is yours. Download the premium PDF to share with recruiters.
           </p>
 
-          {/* Tab bar */}
-          <div style={{ display: "flex", gap: 0, borderBottom: `2px solid ${BLK}`, marginBottom: 24 }} className="no-print">
-            <button
-              onClick={() => setViewMode("report")}
-              style={{
-                padding: "10px 20px",
-                fontSize: 13,
-                fontWeight: 600,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                fontFamily: FONT,
-                background: "transparent",
-                color: viewMode === "report" ? RED : GRY,
-                border: "none",
-                borderBottom: viewMode === "report" ? `2px solid ${RED}` : "2px solid transparent",
-                marginBottom: -2,
-                cursor: "pointer",
-              }}
-            >
-              Report
-            </button>
-            <button
-              onClick={() => setViewMode("markdown")}
-              style={{
-                padding: "10px 20px",
-                fontSize: 13,
-                fontWeight: 600,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                fontFamily: FONT,
-                background: "transparent",
-                color: viewMode === "markdown" ? RED : GRY,
-                border: "none",
-                borderBottom: viewMode === "markdown" ? `2px solid ${RED}` : "2px solid transparent",
-                marginBottom: -2,
-                cursor: "pointer",
-              }}
-            >
-              Markdown
-            </button>
-          </div>
-
-          {/* Content based on view mode */}
-          {viewMode === "report" ? (
-            <>
-              {/* Rendered report view */}
-              {parsedLens ? (
-                <LensReport data={parsedLens} />
-              ) : (
-                <div style={{ padding: "24px", border: `1px solid ${RULE}`, marginBottom: "24px", background: "#fafafa" }}>
-                  <p style={{ fontSize: "13px", color: GRY }}>
-                    Unable to parse lens for report view. Switch to Markdown tab to view raw content.
-                  </p>
-                </div>
-              )}
-
-              {/* Report actions */}
-              <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }} className="no-print">
-                <button onClick={() => window.print()} style={{
-                  flex: 1, padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
-                  letterSpacing: "0.1em", textTransform: "uppercase", background: BLK, color: "#fff",
-                  border: `1.5px solid ${BLK}`, cursor: "pointer", borderRadius: 0,
-                }}>
-                  Download PDF
-                </button>
-                <button onClick={() => setViewMode("markdown")} style={{
-                  flex: 1, padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
-                  letterSpacing: "0.1em", textTransform: "uppercase", background: "#fff",
-                  color: GRY, border: `1.5px solid #ddd`, cursor: "pointer", borderRadius: 0,
-                }}>
-                  View Markdown
-                </button>
-              </div>
-            </>
+          {/* Inline premium document preview */}
+          {lensDoc ? (
+            <PremiumLensDocument
+              lensMarkdown={lensDoc}
+              metadata={premiumMetadata}
+              inline={true}
+            />
           ) : (
-            <>
-              {/* Raw markdown view */}
-              <div style={{
-                padding: "24px", border: `1px solid ${RULE}`, marginBottom: "24px",
-                background: "#fafafa", maxHeight: "480px", overflowY: "auto",
-              }}>
-                <pre style={{
-                  fontFamily: "'SF Mono', 'Monaco', 'Inconsolata', 'Courier New', monospace",
-                  fontSize: "12px", lineHeight: 1.7, color: BLK, whiteSpace: "pre-wrap",
-                  wordBreak: "break-word", margin: 0,
-                }}>
-                  {lensDoc}
-                </pre>
-              </div>
-
-              {/* Markdown actions */}
-              <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
-                <button onClick={downloadMarkdown} style={{
-                  flex: 1, padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
-                  letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
-                  border: `1.5px solid ${RED}`, cursor: "pointer", borderRadius: 0,
-                }}>
-                  Download .md
-                </button>
-                <button onClick={copyToClipboard} style={{
-                  flex: 1, padding: "13px", fontFamily: FONT, fontSize: "13px", fontWeight: 600,
-                  letterSpacing: "0.1em", textTransform: "uppercase", background: "#fff",
-                  color: GRY, border: `1.5px solid #ddd`, cursor: "pointer", borderRadius: 0,
-                }}>
-                  {copyLabel}
-                </button>
-              </div>
-            </>
+            <div style={{ padding: "24px", border: `1px solid ${RULE}`, marginBottom: "24px", background: "#fafafa" }}>
+              <p style={{ fontSize: "13px", color: GRY }}>
+                Unable to load lens document.
+              </p>
+            </div>
           )}
+
+          {/* Premium PDF button */}
+          <div style={{ marginBottom: "16px" }} className="no-print">
+            <button
+              onClick={generatePremiumDoc}
+              disabled={isPremiumLoading}
+              style={{
+                width: "100%", padding: "15px", fontFamily: FONT, fontSize: "14px", fontWeight: 600,
+                letterSpacing: "0.1em", textTransform: "uppercase",
+                background: isPremiumLoading ? "#f5f5f5" : RED, color: isPremiumLoading ? GRY : "#fff",
+                border: `1.5px solid ${isPremiumLoading ? "#ddd" : RED}`,
+                cursor: isPremiumLoading ? "default" : "pointer", borderRadius: 0,
+                transition: "all 0.15s ease",
+              }}
+            >
+              {isPremiumLoading ? "Generating document..." : "Download PDF"}
+            </button>
+            {premiumError && (
+              <p style={{ fontSize: "12px", color: "#c00", marginTop: "8px" }}>
+                {premiumError}
+              </p>
+            )}
+          </div>
 
           {/* Feedback link */}
           {!reentryMode && (
@@ -2130,6 +2163,18 @@ SIGNALS:
             </button>
           )}
         </div>
+
+        {/* Premium Lens Document Modal */}
+        {showPremiumDoc && (
+          <PremiumLensDocument
+            lensMarkdown={lensDoc}
+            metadata={premiumMetadata}
+            nextSteps={premiumNextSteps}
+            resumeSuggestions={premiumResumeSuggestions}
+            hasResumeData={hasResumeData}
+            onClose={() => setShowPremiumDoc(false)}
+          />
+        )}
       </>
     );
   }
