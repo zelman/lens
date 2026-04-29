@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { getDemoCandidate, isDemoModeEnabled } from "../../config/demo-candidates";
 
-const BUILD_ID = "2026.04.28-g";
+const BUILD_ID = "2026.04.28-h";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
@@ -1387,7 +1387,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
             }}>
               <strong>Error:</strong> {lensError}
               <button
-                onClick={generateLens}
+                onClick={() => generateLens()}
                 style={{
                   display: "block",
                   marginTop: "12px",
