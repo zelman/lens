@@ -41,7 +41,7 @@
 
 **New flow:** Define role (stakeholder alignment) → Discover candidate → Score both → Client-facing deliverable
 
-Every slide showing the product flow needs to lead with the role lens as Phase 1.
+Every slide showing the product flow needs to lead with the Role Lens as Phase 1.
 
 ### G5. Value Prop Language Shift
 
@@ -112,7 +112,7 @@ Add Plum and Torre.ai to the "Assessments" cluster (bottom-right area). Keep the
 
 ### Slide 11 (WHAT'S NEXT)
 - **Change NOW:** "Role lens design and stakeholder alignment intake. Validation conversations with exec recruiters."
-- **Change Q2-Q3:** "Enterprise pilot: role lens + candidate lens for 1-2 active searches with boutique firms."
+- **Change Q2-Q3:** "Enterprise pilot: Role Lens + Candidate Lens for 1-2 active searches with boutique firms."
 
 ---
 
@@ -129,18 +129,18 @@ Add Plum and Torre.ai to the "Assessments" cluster (bottom-right area). Keep the
 - **Change:** "the academic foundation for coached discovery over surveys" → "the research that inspired our focus on extraction depth over survey-based instruments"
 
 ### Slide 4 (WHAT IT IS)
-- **Change:** Add role lens to "WHAT IT ENABLES" column
+- **Change:** Add Role Lens to "WHAT IT ENABLES" column
 - **Add first line:** "Role lens: structured stakeholder alignment that defines what the search actually requires — before any candidate enters the funnel"
 
 ### Slide 5 (CANDIDATE EXPERIENCE)
-- **Change:** Rename to "THE DISCOVERY EXPERIENCE" or keep but add context: "Shown here: candidate intake. The role lens (stakeholder alignment) happens first."
+- **Change:** Rename to "THE DISCOVERY EXPERIENCE" or keep but add context: "Shown here: candidate intake. The Role Lens (stakeholder alignment) happens first."
 
 ### Slide 9 (THE RECOMMENDED WEDGE)
 - **Major change:** Add the Perplexity v2 insight: "Your wedge is probably NOT 'better candidate understanding.' It's 'prevent expensive misalignment.'"
-- **Reframe "DISCOVERY DEPTH IS A FEATURE":** "At this price point, 45 minutes isn't friction — and the role lens session with stakeholders happens before any candidate is contacted."
+- **Reframe "DISCOVERY DEPTH IS A FEATURE":** "At this price point, 45 minutes isn't friction — and the Role Lens session with stakeholders happens before any candidate is contacted."
 
 ### Slide 10 (PRIMARY WEDGE: EXECUTIVE RECRUITING)
-- **Change positioning chart:** Add role lens as the primary offering
+- **Change positioning chart:** Add Role Lens as the primary offering
 - **Add:** "Phase 1: Role lens + stakeholder alignment. Phase 2: Candidate lenses for shortlisting."
 
 ### Slide 11 (Quadrant)
@@ -148,9 +148,9 @@ Add Plum and Torre.ai to the "Assessments" cluster (bottom-right area). Keep the
 
 ### Slide 12 (EXEC RECRUITING: THE PATH)
 - **Major change:** Resequence gates to role-lens-first
-- Gate 1: "Get one recruiter to use a role lens on an active search" (not candidate intake)
-- Gate 2: "Recruiter confirms the role lens aligned stakeholders faster than their current process"
-- Gate 3: Add candidate lens as natural extension after role lens proves value
+- Gate 1: "Get one recruiter to use a Role Lens on an active search" (not candidate intake)
+- Gate 2: "Recruiter confirms the Role Lens aligned stakeholders faster than their current process"
+- Gate 3: Add Candidate Lens as natural extension after Role Lens proves value
 
 ### Slide 16 (COMPETITIVE LANDSCAPE quadrant)
 - **Add:** Plum and Torre.ai
@@ -168,7 +168,7 @@ Add Plum and Torre.ai to the "Assessments" cluster (bottom-right area). Keep the
 - **Change:** Soften "no one" claims per G3. Replace absolute claims with differentiation claims.
 
 ### Slide 22 (FEEDBACK REQUESTED)
-- **Change Q1:** "Does the role lens / stakeholder alignment angle change how you'd evaluate the wedge?"
+- **Change Q1:** "Does the Role Lens / stakeholder alignment angle change how you'd evaluate the wedge?"
 - **Add Q:** "Does 'prevent expensive misalignment' resonate more than 'deeper identity matching' as a pitch?"
 
 ---
@@ -182,11 +182,11 @@ Add Plum and Torre.ai to the "Assessments" cluster (bottom-right area). Keep the
 - **Change:** "We replace resumes with a structured identity system..." → "We help executive search firms win and de-risk high-stakes placements through structured discovery and alignment that no ATS provides."
 
 ### Slide 3 (WHAT IT IS)
-- **Change:** Lead with role lens concept
-- **Add:** "A role lens captures what a search actually requires — through structured stakeholder alignment. A candidate lens captures who someone is — through coached AI discovery. The match works both directions."
+- **Change:** Lead with Role Lens concept
+- **Add:** "A Role Lens captures what a search actually requires — through structured stakeholder alignment. A Candidate Lens captures who someone is — through coached AI discovery. The match works both directions."
 
 ### Slide 4 (CORE INNOVATION)
-- **Change:** Show role lens as Phase 1 in the flow, candidate lens as Phase 2
+- **Change:** Show Role Lens as Phase 1 in the flow, Candidate Lens as Phase 2
 - **Add:** "Role lens is the wedge. It solves stakeholder misalignment before any candidate enters the funnel."
 
 ### Slide 5 (DIFFERENTIATION)
@@ -204,7 +204,7 @@ Add Plum and Torre.ai to the "Assessments" cluster (bottom-right area). Keep the
 - **Reframe:** Exec search revenue should be the lead revenue stream, not B2C
 
 ### Slide 8 (PATH TO REVENUE)
-- **Change:** Resequence to role lens → candidate lens → outcome data
+- **Change:** Resequence to Role Lens → Candidate Lens → outcome data
 - **Q2:** "Role lens validation with 2-3 boutique firms" instead of "Paid beta launch"
 
 ### Slide 9 (PRODUCT)

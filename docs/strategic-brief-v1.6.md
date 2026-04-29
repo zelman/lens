@@ -64,11 +64,11 @@ This is what the coaching work that originated this project calls "the Severance
 
 ### One-Sentence Definition
 
-A structured discovery and alignment layer for executive search that helps firms define what a search actually requires (role lens), discover who candidates actually are (candidate lens), and score fit in both directions — producing client-facing deliverables that prevent expensive misalignment.
+A structured discovery and alignment layer for executive search that helps firms define what a search actually requires (Role Lens), discover who candidates actually are (Candidate Lens), and score fit in both directions — producing client-facing deliverables that prevent expensive misalignment.
 
 ### The Core Thesis
 
-**Prevent expensive misalignment in high-stakes searches.** A role lens captures what a search actually requires through structured stakeholder alignment. A candidate lens captures behavioral signals — values as demonstrated through action, energy sources, communication patterns, cultural needs, disqualifiers — not just skills and experience. When both sides produce these documents, matching can operate on who people actually are, not who they claim to be. The output: win searches, save time, show rigor.
+**Prevent expensive misalignment in high-stakes searches.** A Role Lens captures what a search actually requires through structured stakeholder alignment. A Candidate Lens captures behavioral signals — values as demonstrated through action, energy sources, communication patterns, cultural needs, disqualifiers — not just skills and experience. When both sides produce these documents, matching can operate on who people actually are, not who they claim to be. The output: win searches, save time, show rigor.
 
 ### The Tagline
 
@@ -76,14 +76,14 @@ A structured discovery and alignment layer for executive search that helps firms
 
 ### Where It Lives
 
-The product lives at the client-recruiter boundary, not inside the recruiter's internal workflow. If Lens lives inside the ATS (recruiter's internal workflow), it's a feature that gets absorbed. If it lives at the client-recruiter boundary — producing client-facing deliverables — it's a product. The role lens becomes the "search brief" that looks obviously better than what firms currently produce in Word/PowerPoint. Candidate lenses become the "shortlist comparison" that clients review alongside CVs.
+The product lives at the client-recruiter boundary, not inside the recruiter's internal workflow. If Lens lives inside the ATS (recruiter's internal workflow), it's a feature that gets absorbed. If it lives at the client-recruiter boundary — producing client-facing deliverables — it's a product. The Role Lens becomes the "search brief" that looks obviously better than what firms currently produce in Word/PowerPoint. Candidate lenses become the "shortlist comparison" that clients review alongside CVs.
 
 ### Three-Sided Platform
 
 The Lens Project connects executive recruiters, candidates, and coaches:
 
-- **Executive recruiters** create role lenses through structured stakeholder alignment. They produce client-facing artifacts and score candidates against the role lens. This is the primary entry point and revenue driver.
-- **Candidates** create lens documents through AI-coached discovery. They own the file. Every opportunity they encounter gets scored against it.
+- **Executive recruiters** create Role Lenses through structured stakeholder alignment. They produce client-facing artifacts and score candidates against the Role Lens. This is the primary entry point and revenue driver.
+- **Candidates** create Lens documents through AI-coached discovery. They own the file. Every opportunity they encounter gets scored against it.
 - **Coaches** contribute their methodologies to power custom AI coaching personas. They improve discovery quality and earn revenue share. Different coaching styles serve different candidate profiles.
 
 The coach layer is a quality moat, not the primary GTM channel. The stress test confirmed the coach market is too diffuse for volume distribution.
@@ -130,7 +130,7 @@ The user sources their own opportunities. The system enriches and scores them. T
 Scored list of new opportunities from connected sources. Each opportunity includes: overall match score, dimension-by-dimension breakdown, enrichment context (company stage, funding, team size, Glassdoor sentiment), disqualifier flags, and tension notes. User actions: Pursue, Skip (with optional reason), Flag (scoring error).
 
 ### Step 7: Lens Evolution (Ongoing)
-The lens isn't static. User behavior (pursuing, skipping, flagging) teaches the system. It suggests refinements: "You've skipped 8 opportunities at companies under 50 employees. Add as disqualifier?" Append, don't overwrite — every change is dated.
+The Lens isn't static. User behavior (pursuing, skipping, flagging) teaches the system. It suggests refinements: "You've skipped 8 opportunities at companies under 50 employees. Add as disqualifier?" Append, don't overwrite — every change is dated.
 
 ---
 
@@ -188,7 +188,7 @@ Same format (YAML frontmatter + markdown body) but from the company's perspectiv
 
 **Other formats:** HR-XML (now HR Open Standards) is an enterprise data exchange format for HR systems. The Europass digital credential standard is used in Europe. Both are resume/credential focused, not identity/fit focused. Schema.org has a Person type but nothing standardized for what the lens captures.
 
-**The gap is real:** No open, standardized format exists for structured professional identity data. JSON Resume proved there's appetite for portable, structured career data. A "lens schema" that extends this concept to include values, signals, scoring weights, and disqualifiers would be genuinely novel.
+**The gap is real:** No open, standardized format exists for structured professional identity data. JSON Resume proved there's appetite for portable, structured career data. A "Lens schema" that extends this concept to include values, signals, scoring weights, and disqualifiers would be genuinely novel.
 
 ---
 
@@ -253,7 +253,7 @@ Same format (YAML frontmatter + markdown body) but from the company's perspectiv
 
 #### The Predictive Index (PI)
 - **What they are:** $102M revenue, 447 employees, 8K customers across 142 countries. Cognitive + behavioral assessments mapped to "reference profiles" (e.g., "Maverick," "Strategist"). Founded 1955; decades of accumulated psychometric validation studies.
-- **What they do well:** Canonical trait-measurement incumbent with a real moat — published validation evidence, established enterprise trust, and deep channel penetration in retained search (Caldwell Partners is PI's largest certified partner worldwide; other certified partners include Renée Vincent, Shulman Associates, Ascent Select). PI Job Assessment is the closest functional analog to the role lens.
+- **What they do well:** Canonical trait-measurement incumbent with a real moat — published validation evidence, established enterprise trust, and deep channel penetration in retained search (Caldwell Partners is PI's largest certified partner worldwide; other certified partners include Renée Vincent, Shulman Associates, Ascent Select). PI Job Assessment is the closest functional analog to the Role Lens.
 - **What they don't do:** Outputs are assessment verdicts — trait graphs tied to reference profile labels, not narrative identity. No portable candidate-owned document. No coaching layer. No bidirectional role-specific depth that ties stakeholder alignment to a client-facing artifact. The canonical assessment-verdict model Lens deliberately rejects.
 - **Positioning vs. Lens:** Not competing on trait measurement — that ground is covered. Lens adds the narrative layer PI structurally doesn't produce, plus the candidate-owned artifact and bidirectional role-specific scoring. For PI-certified firms, Lens is additive. For non-certified boutiques, Lens is the wedge.
 
@@ -332,7 +332,7 @@ Same format (YAML frontmatter + markdown body) but from the company's perspectiv
 #### Textkernel (Bimetric Scoring)
 - **What they are:** Enterprise talent intelligence platform with "bimetric scoring" — bidirectional matching that scores candidates against roles AND roles against candidates simultaneously.
 - **How it works:** Scores are based on symmetric skills dimensions. Both sides of the match use the same skill taxonomy.
-- **What they don't do:** Skills-only foundation — no identity signals, values, energy, culture, or disqualifiers. Symmetric dimensions (same axes for both sides) vs. Lens's asymmetric architecture (candidate lens and role lens use the same 6 dimension categories but with mirrored, role-appropriate signals within each). No coaching layer. No portable document.
+- **What they don't do:** Skills-only foundation — no identity signals, values, energy, culture, or disqualifiers. Symmetric dimensions (same axes for both sides) vs. Lens's asymmetric architecture (Candidate Lens and Role Lens use the same 6 dimension categories but with mirrored, role-appropriate signals within each). No coaching layer. No portable document.
 - **Why it matters:** Textkernel proves the bidirectional matching concept has enterprise traction. The differentiation question is whether identity-signal matching produces meaningfully better outcomes than skills-only matching. This is the empirical question Lens needs to answer.
 
 ### Competitive Matrix Summary
@@ -340,7 +340,7 @@ Same format (YAML frontmatter + markdown body) but from the company's perspectiv
 | Capability | Jack & Jill | Plum | Torre.ai | Ashby | PI | Pymetrics/Bryq | Harver | Eightfold | Textkernel | The Lens |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Deep candidate profiling | Shallow (20 min) | Standardized | 112-factor | No | Trait graph | Yes (tests) | Yes (tests) | Yes (skills) | No | **Yes (coached)** |
-| Deep company/role profiling | No | No | No | No | Job Assessment | No | Partial (human) | No | No | **Yes (role lens)** |
+| Deep company/role profiling | No | No | No | No | Job Assessment | No | Partial (human) | No | No | **Yes (Role Lens)** |
 | Portable candidate document | No | No | No | No | No | No | No | No | No | **Yes (.md file)** |
 | Coach-driven quality | No | No | No | No | No | No | Partial (I/O psych) | No | No | **Yes (personas)** |
 | Tension/risk mapping | No | No | No | No | No | No | No | No | No | **Yes** |
@@ -359,7 +359,7 @@ Same format (YAML frontmatter + markdown body) but from the company's perspectiv
 
 Every other tool in the market creates data that lives on their platform. Candidate profiles in Jack & Jill's database. Assessment scores in Bryq's system. Pipeline records in Ashby's ATS. The user never sees, controls, or owns this data.
 
-The lens is a file the candidate owns. A .md file with YAML frontmatter. It's portable. It works independently of the platform. If the Lens Project shuts down tomorrow, the user still has their structured professional identity document. They can share it with a recruiter, print it before an interview, use it as the basis for their LinkedIn rewrite, or feed it to any other system.
+The Lens is a file the candidate owns. A .md file with YAML frontmatter. It's portable. It works independently of the platform. If the Lens Project shuts down tomorrow, the user still has their structured professional identity document. They can share it with a recruiter, print it before an interview, use it as the basis for their LinkedIn rewrite, or feed it to any other system.
 
 This is the JSON Resume model applied to professional identity, not just work history.
 
@@ -372,7 +372,7 @@ Every platform profiles candidates deeply and companies shallowly (or not at all
 - What values look like in practice, with behavioral evidence
 - What would make someone quit this role in 6 months
 
-The role lens captures this. The matching engine scores both documents against each other. The output isn't "you're a match" — it's a compatibility briefing that includes predicted tension points.
+The Role Lens captures this. The matching engine scores both documents against each other. The output isn't "you're a match" — it's a compatibility briefing that includes predicted tension points.
 
 ### 3. Coach-Driven Quality as Structural Moat
 
@@ -382,7 +382,7 @@ The coach layer ensures the lens contains behavioral evidence, not aspirational 
 
 **Academic inspiration:** Oh, Wang & Mount (2011, *Journal of Applied Psychology* 96:4) demonstrated that observer ratings of personality predict job performance significantly better than self-report ratings. This research inspired Lens's focus on extraction depth: if the quality of how you capture identity signals matters, coached conversational discovery should produce richer, more structured signal than standardized self-report instruments (Plum, DISC, StrengthsFinder).
 
-**Honest framing:** What the lens produces today is higher-resolution structured self-report — not observer-grade assessment. The AI has no independent behavioral history; it's categorizing what the candidate says about themselves through a coaching-informed process. The roadmap includes adding external observer signals (references, peer input, prior manager feedback) to move toward genuine observer-grade validity. A validation study (lens scores vs. supervisor ratings vs. performance outcomes) is planned as a Phase 3 milestone.
+**Honest framing:** What the Lens produces today is higher-resolution structured self-report — not observer-grade assessment. The AI has no independent behavioral history; it's categorizing what the candidate says about themselves through a coaching-informed process. The roadmap includes adding external observer signals (references, peer input, prior manager feedback) to move toward genuine observer-grade validity. A validation study (lens scores vs. supervisor ratings vs. performance outcomes) is planned as a Phase 3 milestone.
 
 This distinction matters: "built on observer-validity research" is an overclaim. "Inspired by observer-validity research, with a roadmap to incorporate external signals" is honest and defensible.
 
@@ -394,9 +394,9 @@ A candidate who scores high on autonomy matched with a company that scores high 
 
 ### 5. Accumulation Over Time
 
-Resumes depreciate. A lens appreciates. The append-don't-overwrite philosophy means the lens becomes a longitudinal record. Your first lens captures who you are now. Six months later, after you've taken a role, it grows: what you learned, what shifted, what you'd now disqualify. User behavior (pursuing, skipping, flagging scored opportunities) continuously refines the scoring.
+Resumes depreciate. A Lens appreciates. The append-don't-overwrite philosophy means the lens becomes a longitudinal record. Your first lens captures who you are now. Six months later, after you've taken a role, it grows: what you learned, what shifted, what you'd now disqualify. User behavior (pursuing, skipping, flagging scored opportunities) continuously refines the scoring.
 
-On the company side, the same principle applies. A role lens updated after a reorg, leadership transition, or cultural shift shows trajectory: "this company valued autonomy in 2025 but added process layers in 2026."
+On the company side, the same principle applies. A Role Lens updated after a reorg, leadership transition, or cultural shift shows trajectory: "this company valued autonomy in 2025 but added process layers in 2026."
 
 ### 6. Bring Your Own Sources
 
@@ -420,7 +420,7 @@ Technology defensibility is rated 3–4/10 by independent stress testing (4 AI m
 
 ### What Is NOT a Moat (Updated)
 
-- **Portability.** "We allow export" is trivially copyable. Portability only becomes a moat if the lens schema becomes a de facto standard that other platforms integrate with or the document accumulates networked data (endorsements, outcomes, recruiter notes).
+- **Portability.** "We allow export" is trivially copyable. Portability only becomes a moat if the Lens schema becomes a de facto standard that other platforms integrate with or the document accumulates networked data (endorsements, outcomes, recruiter notes).
 - **The conversation itself.** A conversational intake powered by any LLM is one sprint of work. The end-to-end workflow + client-facing artifact + analytics is harder, but the conversation alone is not defensible.
 - **Coach network lock-in.** Coaches improve quality, but the coach market is too diffuse for volume distribution. Coaches are a quality moat, not a distribution moat.
 
@@ -436,7 +436,7 @@ Technology defensibility is rated 3–4/10 by independent stress testing (4 AI m
 
 **V5: Data quality at scale.** The garbage-in-garbage-out concern is existential. If the AI-only lens (free tier) produces documents indistinguishable from personality quizzes, the format loses credibility before coaches can elevate it. The AI prompt engineering for push-back behavior is the critical quality lever at launch.
 
-**V6: The credit reporting problem.** Unless employers adopt the lens format, candidates are still forced to submit traditional resumes through ATS. The lens has standalone utility (scoring against existing job postings, interview prep, self-knowledge), but the full marketplace vision requires employer adoption. The path from "tool for candidates" to "infrastructure for hiring" requires a bridge — and that bridge may be longer than anticipated.
+**V6: The credit reporting problem.** Unless employers adopt the Lens format, candidates are still forced to submit traditional resumes through ATS. The lens has standalone utility (scoring against existing job postings, interview prep, self-knowledge), but the full marketplace vision requires employer adoption. The path from "tool for candidates" to "infrastructure for hiring" requires a bridge — and that bridge may be longer than anticipated.
 
 **V7: Source coverage determines daily briefing quality.** The bring-your-own-sources model is capital-efficient but puts setup burden on the user. If someone's lens says "large enterprise, public sector" and they can't easily find RSS feeds for those opportunities, the briefing is empty. The system is only as useful as the sources the user connects.
 
@@ -458,7 +458,7 @@ Technology defensibility is rated 3–4/10 by independent stress testing (4 AI m
 
 ### Long-Term Value (As the Marketplace Develops)
 
-6. **Bidirectional matching.** When companies create role lenses, the candidate sees not just "this job matches you" but "here's how it matches, here's where it doesn't, and here's what will be hard."
+6. **Bidirectional matching.** When companies create Role Lenses, the candidate sees not just "this job matches you" but "here's how it matches, here's where it doesn't, and here's what will be hard."
 
 7. **The lens appreciates over time.** Every job the user pursues, skips, or flags refines the scoring. Every career transition adds a dated layer. The document becomes a longitudinal record of professional growth.
 
@@ -476,15 +476,15 @@ Bad hires cost 3-5x annual salary in direct costs (recruiting, onboarding, separ
 
 1. **Pre-profiled candidates with behavioral evidence.** Instead of evaluating resumes (what someone says they've done), companies see structured identity data grounded in coach-facilitated discovery (who someone actually is).
 
-2. **Role lens as honest self-assessment.** The role lens creation process forces companies to articulate what actually matters in a role — beyond the job description. This alone often reveals disconnects between what the hiring manager wants and what the posted JD says.
+2. **Role lens as honest self-assessment.** The Role Lens creation process forces companies to articulate what actually matters in a role — beyond the job description. This alone often reveals disconnects between what the hiring manager wants and what the posted JD says.
 
 3. **Compatibility briefings, not applicant rankings.** The output shows fit, compatibility, AND predicted tensions. Both sides enter the relationship with clear eyes. This reduces first-year attrition.
 
-4. **Quality of hire measurement.** The lens scoring provides a baseline prediction that can be compared to actual post-hire outcomes, creating a feedback loop that improves hiring over time.
+4. **Quality of hire measurement.** The Lens scoring provides a baseline prediction that can be compared to actual post-hire outcomes, creating a feedback loop that improves hiring over time.
 
 ### The Adoption Bridge
 
-At launch, companies don't need to change anything about their process. The lens operates as a sourcing channel: pre-profiled candidates whose compatibility is already scored. The company accesses this alongside their existing ATS, not instead of it. Over time, companies that create role lenses get better matches. The incentive to participate grows as the candidate lens database grows.
+At launch, companies don't need to change anything about their process. The lens operates as a sourcing channel: pre-profiled candidates whose compatibility is already scored. The company accesses this alongside their existing ATS, not instead of it. Over time, companies that create Role Lenses get better matches. The incentive to participate grows as the Candidate Lens database grows.
 
 **Update (April 7, 2026):** Validation feedback from a retired Goldman Sachs partner (30+ years, COO Human Capital Management, Chief Diversity Officer) narrows the company-side thesis. The time investment of deep discovery is only justified for high-stakes hires ($300K+/board-level) where a mis-hire is catastrophic and search fees already run $50K-100K. For volume hiring, speed wins over depth. Two tractable company-side entry points:
 
@@ -499,7 +499,7 @@ At launch, companies don't need to change anything about their process. The lens
 
 Career coaching produces clarity. But clarity without a concrete artifact is invisible. Clients struggle to articulate what coaching gave them. Referrals depend on vibes, not evidence.
 
-When coaching produces a functional lens document that governs daily job scoring, the outcome becomes concrete and measurable. The client walks away with a file that actively works for them every day. That's the ROI story coaches have never had.
+When coaching produces a functional Lens document that governs daily job scoring, the outcome becomes concrete and measurable. The client walks away with a file that actively works for them every day. That's the ROI story coaches have never had.
 
 ### Scalable Methodology
 
@@ -520,7 +520,7 @@ The Lens Project is "Spotify for coaching methodologies." The platform doesn't d
 ## 11. Go-to-Market Strategy
 
 ### Phase 1: Ship the Free Tool (Weeks 1-4) — COMPLETE
-AI lens creation tool deployed on Vercel (serverless proxy architecture). Full 8-section discovery flow with live Claude API integration. Session persistence. 5-category file upload. Feedback form deployed separately. Tester cohort active, with multiple testers having completed the full flow and submitted structured feedback. Three tester-driven fixes shipped: bias in discovery prompts toward the founder's profile, redundant questioning across sections, and missing privacy disclosure at flow start. Post-guardrails version deployed with single-question constraint and improved discovery quality.
+AI Lens creation tool deployed on Vercel (serverless proxy architecture). Full 8-section discovery flow with live Claude API integration. Session persistence. 5-category file upload. Feedback form deployed separately. Tester cohort active, with multiple testers having completed the full flow and submitted structured feedback. Three tester-driven fixes shipped: bias in discovery prompts toward the founder's profile, redundant questioning across sections, and missing privacy disclosure at flow start. Post-guardrails version deployed with single-question constraint and improved discovery quality.
 
 ### Phase 2: Distribution & Learning (Weeks 4-12) — IN PROGRESS
 Content marketing around "the indelible you" thesis. LinkedIn launch post (personal story, pending). Advisor C-level network activation (contingent on formalization). Coach network seeding. Core narrative v1.1 built as single source for all positioning materials.
@@ -538,15 +538,15 @@ Content marketing around "the indelible you" thesis. LinkedIn launch post (perso
 The stress test consensus (4 AI models) confirmed: the wedge into exec search is NOT "help me understand this candidate better." It's "help the five partners at this firm agree on what they're actually looking for — and produce a client-facing artifact that's obviously better than the Word doc they currently send."
 
 **Role lens first:**
-- Gate 1: Get one recruiter to use a role lens on an active search
-- Gate 2: Recruiter confirms the role lens aligned stakeholders faster than their current process
-- Gate 3: Add candidate lens as natural extension after role lens proves value
+- Gate 1: Get one recruiter to use a Role Lens on an active search
+- Gate 2: Recruiter confirms the Role Lens aligned stakeholders faster than their current process
+- Gate 3: Add Candidate Lens as natural extension after Role Lens proves value
 
 **First customer profile (from stress test):** 10–20 person retained boutique, sector-focused (B2B SaaS, healthcare, PE-backed portfolio cos), 20–60 C-level searches/year, $150–250K average fee. Uses Invenias or Clockwork plus spreadsheets. Prides themselves on white-glove discovery. Under pressure from PE/board clients to show more "rigor."
 
 **Trigger event:** A high-profile mis-hire post-mortem, or a competitive pitch where the firm fears losing to a bigger firm touting proprietary psychometrics.
 
-**Pricing:** $2–5K per search (1 role lens + N candidate lenses + client-facing reporting). Evolve to firm-level subscriptions ($30–80K/year) as proof of value accumulates. At $4K/search across 2,500 searches/year = $10M ARR.
+**Pricing:** $2–5K per search (1 Role Lens + N Candidate Lenses + client-facing reporting). Evolve to firm-level subscriptions ($30–80K/year) as proof of value accumulates. At $4K/search across 2,500 searches/year = $10M ARR.
 
 **Two tractable entry paths:**
 - **Executive recruiter channel (primary):** Exec recruiters placing senior candidates ($300K+) are the natural buyer. Founder-led consultative sales. This is services-adjacent SaaS — think "Bloomberg Terminal for exec search" — not a self-serve PLG motion.
@@ -559,7 +559,7 @@ More coaches → better discovery → higher quality lenses → more valuable to
 
 ### Strategic Note: Role Lens First (April 2026 — Post-Stress Test)
 
-The weight of stress test evidence (4 independent AI models) confirmed a clear resequencing: **lead with the role lens and stakeholder alignment, not candidate identity extraction.** The consumer-first signal that emerged from founding-coach feedback (3/30/26) and senior-HR-executive validation (4/7/26) is real — self-directed consumer use is validated. But the enterprise entry point is sharper than originally assumed: the role lens solves an immediate, visible pain (stakeholder misalignment) that ties directly to revenue risk for the buyer. Consumer use continues as the free tier and methodology demonstration, but the primary GTM motion is founder-led consultative sales to retained boutiques.
+The weight of stress test evidence (4 independent AI models) confirmed a clear resequencing: **lead with the Role Lens and stakeholder alignment, not candidate identity extraction.** The consumer-first signal that emerged from founding-coach feedback (3/30/26) and senior-HR-executive validation (4/7/26) is real — self-directed consumer use is validated. But the enterprise entry point is sharper than originally assumed: the Role Lens solves an immediate, visible pain (stakeholder misalignment) that ties directly to revenue risk for the buyer. Consumer use continues as the free tier and methodology demonstration, but the primary GTM motion is founder-led consultative sales to retained boutiques.
 
 SquarePeg's lesson, confirmed by all 4 stress test models: buyers pay for less work, better optics, and deal-winning — not better judgment. Recruiters believe their judgment IS the product. Every pitch must lead with one of these: time saved, rigor demonstrated, or searches won.
 
@@ -616,7 +616,7 @@ Phase 2 native integrations are prioritized by actual user source data: if 300 o
 
 | Stream | Price | Function |
 |---|---|---|
-| Exec Search (B2B) | $2–5K per search | 1 role lens + N candidate lenses + client-facing deliverable. Primary revenue. |
+| Exec Search (B2B) | $2–5K per search | 1 Role Lens + N Candidate Lenses + client-facing deliverable. Primary revenue. |
 | Firm Subscription (B2B) | $30–80K/year | Unlimited searches. Evolution of per-search as value proven. |
 | Free AI Lens | $0 | Full 8-section discovery. Distribution + methodology demonstration. |
 | Consumer Pipeline | $50/month | Scored daily briefings. Secondary to exec search revenue. |
@@ -629,7 +629,7 @@ At $4K/search across 2,500 searches/year = $10M ARR. The $10M path is plausible 
 
 ### Unit Economics (Estimated)
 
-- **Free lens creation cost:** ~$0.50-1.00 (Claude API for 20-40 min discovery)
+- **Free Lens creation cost:** ~$0.50-1.00 (Claude API for 20-40 min discovery)
 - **Scoring cost per opportunity:** ~$0.05-0.10 (Claude API for enrichment + scoring)
 - **Active user cost:** ~$3-5/month (scoring 50-100 opportunities/month + enrichment)
 - **Coach platform margin:** High (SaaS, no marginal cost per lens beyond API)
@@ -669,7 +669,7 @@ This is a pre-revenue raise. Year 1 revenue offsets costs slightly but does not 
 - 5-person team: Eric (product), Nathan (business — contingent, no formal commitment as of April 2026), full-stack engineer, ML/AI engineer, fractional designer
 - Sophisticated multi-channel intake engine
 - Multiple coach personas
-- Company-side role lens
+- Company-side Role Lens
 - Matching engine
 - Infrastructure to scale
 
@@ -698,17 +698,17 @@ This is a pre-revenue raise. Year 1 revenue offsets costs slightly but does not 
 
 ### 12-Month Milestones (at $750K)
 
-- 3,000+ candidate lenses created
+- 3,000+ Candidate Lenses created
 - 5 coach personas live
 - 170 coach-facilitated lenses
 - 15 companies engaged
-- 6 role lenses + first matches scored
+- 6 Role Lenses + first matches scored
 - Position to raise Seed / Series A
 
 ### Key People & Equity
 
 - **Founder/Product:** Full-time. Zelman Labs LLC filed (RI).
-- **Founding Advisor/BD (in discussion):** 2-3% equity with milestone-based vesting tied to companies engaged, role lenses created, investor intros. No salary. NDA pending.
+- **Founding Advisor/BD (in discussion):** 2-3% equity with milestone-based vesting tied to companies engaged, Role Lenses created, investor intros. No salary. NDA pending.
 - **Founding Coach (in discussion):** 1-2% founding equity + 15-25% revenue share on every lens the coach's persona produces. IP license, not assignment — methodology remains with the coach. NDA pending.
 - **Potential Co-Builder (in discussion):** Role and terms TBD. Has contributed strategic reframing (bidirectional matching, enterprise hiring) and persona testing. No formal commitment as of April 2026. Budget line item of $120K is contingent on formalization.
 - **Total advisor/coach equity:** 3-5%, leaving 75-80% for founders and 15-20% for investors.
@@ -733,7 +733,7 @@ This is a pre-revenue raise. Year 1 revenue offsets costs slightly but does not 
 
 6. **Coach recruitment at scale.** The thesis depends on building a diverse roster of coaching styles. How do you recruit coach #6-20 when the first 5 are personal network connections? Is there a scalable coach acquisition channel?
 
-7. **Enterprise sales vs. self-serve.** Companies don't self-serve on $2,500 role lens creation. This requires sales. Who sells? Nathan? Todd? At what cost per acquisition?
+7. **Enterprise sales vs. self-serve.** Companies don't self-serve on $2,500 Role Lens creation. This requires sales. Who sells? Nathan? Todd? At what cost per acquisition?
 
 8. **International applicability.** The coaching frameworks, cultural dimensions, and hiring norms in this plan are US/Western-centric. How does the lens translate to hiring in India, Japan, Germany, or Brazil?
 
@@ -741,7 +741,7 @@ This is a pre-revenue raise. Year 1 revenue offsets costs slightly but does not 
 
 9. **Defensibility timeline.** How long before a well-funded competitor (Jack & Jill, Eightfold, or a new entrant) can replicate the coach persona concept? 6 months? 12 months? What's the minimum coach network size that constitutes a defensible moat?
 
-10. **The "and then what" beyond the daily briefing.** The daily briefing is the immediate value. But what's the endgame? Is this a tool company (SaaS), a marketplace (network effects), or a data company (lens corpus as asset)? The answer affects every strategic decision.
+10. **The "and then what" beyond the daily briefing.** The daily briefing is the immediate value. But what's the endgame? Is this a tool company (SaaS), a marketplace (network effects), or a data company (Lens corpus as asset)? The answer affects every strategic decision.
 
 11. **Candidate willingness to pay.** The free tool is distribution. But will candidates pay $49-149 for a coach-facilitated lens? What's the evidence that this price point works for career development products?
 
@@ -753,9 +753,9 @@ This is a pre-revenue raise. Year 1 revenue offsets costs slightly but does not 
 
 14. **Enterprise thesis partially validated — but narrower than assumed.** A founding coach partner (3/30/26) challenged the assumption that companies want precision over volume. **A retired Goldman Sachs partner (4/7/26, 30+ years, COO Human Capital Management, Chief Diversity Officer)** confirmed the risk: deep discovery is only justified for **$300K+/board-level hires** where a mis-hire is catastrophic. For volume hiring, speed wins. She identified **executive recruiters** — not HR, not coaches — as the likely buyer, since they're the ones placing high-stakes candidates where fit-at-depth matters. She also flagged the coach market as too diffuse for volume distribution. **Implication:** The enterprise wedge is real but narrower and higher-end than the original thesis assumed. Internal mobility (where the person is already known and the cost of a bad internal move is retention loss) may be more tractable than external hiring at scale. **Still to validate with senior hiring-manager contacts in the pipeline.**
 
-15. **Gaming and performative answers.** If an employer mandated lens creation for applicants, the instinct to give performative answers would be strong — the same optimization behavior that makes resumes shallow. Multi-source cross-referencing and coaching methodology mitigate this, but intrinsic motivation (self-directed use where shallow input costs you real opportunities) is the real anti-gaming mechanism. The employer-mandated use case is structurally weaker than the self-directed use case. Strongest employer path may be internal mobility (where the employee is motivated) rather than external screening.
+15. **Gaming and performative answers.** If an employer mandated Lens creation for applicants, the instinct to give performative answers would be strong — the same optimization behavior that makes resumes shallow. Multi-source cross-referencing and coaching methodology mitigate this, but intrinsic motivation (self-directed use where shallow input costs you real opportunities) is the real anti-gaming mechanism. The employer-mandated use case is structurally weaker than the self-directed use case. Strongest employer path may be internal mobility (where the employee is motivated) rather than external screening.
 
-16. **Product center of gravity resequenced to role-lens-first (post-stress test).** The stress test synthesis (4 AI models, 2 prompt versions) unanimously agreed: lead with the role lens and stakeholder alignment, not candidate identity extraction. The wedge into exec search is NOT "help me understand this candidate better." It's "help the five partners at this firm agree on what they're actually looking for — and produce a client-facing artifact that's obviously better than the Word doc they currently send." Consumer self-directed use remains validated (founding-coach feedback, tester feedback) but is now positioned as the free tier/methodology demonstration, not the primary GTM motion. The first customer is a 10–20 person retained boutique, post-mis-hire trigger or competitive pitch pressure.
+16. **Product center of gravity resequenced to role-lens-first (post-stress test).** The stress test synthesis (4 AI models, 2 prompt versions) unanimously agreed: lead with the Role Lens and stakeholder alignment, not candidate identity extraction. The wedge into exec search is NOT "help me understand this candidate better." It's "help the five partners at this firm agree on what they're actually looking for — and produce a client-facing artifact that's obviously better than the Word doc they currently send." Consumer self-directed use remains validated (founding-coach feedback, tester feedback) but is now positioned as the free tier/methodology demonstration, not the primary GTM motion. The first customer is a 10–20 person retained boutique, post-mis-hire trigger or competitive pitch pressure.
 
 17. **Oh/Wang/Mount overclaim flagged (post-stress test).** All 4 stress test models unanimously flagged the claim that a 45-minute AI conversation produces "observer-informed" data as overstated. The AI has no independent behavioral history — it's categorizing what the candidate says about themselves. Reframed from "exact foundation" to "inspired." Validation study planned for Phase 3. This reframe is critical for credibility with academically informed buyers.
 
@@ -767,25 +767,25 @@ This is a pre-revenue raise. Year 1 revenue offsets costs slightly but does not 
 
 When reviewing this document, please specifically challenge these assumptions:
 
-1. **"Coach-facilitated discovery produces meaningfully better lens documents than AI-only."** This is the foundational assumption. If it's wrong, the entire coach-as-quality-moat strategy collapses. **Partial evidence:** Oh, Wang & Mount (2011, JAP 96:4) found that observer ratings of personality predict job performance significantly better than self-report. A coach functioning as an informed observer during discovery is the mechanism by which coached lenses would outperform self-directed ones. However, this study used human observers, not AI personas trained on coaching methodology — the transfer assumption remains untested. **Stress test note:** All 4 models flagged the claim that a 45-minute AI conversation produces "observer-informed" data as a stretch. The AI has no independent behavioral history — it's categorizing what the candidate says about themselves. This is structured, conversational self-report, not observer-rated assessment. Reframe as inspiration, not validation. **Resolution needed:** Run 5+ tester sessions comparing Lens output quality to a simple GPT-4o interview (no coaching methodology). If there's no measurable difference in signal richness, the methodology claim is hollow.
+1. **"Coach-facilitated discovery produces meaningfully better Lens documents than AI-only."** This is the foundational assumption. If it's wrong, the entire coach-as-quality-moat strategy collapses. **Partial evidence:** Oh, Wang & Mount (2011, JAP 96:4) found that observer ratings of personality predict job performance significantly better than self-report. A coach functioning as an informed observer during discovery is the mechanism by which coached lenses would outperform self-directed ones. However, this study used human observers, not AI personas trained on coaching methodology — the transfer assumption remains untested. **Stress test note:** All 4 models flagged the claim that a 45-minute AI conversation produces "observer-informed" data as a stretch. The AI has no independent behavioral history — it's categorizing what the candidate says about themselves. This is structured, conversational self-report, not observer-rated assessment. Reframe as inspiration, not validation. **Resolution needed:** Run 5+ tester sessions comparing Lens output quality to a simple GPT-4o interview (no coaching methodology). If there's no measurable difference in signal richness, the methodology claim is hollow.
 
 2. **"Candidates will invest 20-40 minutes in self-discovery."** Jack & Jill does 20 minutes. Personality quizzes take 5-10 minutes. Is 40 minutes too much friction? Is there a minimum viable discovery time?
 
-3. **"Companies will pay for role lenses."** At $2,500 per role, this is a premium product. What's the evidence that companies will pay for structured self-assessment when they can post a job description for free? **Senior HR validation signal (4/7/26, retired Goldman Sachs partner, 30+ years):** The time investment is only justified for $300K+/board-level hires. At that level, $2,500 is trivial relative to search fees ($50K-100K). Below that level, speed wins. The buyer may be the exec recruiter, not the company directly.
+3. **"Companies will pay for Role Lenses."** At $2,500 per role, this is a premium product. What's the evidence that companies will pay for structured self-assessment when they can post a job description for free? **Senior HR validation signal (4/7/26, retired Goldman Sachs partner, 30+ years):** The time investment is only justified for $300K+/board-level hires. At that level, $2,500 is trivial relative to search fees ($50K-100K). Below that level, speed wins. The buyer may be the exec recruiter, not the company directly.
 
 4. **"The bring-your-own-sources model is sufficient at launch."** If source setup is too burdensome, the daily briefing never activates. What percentage of users will successfully connect sources? What's the minimum number of sources for a useful briefing?
 
-5. **"The lens format will gain adoption as a standard."** JSON Resume has existed for years and hasn't replaced the PDF resume. What makes the lens format more likely to achieve adoption?
+5. **"The Lens format will gain adoption as a standard."** JSON Resume has existed for years and hasn't replaced the PDF resume. What makes the Lens format more likely to achieve adoption?
 
 6. **"Signal matching produces better hiring outcomes than keyword matching."** This is intuitively compelling but empirically unproven at scale. What would a controlled study look like? How long before you have enough data to prove (or disprove) this?
 
-7. **"The three-sided marketplace will achieve equilibrium."** Candidates need coaches and companies. Coaches need candidates and platform revenue. Companies need candidate lenses. Each side's value depends on the other two. What's the minimum viable size for each side?
+7. **"The three-sided marketplace will achieve equilibrium."** Candidates need coaches and companies. Coaches need candidates and platform revenue. Companies need Candidate Lenses. Each side's value depends on the other two. What's the minimum viable size for each side?
 
 8. **"Coaches will license their methodology to an AI system."** This requires coaches to trust that their IP is protected and that the AI won't replace them. What's the evidence that coaches will make this leap? What happens when a coach persona produces a lens that the coach disagrees with?
 
 9. **"The daily briefing is more valuable than existing job alerts."** The briefing is scored and enriched, but it depends on user-provided sources and best-effort enrichment. Under what conditions is the briefing actually better than a well-configured Indeed alert?
 
-10. **"$750K is enough to prove the thesis in 12 months."** The plan requires hiring 4 people, building a sophisticated intake engine, onboarding 5 coaches, engaging 15 companies, and processing 3,000+ lens creations. Is this achievable? What gets cut if it's not?
+10. **"$750K is enough to prove the thesis in 12 months."** The plan requires hiring 4 people, building a sophisticated intake engine, onboarding 5 coaches, engaging 15 companies, and processing 3,000+ Lens creations. Is this achievable? What gets cut if it's not?
 
 ---
 
@@ -801,4 +801,4 @@ I'm asking reviewers of this document to:
 
 ---
 
-*v1.6 updated April 22, 2026. Incorporates LLM stress test synthesis (4 models, 2 prompt versions) producing 8 confirmed strategic pivots: Oh/Wang/Mount reframed as inspiration (not validation), role lens leads product (not candidate lens), value prop is "prevent expensive misalignment" (not "deeper identity matching"), product lives at client-recruiter boundary (not inside ATS), moat is process embedding + outcome data (not technology + portability), buyer pitch is "win searches, save time, show rigor" (not "better judgment"), pricing is per-search $2–5K (not per-seat SaaS), first customer is 10–20 person retained boutique (not "executive recruiters" broadly). Also incorporates competitive research (Predictive Index added as dominant retained-search incumbent in v1.5, alongside 16+ competitors already profiled), tester feedback, founding-coach strategic feedback (3/30/26), senior-HR-executive validation (4/7/26, retired Goldman Sachs partner), company formation (Zelman Labs LLC), NSF SBIR pathway, and honest gap analysis. Provisional patent filed App #64/015,187. v1.5 scrubbed named private-network individuals for distribution safety. v1.6 audit pass softens one empirical-prevalence claim and strikes one fabricated claim about PI channel penetration. It is intended for critical review, not advocacy.*
+*v1.6 updated April 22, 2026. Incorporates LLM stress test synthesis (4 models, 2 prompt versions) producing 8 confirmed strategic pivots: Oh/Wang/Mount reframed as inspiration (not validation), Role Lens leads product (not Candidate Lens), value prop is "prevent expensive misalignment" (not "deeper identity matching"), product lives at client-recruiter boundary (not inside ATS), moat is process embedding + outcome data (not technology + portability), buyer pitch is "win searches, save time, show rigor" (not "better judgment"), pricing is per-search $2–5K (not per-seat SaaS), first customer is 10–20 person retained boutique (not "executive recruiters" broadly). Also incorporates competitive research (Predictive Index added as dominant retained-search incumbent in v1.5, alongside 16+ competitors already profiled), tester feedback, founding-coach strategic feedback (3/30/26), senior-HR-executive validation (4/7/26, retired Goldman Sachs partner), company formation (Zelman Labs LLC), NSF SBIR pathway, and honest gap analysis. Provisional patent filed App #64/015,187. v1.5 scrubbed named private-network individuals for distribution safety. v1.6 audit pass softens one empirical-prevalence claim and strikes one fabricated claim about PI channel penetration. It is intended for critical review, not advocacy.*

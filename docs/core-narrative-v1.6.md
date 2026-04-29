@@ -31,15 +31,15 @@ The structural gap: no existing tool collects the data that would make better ma
 
 A lens is a structured document that captures professional identity — or role requirements — at a level that resumes, job descriptions, and standardized assessments never reach.
 
-**A role lens** captures what a search actually requires through structured stakeholder alignment. It surfaces the trade-offs — leadership style, team dynamics, growth stage demands, cultural non-negotiables — that five partners argue about in a room. It produces a client-facing artifact that's obviously better than the Word document they currently send. The role lens is where the product enters: it solves an immediate, visible pain (late-stage "this candidate isn't the right kind of leader" surprise) and ties directly to revenue risk for the search firm.
+**A Role Lens** captures what a search actually requires through structured stakeholder alignment. It surfaces the trade-offs — leadership style, team dynamics, growth stage demands, cultural non-negotiables — that five partners argue about in a room. It produces a client-facing artifact that's obviously better than the Word document they currently send. The Role Lens is where the product enters: it solves an immediate, visible pain (late-stage "this candidate isn't the right kind of leader" surprise) and ties directly to revenue risk for the search firm.
 
-**A candidate lens** is built from multiple sources — resume, LinkedIn, assessments, writing samples, coaching recordings, and anything else that reveals how someone actually works. An AI-guided or coach-facilitated discovery conversation (25–45 minutes) pushes past surface answers, cross-referencing uploaded materials with conversational responses to catch contradictions and blind spots neither source would surface alone. Six dimensions that predict fit and retention: the throughline across someone's career that titles don't show; values demonstrated through behavior; actual work style and energy patterns; builder-vs-maintainer orientation; and the disqualifiers they'd never put on a resume.
+**A Candidate Lens** is built from multiple sources — resume, LinkedIn, assessments, writing samples, coaching recordings, and anything else that reveals how someone actually works. An AI-guided or coach-facilitated discovery conversation (25–45 minutes) pushes past surface answers, cross-referencing uploaded materials with conversational responses to catch contradictions and blind spots neither source would surface alone. Six dimensions that predict fit and retention: the throughline across someone's career that titles don't show; values demonstrated through behavior; actual work style and energy patterns; builder-vs-maintainer orientation; and the disqualifiers they'd never put on a resume.
 
 Both output portable markdown documents with structured metadata — machine-readable, human-readable, owned by whoever creates them.
 
 ## Bidirectional Scoring
 
-The core intellectual property: both sides build a lens. A role lens captures what the search requires. A candidate lens captures who someone is. A scoring engine evaluates fit in both directions simultaneously. The result: not "does this person have the right keywords" but "will this relationship work?"
+The core intellectual property: both sides build a lens. A Role Lens captures what the search requires. A Candidate Lens captures who someone is. A scoring engine evaluates fit in both directions simultaneously. The result: not "does this person have the right keywords" but "will this relationship work?"
 
 Asymmetric by design — different dimensions, different weights for each direction. Asymmetric fit becomes visible: a candidate might be strong for the company while the company is wrong for them. Standard hiring never surfaces this.
 
@@ -63,31 +63,31 @@ A resume answers "what have you done?" A lens answers "who are you and where wil
 
 Recruiters believe their judgment IS the product. They don't pay for "better ontology of identity." They pay for: less work (time savings building search briefs and shortlists), better optics (more rigorous process to show clients), and deal-winning (differentiator in competitive pitches). Every pitch must lead with one of these.
 
-Quality ceiling: a lens is only as good as what goes into it. Coach-facilitated discovery goes deeper than self-guided. Multi-source input is harder to game than single-channel self-report. But the strongest anti-gaming mechanism is intrinsic motivation: when your lens governs your daily job matches, shallow input costs you real opportunities.
+Quality ceiling: a Lens is only as good as what goes into it. Coach-facilitated discovery goes deeper than self-guided. Multi-source input is harder to game than single-channel self-report. But the strongest anti-gaming mechanism is intrinsic motivation: when your lens governs your daily job matches, shallow input costs you real opportunities.
 
 ## The Feedback Loop
 
-A lens is not a static report. Connected to a scoring pipeline, the lens evaluates opportunities daily against identity signals. Every action — pursuing a match, skipping one, declining an offer — feeds back into the system. When scoring results feel wrong, the user goes back and enriches their lens. The pipeline creates the incentive that makes the lens worth investing in.
+A Lens is not a static report. Connected to a scoring pipeline, the lens evaluates opportunities daily against identity signals. Every action — pursuing a match, skipping one, declining an offer — feeds back into the system. When scoring results feel wrong, the user goes back and enriches their lens. The pipeline creates the incentive that makes the lens worth investing in.
 
-This is the critical design point: the free standalone lens is a demonstration of the methodology. The lens connected to a pipeline is the product. Without the pipeline, a sophisticated user could achieve comparable throughline analysis by prompting ChatGPT directly. With the pipeline, the lens becomes an operational tool that works daily.
+This is the critical design point: the free standalone Lens is a demonstration of the methodology. The Lens connected to a pipeline is the product. Without the pipeline, a sophisticated user could achieve comparable throughline analysis by prompting ChatGPT directly. With the pipeline, the Lens becomes an operational tool that works daily.
 
 ## Defensibility
 
 Technology defensibility is rated 3–4/10 by independent stress testing. The patent helps but is narrow and work-aroundable. Real moat sources:
 
-**Process embedding:** If Lens defines how a firm does stakeholder alignment, switching cost is high regardless of whether the tech is copyable. The white-label play — letting early firms brand lens output as their proprietary methodology — makes it hard to rip out once they're marketing it to clients.
+**Process embedding:** If Lens defines how a firm does stakeholder alignment, switching cost is high regardless of whether the tech is copyable. The white-label play — letting early firms brand Lens output as their proprietary methodology — makes it hard to rip out once they're marketing it to clients.
 
 **Outcome data:** Track search outcomes (time-to-slate, offer acceptance, early attrition). This builds evidence that incumbents can't replicate without years of usage data.
 
 **Per-user learning:** Weight calibration, gate refinement, and drift detection compound with usage. Three-level feedback loop with exponential signal decay.
 
-Portability (the user owns their document) is a sales narrative feature — "you own your data" — but not a moat. Any competitor could add a download button in one sprint. Portability only becomes a moat if the lens schema becomes a de facto standard that other platforms integrate with.
+Portability (the user owns their document) is a sales narrative feature — "you own your data" — but not a moat. Any competitor could add a download button in one sprint. Portability only becomes a moat if the Lens schema becomes a de facto standard that other platforms integrate with.
 
 ## Where It Stands
 
 Company formed (Zelman Labs LLC, Rhode Island). Serverless proxy architecture live on Vercel — discovery, synthesis, and scoring routes operational. Intake form deployed with guardrails. Tester cohort active with structured feedback. Candidate-to-role scorer operational (4+ months). Role-to-candidate scorer built with 9 evaluation modes. Bidirectional matching spec documented but not yet production. Patent provisional filed.
 
-Not built yet: production multi-user infrastructure, longitudinal outcome data, role lens stakeholder intake, employer deployment. Working prototype with real tester results. The question is whether the role lens resonates as solving real pain for retained boutiques.
+Not built yet: production multi-user infrastructure, longitudinal outcome data, Role Lens stakeholder intake, employer deployment. Working prototype with real tester results. The question is whether the Role Lens resonates as solving real pain for retained boutiques.
 
 ---
 
@@ -95,11 +95,11 @@ Not built yet: production multi-user infrastructure, longitudinal outcome data, 
 
 Each downstream document leads with the angle that matters to its audience. All pull from the sections above.
 
-**Executive recruiters** (PRIMARY — Lens for Recruiters): Lead with stakeholder alignment and competitive advantage. "How do you currently align partners on what a search really requires? What causes searches to fail late?" The role lens is the wedge: a structured artifact that's obviously better than Word/PowerPoint, produced faster, and prevents expensive misalignment. Per-search pricing ($2–5K) is trivial relative to $50K–100K fees. Position against PI as complement, not substitute: Lens adds narrative and bidirectional fit to whatever trait data the firm already uses.
+**Executive recruiters** (PRIMARY — Lens for Recruiters): Lead with stakeholder alignment and competitive advantage. "How do you currently align partners on what a search really requires? What causes searches to fail late?" The Role Lens is the wedge: a structured artifact that's obviously better than Word/PowerPoint, produced faster, and prevents expensive misalignment. Per-search pricing ($2–5K) is trivial relative to $50K–100K fees. Position against PI as complement, not substitute: Lens adds narrative and bidirectional fit to whatever trait data the firm already uses.
 
 **Hiring leaders** (Lens for Hiring Leaders): Lead with mis-hire cost and internal mobility. Supplements strong HR teams. Strongest for internal mobility, where existing platforms match on skills but not identity. 77% of companies have lost talent due to lack of career development (Aptitude Research); only 25% are confident their approach works.
 
-**Job seekers** (Lens for Beginners): Lead with self-discovery. The lens captures the indelible you, not the ATS-optimized you. Free intake as entry point; pipeline as the product.
+**Job seekers** (Lens for Beginners): Lead with self-discovery. The Lens captures the indelible you, not the ATS-optimized you. Free intake as entry point; pipeline as the product.
 
 **Coaches** (Coach Pitch): Methodology monetization. The lens makes coaching ROI concrete. Distribution caveat: the coach market is diffuse and coaches don't bring volume. Coaches are the quality gate and the candidate-side distribution channel, but not the path to enterprise scale. Quality moat, not primary GTM.
 
