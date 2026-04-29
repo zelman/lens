@@ -165,7 +165,7 @@ export function buildRCSynthesisUserContent({ sessionConfig, sectionData, candid
   }
 
   // Include role-specific dimensions that were explored
-  if (sessionConfig.tailored && sessionConfig.tailored.length > 0) {
+  if (Array.isArray(sessionConfig.tailored) && sessionConfig.tailored.length > 0) {
     sections.push("\nCRITICAL DIMENSIONS FOR THIS ROLE:");
     for (const t of sessionConfig.tailored) {
       const importance = t.importance || "moderate";
@@ -195,7 +195,7 @@ export function buildRCSynthesisUserContent({ sessionConfig, sectionData, candid
   }
 
   // Also include any foundation sections from config not in standard list
-  if (sessionConfig.foundation) {
+  if (sessionConfig.foundation && Array.isArray(sessionConfig.foundation)) {
     for (const f of sessionConfig.foundation) {
       const sectionId = f.sectionId || f.section || f.id;
       if (!foundationIds.includes(sectionId)) {
@@ -213,7 +213,7 @@ export function buildRCSynthesisUserContent({ sessionConfig, sectionData, candid
   sections.push("DISCOVERY CONVERSATION - ROLE-SPECIFIC DIMENSIONS");
   sections.push("══════════════════════════════════════════════════════════════════════════════");
 
-  if (sessionConfig.tailored) {
+  if (Array.isArray(sessionConfig.tailored)) {
     for (const t of sessionConfig.tailored) {
       const dimId = t.dimensionId || t.id;
       sections.push(`\n## ${t.label || dimId} (${t.importance || "moderate"})`);

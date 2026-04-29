@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { getDemoCandidate, isDemoModeEnabled } from "../../config/demo-candidates";
 
-const BUILD_ID = "2026.04.28-d";
+const BUILD_ID = "2026.04.28-g";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
@@ -121,6 +121,7 @@ export default function RecruiterCandidateIntake() {
   // ── Lens document output ──
   const [lens, setLens] = useState(null);
   const [lensError, setLensError] = useState(null);
+  const [copyFeedback, setCopyFeedback] = useState(null); // "Copied!" or error message
 
   // ── Refs ──
   const messagesEndRef = useRef(null);
@@ -133,12 +134,16 @@ export default function RecruiterCandidateIntake() {
   const sessionConfigRef = useRef(sessionConfig);
   const lensRef = useRef(lens);
 
+  // Ref for phase to avoid stale closures in beforeunload
+  const phaseRef = useRef(phase);
+
   // Keep refs in sync with state
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { sectionsRef.current = sections; }, [sections]);
   useEffect(() => { currentSectionRef.current = currentSection; }, [currentSection]);
   useEffect(() => { sessionConfigRef.current = sessionConfig; }, [sessionConfig]);
   useEffect(() => { lensRef.current = lens; }, [lens]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   // ════════════════════════════════════════
   // SESSION TELEMETRY (mirrors LensIntake pattern)
@@ -250,19 +255,23 @@ export default function RecruiterCandidateIntake() {
   // Abandonment detection - only on actual page unload, not tab switches
   // Note: visibilitychange was removed because it fires on tab switches,
   // incorrectly logging "Abandoned" and blocking the real completion log.
+  // Uses refs to avoid stale closures and maintain a single stable handler.
   useEffect(() => {
     const handleUnload = () => {
       const t = telemetryRef.current;
       if (t._logged) return;
 
-      t.abandonmentPhase = phase === "loading" ? "Loading"
-        : phase === "intro" ? "Intro"
-        : phase === "discovery" ? "Discovery"
-        : phase === "synthesis" ? "Synthesis"
+      const currentPhase = phaseRef.current;
+      const currentSectionIdx = currentSectionRef.current;
+
+      t.abandonmentPhase = currentPhase === "loading" ? "Loading"
+        : currentPhase === "intro" ? "Intro"
+        : currentPhase === "discovery" ? "Discovery"
+        : currentPhase === "synthesis" ? "Synthesis"
         : null;
 
-      if (phase === "discovery") {
-        t.abandonmentSection = currentSection + 1;
+      if (currentPhase === "discovery") {
+        t.abandonmentSection = currentSectionIdx + 1;
       }
 
       logTelemetry();
@@ -273,7 +282,7 @@ export default function RecruiterCandidateIntake() {
     return () => {
       window.removeEventListener("beforeunload", handleUnload);
     };
-  }, [phase, currentSection, logTelemetry]);
+  }, [logTelemetry]); // Removed phase/currentSection - now using refs
 
   // Track API errors
   const trackApiError = useCallback((route, statusCode, message) => {
@@ -521,12 +530,13 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
         return;
       }
 
-      // Check for saved state from this session
+      // Check for saved state from this session (scoped by sessionId to prevent collisions)
+      const storageKey = `${RC_STORAGE_KEY}_${config.sessionId}`;
       try {
-        const savedStr = localStorage.getItem(RC_STORAGE_KEY);
+        const savedStr = localStorage.getItem(storageKey);
         if (savedStr) {
           const saved = JSON.parse(savedStr);
-          if (saved.sessionId === config.sessionId && saved.version === STORAGE_VERSION) {
+          if (saved.version === STORAGE_VERSION) {
             // Restore state from same session
             setCurrentSection(saved.currentSection || 0);
             setMessages(saved.messages || []);
@@ -561,9 +571,11 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
   useEffect(() => {
     if (phase === "loading" || !sessionConfig) return;
 
+    // Scope storage key by sessionId to prevent cross-session collisions
+    const storageKey = `${RC_STORAGE_KEY}_${sessionConfig.sessionId}`;
+
     const state = {
       version: STORAGE_VERSION,
-      sessionId: sessionConfig.sessionId,
       phase,
       currentSection,
       messages,
@@ -574,7 +586,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
     };
 
     try {
-      localStorage.setItem(RC_STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(storageKey, JSON.stringify(state));
     } catch (err) {
       console.warn("Failed to persist RC state:", err);
     }
@@ -653,6 +665,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
       setAiGreeting(data.response);
     } catch (err) {
       console.error("startSection error:", err);
+      trackApiError("/api/rc-discover", null, err.message);
       setApiError(err.message || "Failed to start section. Please try again.");
     } finally {
       setLoading(false);
@@ -711,6 +724,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           demoSectionData[sec.id] = response;
         } else {
           // Fallback: use a generic response based on section type
+          console.warn(`[Demo] No response found for section: ${sec.id}, using fallback`);
           demoSectionData[sec.id] = demoCandidate.responses.essence ||
             `[Demo response for ${sec.label}] Sarah Chen brings 10+ years of healthcare and customer success experience, with deep clinical fluency from her nursing background and proven ability to build CS functions from zero.`;
         }
@@ -724,9 +738,10 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
       ]);
 
       // Brief delay for UX, then trigger synthesis
+      // Pass demoSectionData directly since React state update is async
       setTimeout(() => {
         setLoading(false);
-        generateLens();
+        generateLens(demoSectionData);
       }, 1000);
 
       return;
@@ -758,6 +773,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
       }
     } catch (err) {
       console.error("sendMessage error:", err);
+      trackApiError("/api/rc-discover", null, err.message);
       setApiError(err.message || "Failed to send message. Please try again.");
     } finally {
       setLoading(false);
@@ -776,11 +792,14 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
   // Lens Document Generation
   // ════════════════════════════════════════
 
-  async function generateLens() {
+  async function generateLens(overrideSectionData = null) {
     setPhase("synthesis");
     setApiError(null);
     setLensError(null);
     setLoading(true);
+
+    // Use override if provided (for /skip where state hasn't updated yet)
+    const dataToSynthesize = overrideSectionData || sectionData;
 
     try {
       const res = await fetch("/api/rc-synthesize", {
@@ -788,7 +807,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionConfig,
-          sectionData,
+          sectionData: dataToSynthesize,
           candidateContext: candidateData ? {
             name: candidateData.name,
             resumeText: candidateData.resumeText,
@@ -808,16 +827,20 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
       if (data.lens) {
         setLens(data.lens);
         setPhase("complete");
-        // Clear localStorage since session is complete
-        localStorage.removeItem(RC_STORAGE_KEY);
+        // Clear localStorage since session is complete (use session-scoped key)
+        if (sessionConfig?.sessionId) {
+          localStorage.removeItem(`${RC_STORAGE_KEY}_${sessionConfig.sessionId}`);
+        }
       } else {
         throw new Error(data.error || "Failed to generate lens document");
       }
 
     } catch (err) {
       console.error("generateLens error:", err);
+      trackApiError("/api/rc-synthesize", null, err.message);
       setLensError(err.message || "Failed to generate lens document. Please try again.");
-      setPhase("discovery"); // Go back so user can retry
+      // Stay in synthesis phase - the UI shows error with retry button
+      // Don't revert to discovery: setPhase("discovery") creates broken state after /skip
     } finally {
       setLoading(false);
     }
@@ -827,66 +850,89 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
   // Render: Loading / Error State
   // ════════════════════════════════════════
 
+  // Build ID footer component
+  const buildFooter = (
+    <div style={{
+      position: "fixed",
+      bottom: "12px",
+      right: "16px",
+      fontSize: "10px",
+      color: "#ccc",
+      fontFamily: FONT,
+      letterSpacing: "0.02em",
+      pointerEvents: "none",
+      zIndex: 1000,
+    }}>
+      {BUILD_ID}
+    </div>
+  );
+
   if (phase === "loading") {
     if (loadError) {
       return (
-        <div style={containerStyle}>
-          <div style={{ textAlign: "center", padding: "60px 20px" }}>
-            <div style={{ width: "48px", height: "2px", background: RED, margin: "0 auto 24px" }} />
-            <h2 style={{ fontFamily: FONT, fontSize: "20px", fontWeight: 600, color: BLK, margin: "0 0 16px" }}>
-              Session Not Found
-            </h2>
-            <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, maxWidth: "400px", margin: "0 auto 28px" }}>
-              {loadError}
-            </p>
-            <a
-              href="/recruiter"
-              style={{
-                display: "inline-block",
-                padding: "14px 28px",
-                fontFamily: FONT,
-                fontSize: "13px",
-                fontWeight: 600,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                background: RED,
-                color: "#fff",
-                textDecoration: "none",
-                border: "none",
-              }}
-            >
-              Go to Recruiter Dashboard
-            </a>
+        <>
+          <div style={containerStyle}>
+            <div style={{ textAlign: "center", padding: "60px 20px" }}>
+              <div style={{ width: "48px", height: "2px", background: RED, margin: "0 auto 24px" }} />
+              <h2 style={{ fontFamily: FONT, fontSize: "20px", fontWeight: 600, color: BLK, margin: "0 0 16px" }}>
+                Session Not Found
+              </h2>
+              <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, maxWidth: "400px", margin: "0 auto 28px" }}>
+                {loadError}
+              </p>
+              <a
+                href="/recruiter"
+                style={{
+                  display: "inline-block",
+                  padding: "14px 28px",
+                  fontFamily: FONT,
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  background: RED,
+                  color: "#fff",
+                  textDecoration: "none",
+                  border: "none",
+                }}
+              >
+                Go to Recruiter Dashboard
+              </a>
+            </div>
           </div>
-        </div>
+          {buildFooter}
+        </>
       );
     }
 
     return (
-      <div style={containerStyle}>
-        <div style={{ textAlign: "center", padding: "80px 20px" }}>
-          <div style={{ width: "48px", height: "2px", background: RED, margin: "0 auto 24px" }} />
-          <h2 style={{ fontFamily: FONT, fontSize: "20px", fontWeight: 600, color: BLK, margin: "0 0 12px" }}>
-            Loading session...
-          </h2>
-          <div style={{ marginTop: "28px" }}>
-            <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
-              {[0, 1, 2].map((i) => (
-                <div key={i} style={{
-                  width: "6px", height: "6px", background: RED, borderRadius: "50%",
-                  animation: `pulse 0.8s ease-in-out ${i * 0.2}s infinite alternate`,
-                }} />
-              ))}
+      <>
+        <div style={containerStyle}>
+          <div style={{ textAlign: "center", padding: "80px 20px" }}>
+            <div style={{ width: "48px", height: "2px", background: RED, margin: "0 auto 24px" }} />
+            <h2 style={{ fontFamily: FONT, fontSize: "20px", fontWeight: 600, color: BLK, margin: "0 0 12px" }}>
+              Loading session...
+            </h2>
+            <div style={{ marginTop: "28px" }}>
+              <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} style={{
+                    width: "6px", height: "6px", background: RED, borderRadius: "50%",
+                    animation: `pulse 0.8s ease-in-out ${i * 0.2}s infinite alternate`,
+                  }} />
+                ))}
+              </div>
             </div>
           </div>
+          <style>{`
+            @keyframes pulse {
+              0% { opacity: 0.3; transform: scale(0.8); }
+              100% { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
         </div>
-        <style>{`
-          @keyframes pulse {
-            0% { opacity: 0.3; transform: scale(0.8); }
-            100% { opacity: 1; transform: scale(1); }
-          }
-        `}</style>
-      </div>
+        {buildFooter}
+      </>
     );
   }
 
@@ -901,6 +947,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
     const tailoredCount = sections.filter(s => s.type === "tailored").length;
 
     return (
+      <>
       <div style={containerStyle}>
         {/* Header */}
         <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "28px" }}>
@@ -1072,6 +1119,8 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           </a>
         </div>
       </div>
+      {buildFooter}
+      </>
     );
   }
 
@@ -1085,6 +1134,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
     const progressPercent = sections.length > 0 ? Math.round(((currentSection + 1) / sections.length) * 100) : 0;
 
     return (
+      <>
       <div style={containerStyle}>
         {/* Progress bar */}
         <div style={{ height: "3px", background: RULE, marginBottom: "20px" }}>
@@ -1293,6 +1343,8 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           }
         `}</style>
       </div>
+      {buildFooter}
+      </>
     );
   }
 
@@ -1302,6 +1354,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
 
   if (phase === "synthesis") {
     return (
+      <>
       <div style={containerStyle}>
         <div style={{ textAlign: "center", padding: "80px 20px" }}>
           <div style={{ width: "48px", height: "2px", background: RED, margin: "0 auto 24px" }} />
@@ -1360,6 +1413,8 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           }
         `}</style>
       </div>
+      {buildFooter}
+      </>
     );
   }
 
@@ -1371,7 +1426,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
     const meta = sessionConfig?.metadata || {};
 
     // Simple markdown renderer for lens document
-    const renderMarkdown = (md) => {
+    const renderMarkdownContent = (md) => {
       if (!md) return null;
 
       const lines = md.split("\n");
@@ -1386,26 +1441,40 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
         const parts = [];
         let remaining = text;
         let key = 0;
+        let iterations = 0;
+        const maxIterations = 1000; // Safety guard against infinite loops
 
-        while (remaining.length > 0) {
+        while (remaining.length > 0 && iterations < maxIterations) {
+          iterations++;
+          const prevLength = remaining.length;
+
           // Bold first (greedy match for **)
           const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
-          // Italic (single *)
-          const italicMatch = remaining.match(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/);
+          // Italic (single *) - simplified to avoid lookbehind for Safari compatibility
+          const italicMatch = remaining.match(/(?:^|[^*])\*([^*]+)\*(?:[^*]|$)/);
 
-          if (boldMatch && (!italicMatch || boldMatch.index <= italicMatch.index)) {
+          if (boldMatch && (!italicMatch || boldMatch.index <= (italicMatch.index || 0))) {
             if (boldMatch.index > 0) {
               parts.push(<span key={key++}>{remaining.slice(0, boldMatch.index)}</span>);
             }
             parts.push(<strong key={key++}>{boldMatch[1]}</strong>);
             remaining = remaining.slice(boldMatch.index + boldMatch[0].length);
           } else if (italicMatch) {
-            if (italicMatch.index > 0) {
-              parts.push(<span key={key++}>{remaining.slice(0, italicMatch.index)}</span>);
+            // Account for potential leading character in match
+            const actualIndex = italicMatch.index + (italicMatch[0].startsWith("*") ? 0 : 1);
+            if (actualIndex > 0) {
+              parts.push(<span key={key++}>{remaining.slice(0, actualIndex)}</span>);
             }
             parts.push(<em key={key++}>{italicMatch[1]}</em>);
-            remaining = remaining.slice(italicMatch.index + italicMatch[0].length);
+            const matchEnd = actualIndex + italicMatch[1].length + 2; // +2 for the asterisks
+            remaining = remaining.slice(matchEnd);
           } else {
+            parts.push(<span key={key++}>{remaining}</span>);
+            break;
+          }
+
+          // Safety check: if no progress was made, break to avoid infinite loop
+          if (remaining.length >= prevLength) {
             parts.push(<span key={key++}>{remaining}</span>);
             break;
           }
@@ -1527,6 +1596,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
     };
 
     return (
+      <>
       <div style={containerStyle}>
         {/* Header */}
         <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "28px" }}>
@@ -1543,14 +1613,23 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
 
         {/* Lens Document */}
         <div style={{ marginBottom: "28px" }}>
-          {renderMarkdown(lens)}
+          {renderMarkdownContent(lens)}
         </div>
 
         {/* Actions */}
         <div style={{ borderTop: `2px solid ${BLK}`, paddingTop: "20px" }}>
           <button
             onClick={() => {
-              navigator.clipboard.writeText(lens);
+              navigator.clipboard.writeText(lens)
+                .then(() => {
+                  setCopyFeedback("Copied!");
+                  setTimeout(() => setCopyFeedback(null), 2000);
+                })
+                .catch((err) => {
+                  console.error("Clipboard write failed:", err);
+                  setCopyFeedback("Copy failed");
+                  setTimeout(() => setCopyFeedback(null), 2000);
+                });
             }}
             style={{
               width: "100%",
@@ -1560,15 +1639,16 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
               fontWeight: 600,
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              background: "#fff",
-              color: BLK,
-              border: `1.5px solid ${BLK}`,
+              background: copyFeedback === "Copied!" ? "#f8fff8" : "#fff",
+              color: copyFeedback === "Copied!" ? "#2D6A2D" : copyFeedback ? RED : BLK,
+              border: `1.5px solid ${copyFeedback === "Copied!" ? "#2D6A2D" : copyFeedback ? RED : BLK}`,
               cursor: "pointer",
               borderRadius: 0,
               marginBottom: "12px",
+              transition: "all 0.2s ease",
             }}
           >
-            Copy Lens Markdown
+            {copyFeedback || "Copy Lens Markdown"}
           </button>
           <a
             href="/recruiter"
@@ -1593,6 +1673,8 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           </a>
         </div>
       </div>
+      {buildFooter}
+      </>
     );
   }
 
