@@ -487,6 +487,7 @@ function PrintStyles() {
   return (
     <style>{`
       @media print {
+        /* Hide everything except the brief */
         body * {
           visibility: hidden;
         }
@@ -494,22 +495,38 @@ function PrintStyles() {
         .recruiter-brief-page * {
           visibility: visible;
         }
+
+        /* Reset body for clean printing */
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: white !important;
+        }
+
+        /* Brief page styling - use static positioning, not absolute */
         .recruiter-brief-page {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 8.5in !important;
-          min-height: 11in !important;
-          padding: 0.55in 0.75in !important;
+          position: static !important;
+          display: block !important;
+          width: auto !important;
+          max-width: none !important;
+          min-height: auto !important;
+          height: auto !important;
+          padding: 0 !important;
           margin: 0 !important;
           box-shadow: none !important;
+          overflow: visible !important;
+          page-break-inside: auto;
         }
+
+        /* Hide modal overlay and toolbar */
         .no-print {
           display: none !important;
         }
+
+        /* Page setup with proper margins - let browser handle content placement */
         @page {
           size: letter portrait;
-          margin: 0;
+          margin: 0.5in 0.6in;
         }
       }
     `}</style>
