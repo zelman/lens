@@ -650,7 +650,7 @@ export default function LensReportRenderer() {
               <div style={ST.inputBrand}>LENS REPORT</div>
               <h2 style={ST.inputTitle}>Generate a formatted report</h2>
               <p style={ST.inputDesc}>
-                Paste lens markdown below to produce a printable professional identity document.
+                Paste Lens markdown below to produce a printable professional identity document.
               </p>
             </div>
 

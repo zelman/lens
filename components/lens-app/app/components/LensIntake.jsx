@@ -373,18 +373,18 @@ function IntroPhase({ onContinue }) {
           The Lens Project
         </div>
         <h1 style={{ fontFamily: FONT, fontSize: "28px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
-          Build your lens
+          Build your Lens
         </h1>
       </div>
 
       {/* What is it */}
       <div style={{ marginBottom: "32px" }}>
-        <h2 style={{ fontSize: "15px", fontWeight: 600, color: BLK, margin: "0 0 10px" }}>What is a lens?</h2>
+        <h2 style={{ fontSize: "15px", fontWeight: 600, color: BLK, margin: "0 0 10px" }}>What is a Lens?</h2>
         <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.75, margin: "0 0 12px", maxWidth: "500px" }}>
-          A lens is a structured document that captures who you actually are professionally. Not keywords optimized for an algorithm. Not a two-page summary of job titles. Your values, your patterns, your working identity — the things that don't change when you update your resume for the next application.
+          A Lens is a structured document that captures who you actually are professionally. Not keywords optimized for an algorithm. Not a two-page summary of job titles. Your values, your patterns, your working identity — the things that don't change when you update your resume for the next application.
         </p>
         <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.75, margin: 0, maxWidth: "500px" }}>
-          Once built, your lens can power daily job matching, personalized opportunity briefings, and smarter career decisions — because the system knows what actually matters to you, not just what you've done.
+          Once built, your Lens can power daily job matching, personalized opportunity briefings, and smarter career decisions — because the system knows what actually matters to you, not just what you've done.
         </p>
       </div>
 
@@ -410,7 +410,7 @@ function IntroPhase({ onContinue }) {
             },
             {
               num: "03",
-              title: "Your lens document",
+              title: "Your Lens document",
               desc: "A portable, structured profile in your voice — part narrative, part scoring framework. Machine-readable for job matching. Human-readable for you, a recruiter, or a coach.",
               time: "Generated automatically",
             },
@@ -504,7 +504,7 @@ function IntroPhase({ onContinue }) {
           maxWidth: "500px",
         }}>
           This session is recorded to improve the Lens experience.
-          Your conversation and lens document are stored securely to help us refine the system.
+          Your conversation and Lens document are stored securely to help us refine the system.
           Your data is not sold or shared with third parties.
           Processing is handled by Claude (Anthropic) — the same privacy protections that apply to any Claude conversation apply here.
         </p>
@@ -972,7 +972,7 @@ function StatusPhase({ status, setStatus, userName, setUserName, pronouns, setPr
           </div>
         </div>
         <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7, maxWidth: "480px", margin: 0 }}>
-          This shapes the conversation and how your lens document is written.
+          This shapes the conversation and how your Lens document is written.
         </p>
       </div>
 
@@ -997,7 +997,7 @@ function StatusPhase({ status, setStatus, userName, setUserName, pronouns, setPr
       {/* Pronouns */}
       <div style={{ marginBottom: "28px" }}>
         <label style={{ fontSize: "12px", fontWeight: 600, color: BLK, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
-          Pronouns <span style={{ fontWeight: 400, color: GRY }}>(for your lens document)</span>
+          Pronouns <span style={{ fontWeight: 400, color: GRY }}>(for your Lens document)</span>
         </label>
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           {PRONOUN_OPTIONS.map(opt => (
@@ -2028,7 +2028,7 @@ SIGNALS:
             Synthesizing your lens
           </h2>
           <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7 }}>
-            Building your lens document from everything you shared across all 8 sections...
+            Building your Lens document from everything you shared across all 8 sections...
           </p>
           <div style={{ marginTop: "28px" }}>
             <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
@@ -2056,7 +2056,7 @@ SIGNALS:
               Complete
             </div>
             <h1 style={{ fontFamily: FONT, fontSize: "26px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
-              Your lens document
+              Your Lens document
             </h1>
           </div>
 
@@ -2074,7 +2074,7 @@ SIGNALS:
           ) : (
             <div style={{ padding: "24px", border: `1px solid ${RULE}`, marginBottom: "24px", background: "#fafafa" }}>
               <p style={{ fontSize: "13px", color: GRY }}>
-                Unable to load lens document.
+                Unable to load Lens document.
               </p>
             </div>
           )}
@@ -2229,7 +2229,7 @@ SIGNALS:
           paddingBottom: "12px",
           borderBottom: `1px solid ${RULE}`,
         }}>
-          Your responses are used only to build your lens document.
+          Your responses are used only to build your Lens document.
         </div>
       )}
 
@@ -2356,10 +2356,10 @@ SIGNALS:
             }}
           >
             {reentryMode
-              ? "Update lens document"
+              ? "Update Lens document"
               : currentSection < SECTIONS.length - 1
                 ? `Continue to ${SECTIONS[currentSection + 1].label}`
-                : "Generate lens document"}
+                : "Generate Lens document"}
           </button>
         </div>
       )}
@@ -2473,7 +2473,7 @@ function SessionRecoveryPrompt({ savedSession, onContinue, onStartFresh }) {
       {showConfirm && (
         <ConfirmationModal
           title="Start fresh?"
-          message="This will erase your session, including all conversation history and any lens document you've created. This cannot be undone."
+          message="This will erase your session, including all conversation history and any Lens document you've created. This cannot be undone."
           confirmLabel="Yes, start fresh"
           cancelLabel="Keep my session"
           onConfirm={onStartFresh}
@@ -2509,7 +2509,7 @@ function SessionRecoveryPrompt({ savedSession, onContinue, onStartFresh }) {
           {hasLens && (
             <div style={{ padding: "14px 18px", border: `1px solid ${RULE}`, marginBottom: "16px", background: "#fafafa" }}>
               <div style={{ fontSize: "11px", color: GRY, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "4px" }}>
-                Completed lens document
+                Completed Lens document
               </div>
               <div style={{ fontSize: "14px", color: BLK, fontWeight: 500 }}>
                 Ready to download or refine
@@ -2553,7 +2553,7 @@ function SessionRecoveryPrompt({ savedSession, onContinue, onStartFresh }) {
             letterSpacing: "0.1em", textTransform: "uppercase", background: RED, color: "#fff",
             border: `1.5px solid ${RED}`, cursor: "pointer", borderRadius: 0,
           }}>
-            {hasLens ? "View my lens" : "Continue where I left off"}
+            {hasLens ? "View my Lens" : "Continue where I left off"}
           </button>
           <button onClick={() => setShowConfirm(true)} style={{
             width: "100%", padding: "14px", fontFamily: FONT, fontSize: "13px", fontWeight: 500,
@@ -2601,21 +2601,21 @@ function ModeSelector({ existingLens, onUpdateSection, onUploadMaterials, onStar
     {
       id: "update",
       label: "Update a section",
-      description: "Refine a specific part of your lens through a focused conversation.",
+      description: "Refine a specific part of your Lens through a focused conversation.",
       action: onUpdateSection,
       primary: true,
     },
     {
       id: "upload",
       label: "Upload new materials",
-      description: "Add new documents to enrich your lens with additional context.",
+      description: "Add new documents to enrich your Lens with additional context.",
       action: onUploadMaterials,
       primary: false,
     },
     {
       id: "download",
-      label: "Download my lens",
-      description: "Get your lens document as a markdown file.",
+      label: "Download my Lens",
+      description: "Get your Lens document as a markdown file.",
       action: onDownloadLens,
       primary: false,
     },
@@ -2626,9 +2626,9 @@ function ModeSelector({ existingLens, onUpdateSection, onUploadMaterials, onStar
       {showConfirm && (
         <ConfirmationModal
           title="Start completely over?"
-          message="This will erase your session, including your completed lens document and all conversation history. This cannot be undone."
+          message="This will erase your session, including your completed Lens document and all conversation history. This cannot be undone."
           confirmLabel="Yes, start over"
-          cancelLabel="Keep my lens"
+          cancelLabel="Keep my Lens"
           onConfirm={onStartFresh}
           onCancel={() => setShowConfirm(false)}
           destructive

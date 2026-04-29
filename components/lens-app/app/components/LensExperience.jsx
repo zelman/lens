@@ -900,7 +900,7 @@ CRITICAL: This is v1 of a living document. Frame the ending to reinforce it evol
 
         <FadeIn delay={300} duration={1000}>
           <h1 style={{ fontFamily: T.sans, fontSize: 72, fontWeight: 700, color: T.black, margin: 0, lineHeight: 1.05, letterSpacing: "-0.03em", maxWidth: 700 }}>
-            Build your<br />lens
+            Build your<br />Lens
           </h1>
         </FadeIn>
 
@@ -910,13 +910,13 @@ CRITICAL: This is v1 of a living document. Frame the ending to reinforce it evol
 
         <FadeIn delay={800} duration={800}>
           <p style={{ fontSize: 17, color: T.grey70, lineHeight: 1.75, maxWidth: 520, margin: "0 0 8px" }}>
-            A lens is a living document — your professional identity distilled into something sharp enough to score every opportunity you encounter.
+            A Lens is a living document — your professional identity distilled into something sharp enough to score every opportunity you encounter.
           </p>
         </FadeIn>
 
         <FadeIn delay={950} duration={800}>
           <p style={{ fontSize: 14, color: T.grey50, lineHeight: 1.7, maxWidth: 480, margin: "0 0 40px" }}>
-            This is version one. Every conversation sharpens it. Every decision teaches it. The lens grows with you.
+            This is version one. Every conversation sharpens it. Every decision teaches it. The Lens grows with you.
           </p>
         </FadeIn>
 
@@ -961,7 +961,7 @@ CRITICAL: This is v1 of a living document. Frame the ending to reinforce it evol
             ))}
           </div>
           <div style={{ fontSize: 10, color: T.grey30, marginTop: 6, letterSpacing: "0.04em" }}>
-            Each conversation evolves the lens
+            Each conversation evolves the Lens
           </div>
         </FadeIn>
 
@@ -983,7 +983,7 @@ CRITICAL: This is v1 of a living document. Frame the ending to reinforce it evol
     return (
       <div style={{ minHeight: "100vh", background: T.white, fontFamily: T.sans, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", padding: "60px 80px" }}>
         <div style={{ width: 32, height: 32, border: `2px solid ${T.grey15}`, borderTop: `2px solid ${T.red}`, borderRadius: "50%", animation: "spin 1s linear infinite", marginBottom: 24 }} />
-        <div style={{ fontSize: 24, fontWeight: 700, color: T.black, marginBottom: 6 }}>Synthesizing your lens</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: T.black, marginBottom: 6 }}>Synthesizing your Lens</div>
         <div style={{ fontSize: 13, color: T.grey50, fontFamily: T.mono }}>
           {fullHistory.filter(t => t.role === "user").length} responses → one document
         </div>
@@ -1016,7 +1016,7 @@ CRITICAL: This is v1 of a living document. Frame the ending to reinforce it evol
               Your Lens — v1.0
             </div>
             <h1 style={{ fontFamily: T.sans, fontSize: 42, fontWeight: 700, color: T.black, margin: "0 0 6px", letterSpacing: "-0.02em" }}>
-              Your lens is alive
+              Your Lens is alive
             </h1>
             <div style={{ width: 40, height: 3, background: T.red, margin: "16px 0 20px" }} />
             <p style={{ fontSize: 15, color: T.grey70, lineHeight: 1.8, marginBottom: 28 }}>
@@ -1058,7 +1058,7 @@ CRITICAL: This is v1 of a living document. Frame the ending to reinforce it evol
             <div style={{ padding: "20px 24px", borderLeft: `3px solid ${T.red}`, background: T.grey05, marginBottom: 28 }}>
               <div style={{ fontSize: 9, letterSpacing: "0.2em", color: T.red, textTransform: "uppercase", marginBottom: 8 }}>What happens next</div>
               <div style={{ fontSize: 14, color: T.grey70, lineHeight: 1.85 }}>
-                This lens scores every opportunity in your pipeline — signal matching, not keyword matching. Come back anytime to refine a section, add signals, or tell the lens what you've learned.
+                This Lens scores every opportunity in your pipeline — signal matching, not keyword matching. Come back anytime to refine a section, add signals, or tell the Lens what you've learned.
               </div>
             </div>
           </FadeIn>

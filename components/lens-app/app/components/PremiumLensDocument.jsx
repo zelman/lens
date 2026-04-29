@@ -787,7 +787,7 @@ function ResumeEnhancementsPage({ suggestions, alignment, hasResumeData }) {
                 margin: 0,
                 marginBottom: '4px',
               }}>
-                Your lens revealed
+                Your Lens revealed
               </p>
               <p style={{
                 fontFamily: FONT,

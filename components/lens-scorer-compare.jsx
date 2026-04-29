@@ -392,16 +392,16 @@ export default function LensScorerCompare() {
             Schema Comparison
           </h1>
           <div style={{ fontSize: 14, color: "#666", marginTop: 8, lineHeight: 1.6 }}>
-            Same opportunity, same lens, two scoring models. Find where they agree, where they diverge, and why.
+            Same opportunity, same Lens, two scoring models. Find where they agree, where they diverge, and why.
           </div>
           <div style={{ height: 2, background: "#1A1A1A", marginTop: 20 }} />
         </div>
 
         {/* Lens status */}
-        {lensStatus === "loading" && <div style={{ fontSize: 12, color: "#999", marginBottom: 20 }}>Fetching lens from GitHub...</div>}
+        {lensStatus === "loading" && <div style={{ fontSize: 12, color: "#999", marginBottom: 20 }}>Fetching Lens from GitHub...</div>}
         {lensStatus === "error" && (
           <div style={{ fontSize: 12, color: "#D93025", marginBottom: 20, padding: "12px 16px", border: "1px solid #D93025", background: "#FFF5F5" }}>
-            Could not fetch lens. <span onClick={fetchLens} style={{ textDecoration: "underline", cursor: "pointer" }}>Retry</span>
+            Could not fetch Lens. <span onClick={fetchLens} style={{ textDecoration: "underline", cursor: "pointer" }}>Retry</span>
           </div>
         )}
         {lensStatus === "loaded" && (

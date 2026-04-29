@@ -108,12 +108,12 @@ function Tag({ children, variant = "default" }) {
 
 function LensStatus({ status, onRetry }) {
   if (status === "loading") {
-    return <div style={{ fontSize: 12, color: "#999", marginBottom: 20 }}>Fetching lens from GitHub...</div>;
+    return <div style={{ fontSize: 12, color: "#999", marginBottom: 20 }}>Fetching Lens from GitHub...</div>;
   }
   if (status === "error") {
     return (
       <div style={{ fontSize: 12, color: "#D93025", marginBottom: 20, padding: "12px 16px", border: "1px solid #D93025", background: "#FFF5F5" }}>
-        Could not fetch lens from GitHub. You can paste the lens document manually, or{" "}
+        Could not fetch Lens from GitHub. You can paste the Lens document manually, or{" "}
         <span onClick={onRetry} style={{ textDecoration: "underline", cursor: "pointer" }}>retry</span>.
       </div>
     );
@@ -130,7 +130,7 @@ function LensStatus({ status, onRetry }) {
     return (
       <div style={{ fontSize: 12, color: "#E8590C", marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ display: "inline-block", width: 6, height: 6, background: "#E8590C" }} />
-        Using manually pasted lens
+        Using manually pasted Lens
       </div>
     );
   }
@@ -252,7 +252,7 @@ export default function LensScorer() {
             Lens Scorer
           </h1>
           <div style={{ fontSize: 14, color: "#666", marginTop: 8, lineHeight: 1.6 }}>
-            Paste a job listing or company description. Scores against your lens document using the same model as the n8n pipeline.
+            Paste a job listing or company description. Scores against your Lens document using the same model as the n8n pipeline.
           </div>
           <div style={{ height: 2, background: "#1A1A1A", marginTop: 20 }} />
         </div>
@@ -271,7 +271,7 @@ export default function LensScorer() {
                 onClick={() => setShowLensEditor(!showLensEditor)}
                 style={{ fontSize: 11, color: "#999", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "inherit" }}
               >
-                {showLensEditor ? "Hide lens" : "View / edit lens"}
+                {showLensEditor ? "Hide Lens" : "View / edit Lens"}
               </button>
             </div>
             {showLensEditor && (
@@ -292,7 +292,7 @@ export default function LensScorer() {
         {/* Manual lens paste fallback */}
         {lensStatus === "error" && !lens && (
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Paste your lens document:</div>
+            <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Paste your Lens document:</div>
             <textarea
               value={lens}
               onChange={(e) => { setLens(e.target.value); if (e.target.value.length > 500) setLensStatus("manual"); }}

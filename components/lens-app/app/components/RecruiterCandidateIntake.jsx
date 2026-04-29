@@ -903,7 +903,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
     } catch (err) {
       console.error("generateLens error:", err);
       trackApiError("/api/rc-synthesize", null, err.message);
-      setLensError(err.message || "Failed to generate lens document. Please try again.");
+      setLensError(err.message || "Failed to generate Lens document. Please try again.");
       // Stay in synthesis phase - the UI shows error with retry button
       // Don't revert to discovery: setPhase("discovery") creates broken state after /skip
     } finally {
@@ -1209,7 +1209,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
             margin: 0,
           }}>
             This session is recorded to improve the Lens experience.
-            Your conversation and lens document are stored securely.
+            Your conversation and Lens document are stored securely.
             Data is not sold or shared with third parties.
           </p>
         </div>

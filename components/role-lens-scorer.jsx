@@ -308,7 +308,7 @@ export default function RoleLensScorer() {
         <div style={{ marginBottom: 40, borderBottom: "2px solid #1A1A1A", paddingBottom: 20 }}>
           <div style={{ fontSize: 10, letterSpacing: "0.25em", color: "#999", textTransform: "uppercase", marginBottom: 6 }}>Lens Project — Bidirectional Scoring — v{VERSION}</div>
           <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>Role Lens Scorer</h1>
-          <div style={{ fontSize: 13, color: "#666", marginTop: 8, lineHeight: 1.6 }}>Evaluate a candidate against the role lens across 6 identity dimensions. Adjust gate tolerance and analysis depth to control the evaluation.</div>
+          <div style={{ fontSize: 13, color: "#666", marginTop: 8, lineHeight: 1.6 }}>Evaluate a candidate against the Role Lens across 6 identity dimensions. Adjust gate tolerance and analysis depth to control the evaluation.</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
             <span style={{ fontSize: 11, color: "#999" }}>R→C</span>
             <Tag variant="mode">{mode.name}</Tag>
