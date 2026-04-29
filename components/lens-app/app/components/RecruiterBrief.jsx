@@ -307,7 +307,7 @@ export default function RecruiterBrief({ brief, onClose, inline = false }) {
       color: C.muted,
     }}>
       <span>LENS · RECRUITER VIEW · DRAFT v0.3</span>
-      <span>1 / 1</span>
+      <span>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
     </div>
   );
 
@@ -496,37 +496,50 @@ function PrintStyles() {
           visibility: visible;
         }
 
-        /* Reset body for clean printing */
-        body {
+        /* Reset body and html for clean printing */
+        html, body {
           margin: 0 !important;
           padding: 0 !important;
           background: white !important;
+          overflow: visible !important;
+          height: auto !important;
         }
 
-        /* Brief page styling - use static positioning, not absolute */
+        /* Hide modal overlay, toolbar, and fixed containers */
+        .no-print,
+        [style*="position: fixed"] {
+          display: none !important;
+          visibility: hidden !important;
+        }
+
+        /* Brief page styling - position at top-left of printed page */
         .recruiter-brief-page {
-          position: static !important;
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
           display: block !important;
-          width: auto !important;
+          width: 100% !important;
           max-width: none !important;
           min-height: auto !important;
           height: auto !important;
-          padding: 0 !important;
+          padding: 0.5in 0.65in !important;
           margin: 0 !important;
           box-shadow: none !important;
           overflow: visible !important;
-          page-break-inside: auto;
+          page-break-inside: auto !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
 
-        /* Hide modal overlay and toolbar */
-        .no-print {
-          display: none !important;
+        /* Allow content to flow to multiple pages if needed */
+        .recruiter-brief-page > div {
+          page-break-inside: auto !important;
         }
 
-        /* Page setup with proper margins - let browser handle content placement */
+        /* Page setup - minimal margins since we handle padding in the document */
         @page {
           size: letter portrait;
-          margin: 0.5in 0.6in;
+          margin: 0.25in;
         }
       }
     `}</style>
