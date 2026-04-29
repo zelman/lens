@@ -12,7 +12,7 @@
 
 This is the technical specification for the Lens Document — a structured, machine-readable file that encodes a person's professional identity, values, and decision criteria in a format that automated scoring systems can consume.
 
-A lens document is not a profile, not a resume, and not a preferences file. It is a **scoring contract** — a protocol that governs how an automated pipeline evaluates opportunities on someone's behalf.
+A Lens document is not a profile, not a resume, and not a preferences file. It is a **scoring contract** — a protocol that governs how an automated pipeline evaluates opportunities on someone's behalf.
 
 This spec defines three layers of intellectual property:
 
@@ -26,7 +26,7 @@ This spec defines three layers of intellectual property:
 
 ### File Format
 
-A lens document is a Markdown file (`.md`) with YAML frontmatter. This format is:
+A Lens document is a Markdown file (`.md`) with YAML frontmatter. This format is:
 
 - Human-readable (opens in any text editor)
 - Machine-parseable (standard YAML libraries in any language)
@@ -46,7 +46,7 @@ A lens document is a Markdown file (`.md`) with YAML frontmatter. This format is
 [identity narrative, coaching notes, context]
 ```
 
-The frontmatter is what the scoring engine reads. The body is what gives the frontmatter meaning — it's the evidence, the reasoning, the story behind the signals. A lens without a body is a config file. A lens without frontmatter is a journal entry. Both are required.
+The frontmatter is what the scoring engine reads. The body is what gives the frontmatter meaning — it's the evidence, the reasoning, the story behind the signals. A Lens without a body is a config file. A Lens without frontmatter is a journal entry. Both are required.
 
 ### Schema Fields
 
@@ -57,7 +57,7 @@ The frontmatter is what the scoring engine reads. The body is what gives the fro
 | `version` | string | yes | Schema version (semver) |
 | `created` | date | yes | Initial creation date |
 | `updated` | date | yes | Last modification date |
-| `channel` | string | yes | How this lens was produced: `self-serve`, `coach:[persona-id]`, `hybrid` |
+| `channel` | string | yes | How this Lens was produced: `self-serve`, `coach:[persona-id]`, `hybrid` |
 | `coach_persona` | string | no | If coach-facilitated, which persona (e.g., `james-pratt-v1`) |
 | `status` | enum | yes | `draft`, `active`, `archived` |
 
@@ -264,7 +264,7 @@ What makes this methodology IP rather than "just asking good questions":
 
 ### Discovery Section → Output Field Mapping
 
-Discovery sections are not 1:1 with output sections. Each discovery conversation extracts signals that populate multiple schema fields. The mapping below shows where signals from each discovery section land in the lens document.
+Discovery sections are not 1:1 with output sections. Each discovery conversation extracts signals that populate multiple schema fields. The mapping below shows where signals from each discovery section land in the Lens document.
 
 | Discovery Section (guardrails.yaml) | Primary Output Fields | Secondary Output Fields |
 |---|---|---|
@@ -287,7 +287,7 @@ Discovery sections are not 1:1 with output sections. Each discovery conversation
 
 ### How the Pipeline Consumes a Lens
 
-The scoring engine receives two inputs: a lens document and an opportunity (job listing, company profile, or both). It produces a structured decision.
+The scoring engine receives two inputs: a Lens document and an opportunity (job listing, company profile, or both). It produces a structured decision.
 
 #### Step 1: Constraint Filtering
 
@@ -314,7 +314,7 @@ This isn't a disqualifier (some roles blend), but it applies a significant scori
 
 #### Step 4: Dimension Scoring
 
-For each `dimension` in the lens:
+For each `dimension` in the Lens:
 1. Evaluate the opportunity against the dimension's `signals` and `anti_signals`
 2. Produce a score from 0 to the dimension's `weight` (max points)
 3. Include a rationale explaining the score
@@ -398,9 +398,9 @@ If a user is ignoring `WATCH` items entirely, the system can suggest raising the
 
 ### The Bidirectional Extension
 
-The same protocol works in reverse. A "role lens" encodes what a company is looking for — not keywords and years of experience, but orientation, culture signals, values alignment, and working style.
+The same protocol works in reverse. A "Role Lens" encodes what a company is looking for — not keywords and years of experience, but orientation, culture signals, values alignment, and working style.
 
-When a candidate lens and a role lens are scored against each other, you get a **mutual fit score** — not "does this person have the right keywords" but "would these two actually work well together?"
+When a Candidate Lens and a Role Lens are scored against each other, you get a **mutual fit score** — not "does this person have the right keywords" but "would these two actually work well together?"
 
 This is the enterprise hiring use case. It differentiates from DISC, 360 feedback, StrengthsFinder, and ATS keyword matching because it produces an operational decision (score + classification), not a personality report.
 
@@ -408,7 +408,7 @@ This is the enterprise hiring use case. It differentiates from DISC, 360 feedbac
 
 ## What Makes This a Standard, Not Just a File
 
-| A text dump... | A lens document... |
+| A text dump... | A Lens document... |
 |---|---|
 | Has no required fields | Has a schema that scoring engines validate against |
 | Can't be consumed programmatically | YAML frontmatter parses into structured data in any language |
@@ -419,7 +419,7 @@ This is the enterprise hiring use case. It differentiates from DISC, 360 feedbac
 | Is the same regardless of who made it | Records its provenance — which coach persona, which methodology, which version |
 | Produces no output | Produces classified, scored briefings with rationale |
 
-The lens document is portable (markdown), human-readable, machine-consumable, version-controlled, methodology-agnostic, and decision-producing. That combination is the IP.
+The Lens document is portable (markdown), human-readable, machine-consumable, version-controlled, methodology-agnostic, and decision-producing. That combination is the IP.
 
 ---
 
@@ -428,9 +428,9 @@ The lens document is portable (markdown), human-readable, machine-consumable, ve
 - **Schema versioning:** How do we handle backward compatibility when the schema evolves? Lens documents in the wild need to keep working.
 - **Signal quality scoring:** Can we formalize the quality gap between self-serve and coach-facilitated? E.g., a `signal_confidence` field per dimension?
 - **Multi-domain lenses:** Some people are open to genuinely different career paths. Does the schema support multiple orientation profiles?
-- **Role lens schema:** How much of this spec transfers directly to the enterprise/bidirectional use case? What fields change?
-- **Minimum viable lens:** What's the smallest valid lens document that a scoring engine can meaningfully consume? This defines the self-serve floor.
-- **Coach persona certification:** What makes a coach persona "good enough" to produce lens documents? Is there a quality bar for the extraction methodology?
+- **Role Lens schema:** How much of this spec transfers directly to the enterprise/bidirectional use case? What fields change?
+- **Minimum viable Lens:** What's the smallest valid Lens document that a scoring engine can meaningfully consume? This defines the self-serve floor.
+- **Coach persona certification:** What makes a coach persona "good enough" to produce Lens documents? Is there a quality bar for the extraction methodology?
 
 ---
 

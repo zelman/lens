@@ -1,14 +1,14 @@
 // Server-side R→C synthesis prompts - NEVER sent to client
-// Generates lens document (markdown + YAML) from role-contextualized discovery conversation
-// The lens is a conversation catalyst, not an assessment verdict
+// Generates Lens document (markdown + YAML) from role-contextualized discovery conversation
+// The Lens is a conversation catalyst, not an assessment verdict
 // v1.1: Added premium metadata output for radar chart, essence statement, key phrases
 
 // Re-export parsePremiumSynthesisResponse for use by rc-synthesize route
 export { parsePremiumSynthesisResponse } from "./synthesis";
 
-export const RC_SYNTHESIS_SYSTEM_PROMPT = `You are writing a professional identity document — a "lens" — based on a discovery conversation you just had with a candidate being considered for a specific role. This document will be shared with both the candidate AND the recruiter/hiring manager. It needs to be honest, specific, and useful for both parties.
+export const RC_SYNTHESIS_SYSTEM_PROMPT = `You are writing a professional identity document — a "Lens" — based on a discovery conversation you just had with a candidate being considered for a specific role. This document will be shared with both the candidate AND the recruiter/hiring manager. It needs to be honest, specific, and useful for both parties.
 
-The lens is a CONVERSATION CATALYST, not an assessment verdict. It gives both sides language for discussing fit, tensions, and possibilities.
+The Lens is a CONVERSATION CATALYST, not an assessment verdict. It gives both sides language for discussing fit, tensions, and possibilities.
 
 ## CRITICAL: SENSITIVITY RULES
 
@@ -135,7 +135,7 @@ You have been given information about the role this candidate is being considere
 2. **Subtly shape other sections** — if the role requires healthcare expertise, the Skills section should naturally highlight or note the presence/absence of that experience
 3. **Never feel like an interview report** — the candidate should recognize themselves in this document, not feel assessed
 
-The lens belongs to the candidate. It's their professional identity document. The Role Fit section adds role-specific context, but the rest of the document is theirs to use for any opportunity.
+The Lens belongs to the candidate. It's their professional identity document. The Role Fit section adds role-specific context, but the rest of the document is theirs to use for any opportunity.
 
 ## FAILURE MODES TO AVOID
 
@@ -151,10 +151,10 @@ export const RC_PREMIUM_METADATA_INSTRUCTIONS = `
 
 ## PREMIUM METADATA OUTPUT
 
-After the complete lens document, append a fenced JSON block containing structured metadata for the premium deliverable. This metadata enables visual presentation (radar chart, cover page) and actionable guidance.
+After the complete Lens document, append a fenced JSON block containing structured metadata for the premium deliverable. This metadata enables visual presentation (radar chart, cover page) and actionable guidance.
 
 Format your output as:
-1. The complete lens document (markdown with YAML frontmatter, all 7 sections including Role Fit)
+1. The complete Lens document (markdown with YAML frontmatter, all 7 sections including Role Fit)
 2. A separator line: \`---PREMIUM_METADATA---\`
 3. A fenced JSON block with the metadata
 
@@ -172,10 +172,10 @@ The JSON block must have this exact structure:
     "boundaries_defined": <0-100>
   },
   "key_phrases": [
-    "<2-3 quotable highlights from the lens - phrases that capture the person's essence in 10 words or less>"
+    "<2-3 quotable highlights from the Lens - phrases that capture the person's essence in 10 words or less>"
   ],
   "suggested_targeting": [
-    "<3-5 specific company characteristics this person should look for, based on their lens>"
+    "<3-5 specific company characteristics this person should look for, based on their Lens>"
   ],
   "role_fit_summary": {
     "alignment_areas": ["<2-3 key areas of strong alignment with this specific role>"],
@@ -196,7 +196,7 @@ Write a single sentence (max 25 words) that captures the person's professional i
 
 **CRITICAL CALIBRATION RULE:** Use the full 0-100 range. Most people should have 2-3 dimensions in the 55-75 range and only 1-2 above 85. A score of 90+ means overwhelming, multi-layered evidence with zero ambiguity. A score of 70 means solid signal with some nuance. A score of 55 means the signal is present but not fully articulated. Do not inflate scores to be kind — an honest, differentiated profile is more useful than a flattering uniform one. A near-perfect circle (all scores 85+) defeats the purpose of the radar chart.
 
-Each score corresponds to one of the 6 standard lens sections (NOT the Role Fit section) and reflects how clearly the person articulated that dimension:
+Each score corresponds to one of the 6 standard Lens sections (NOT the Role Fit section) and reflects how clearly the person articulated that dimension:
 
 - **essence_clarity** (0-100): How clear is their professional identity? 90+ = vivid, distinctive self-understanding with specific language and multiple reinforcing examples.
 - **skill_depth** (0-100): How well do they articulate their skills and experience? 90+ = specific capabilities with metrics, evidence, and differentiated positioning.
@@ -220,7 +220,7 @@ This is specific to the R→C flow. Summarize the Role Fit section as structured
 - **tension_areas**: 1-2 areas where fit is uncertain or requires discussion (not red flags, just areas to explore)
 - **open_questions**: 2-3 questions the hiring conversation should address to clarify fit
 
-IMPORTANT: The premium metadata is ADDITIVE. The lens document itself must be complete with all 7 sections. The metadata block is appended after, not integrated into, the narrative sections.`;
+IMPORTANT: The premium metadata is ADDITIVE. The Lens document itself must be complete with all 7 sections. The metadata block is appended after, not integrated into, the narrative sections.`;
 
 /**
  * Build the user content for R→C synthesis
@@ -313,7 +313,7 @@ export function buildRCSynthesisUserContent({ sessionConfig, sectionData, candid
   sections.push("\n══════════════════════════════════════════════════════════════════════════════");
   sections.push("INSTRUCTIONS");
   sections.push("══════════════════════════════════════════════════════════════════════════════");
-  sections.push(`Generate the lens document following the structure in your instructions.`);
+  sections.push(`Generate the Lens document following the structure in your instructions.`);
   sections.push(`- Use the candidate's name if provided, otherwise use "this candidate"`);
   sections.push(`- The date field should be: ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`);
   sections.push(`- 7 sections: Essence, Skills & Experience, Values, Mission & Direction, Work Style, Non-Negotiables, Role Fit`);

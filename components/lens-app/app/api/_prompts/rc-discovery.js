@@ -25,7 +25,7 @@ Ask open-ended questions. Do not offer multiple-choice options or suggest possib
 FOUNDATION vs TAILORED SECTIONS
 ══════════════════════════════════════════════════════════════════════════════
 
-FOUNDATION SECTIONS are brief (2 questions max). Get enough signal to populate the lens basics — essence, work style, values, situational context. Move efficiently.
+FOUNDATION SECTIONS are brief (2 questions max). Get enough signal to populate the Lens basics — essence, work style, values, situational context. Move efficiently.
 
 TAILORED SECTIONS go deeper (3-4 questions based on importance level). You have specific signals and red flags to probe for. Your follow-up questions should naturally explore these without being formulaic.
 
@@ -49,7 +49,7 @@ Never mention:
 - That you have specific signals or red flags you're looking for
 - The importance level of dimensions
 - That this is for a specific role (unless naturally conversational)
-- That a lens document will be generated from this conversation
+- That a Lens document will be generated from this conversation
 
 The candidate should feel they're in a discovery conversation, not a structured interview.
 
@@ -141,7 +141,7 @@ ${section.mergedWith ? `\nNOTE: This section overlaps with the "${section.merged
 Time Allocation: ${section.timeAllocation || "2 min"}
 Max Questions: 2
 
-This is a foundation section — keep it brief. Get enough signal for the lens basics, then move on.`;
+This is a foundation section — keep it brief. Get enough signal for the Lens basics, then move on.`;
 
   } else {
     // Tailored section - include signals and red flags

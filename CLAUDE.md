@@ -25,7 +25,7 @@ Eric's personal agent lens monolith and user files live in a **separate repo**: 
 
 - **`components/`** — JSX scorers and standalone components
 - **`app/`** — Next.js intake application (pages, components, API routes)
-- **`schemas/`** — Lens document spec, candidate lens format, source templates
+- **`schemas/`** — Lens document spec, Candidate Lens format, source templates
 - **`docs/`** — Enhancement tracking, scoring engine architecture, enhancements backlog
 - **`deliverables/`** — Pitch decks, reports
 - **`public/`** — Static assets
@@ -54,7 +54,7 @@ The lens-app uses a **serverless proxy architecture** to protect IP:
 | Model | Use Case |
 |-------|----------|
 | `claude-opus-4-7` | Heavy reasoning (complex scoring logic, architectural decisions) |
-| `claude-sonnet-4-6` | General synthesis (lens generation, discovery conversations) |
+| `claude-sonnet-4-6` | General synthesis (Lens generation, discovery conversations) |
 | `claude-haiku-4-5-20251001` | Fast/cheap operations (validation, simple transforms) |
 
 **Migration Rule:** When editing or creating code, check for `claude-sonnet-4-20250514` and migrate to the appropriate model above. Update `claude-sonnet-4-migration.md` in the Job Search repo to track progress.
@@ -130,11 +130,11 @@ The old dark theme (#0a0a0a, #a08060 gold) is retired for product materials. All
 ## What Lives Where (Repo Boundaries)
 
 - **lens** (this repo): Product code, scoring config, schemas, scorers, docs, deliverables, review profiles
-- **tidepool** (separate repo): Agent lens monolith, user files (`users/`), cross-project context, James Pratt skill
+- **tidepool** (separate repo): Agent Lens monolith, user files (`users/`), cross-project context, James Pratt skill
 - **job_search** (separate repo): n8n workflow JSON, pipeline execution code, PE detection modules, Airtable integration
 - **work** (separate repo): Resume, cover letters, career materials
 
-Do NOT put n8n execution code (JavaScript modules, workflow JSON) in this repo. Do NOT put user lens files here — they go in `zelman/tidepool/users/`. Scoring *configuration* (what signals to look for, how to weight them) belongs here. Scoring *execution* (the n8n nodes that run the evaluation) belongs in job_search.
+Do NOT put n8n execution code (JavaScript modules, workflow JSON) in this repo. Do NOT put user Lens files here — they go in `zelman/tidepool/users/`. Scoring *configuration* (what signals to look for, how to weight them) belongs here. Scoring *execution* (the n8n nodes that run the evaluation) belongs in job_search.
 
 ## Local Development & File Handoff
 
@@ -171,7 +171,7 @@ Claude AI (claude.ai) creates JSX components, scoring configs, markdown docs, an
 | Static/public assets | `public/` |
 | Scoring configuration | repo root (`scoring-config.yaml`) |
 | Review profiles | `review-profiles/` |
-| User lens files | **DO NOT PUT HERE** — goes in `zelman/tidepool/users/` |
+| User Lens files | **DO NOT PUT HERE** — goes in `zelman/tidepool/users/` |
 | n8n workflow JSON | **DO NOT PUT HERE** — goes in `zelman/job_search` |
 
 ### Local Development Server
@@ -211,7 +211,7 @@ Missing env vars cause silent failures in production (e.g., feedback not saving,
 
 **Example:**
 ```
-Move ~/Downloads/lens-scorer.jsx to components/lens-scorer.jsx and commit with message "Swiss Style scorer with runtime lens fetch"
+Move ~/Downloads/lens-scorer.jsx to components/lens-scorer.jsx and commit with message "Swiss Style scorer with runtime Lens fetch"
 ```
 
 Claude Code should use the file placement table above to suggest the correct destination if Eric doesn't specify one.
@@ -235,7 +235,7 @@ node code-review.mjs components/lens-scorer.jsx --model opus --log
 
 **Always review on change:** `components/lens-scorer.jsx`, `components/lens-intake.jsx`, `components/lens-form.jsx`, `scoring-config.yaml`
 
-**Use Opus when:** System prompt changes, lens document schema changes, auto-disqualifier logic changes, coach persona integration changes.
+**Use Opus when:** System prompt changes, Lens document schema changes, auto-disqualifier logic changes, coach persona integration changes.
 
 ## Current State (April 2026)
 

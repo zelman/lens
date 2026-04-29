@@ -2,6 +2,131 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-28] Premium Lens Document Feature
+
+### lens-app 2026.04.28-f
+
+**Synced preview with PDF - both now use PremiumLensDocument format:**
+
+The done phase preview was showing the old "Lens Report" format (numbered sections like "01 SKILLS & EXPERIENCE") while the PDF used the new 8-page premium layout. Now both are in sync.
+
+**Changes:**
+- Added `inline` prop to PremiumLensDocument for preview mode (no modal overlay)
+- Inline preview shows: cover (LENS wordmark, name, date, essence), radar chart, 6 dimension previews with signal bars, footer teaser
+- Removed unused LensReport import and parsedLens memo from LensIntake.jsx
+- Preview shows truncated content; full document available in PDF
+
+**User flow:**
+1. User sees inline premium preview on done phase
+2. User clicks "Download PDF"
+3. Premium synthesis runs (generating metadata for radar chart, key phrases)
+4. Modal opens with full 8-page document
+5. User prints to PDF
+
+---
+
+### lens-app 2026.04.28-e
+
+**Fixed PDF printing app content instead of premium document:**
+
+Root cause: Print CSS selector `body > div[style*="position: fixed"]` was too specific and didn't hide the rest of the app. The done phase UI, navigation, and lens report content were all printing alongside the premium document.
+
+**Fix:**
+- Added `data-premium-modal` attribute to modal wrapper
+- Print CSS now hides ALL `body > *` children first
+- Then explicitly shows only `[data-premium-modal]` and its contents
+- Toolbar hidden via `.no-print` class (already present)
+
+---
+
+### lens-app 2026.04.28-d
+
+**Wired premium metadata and full 8-page Swiss Style layout:**
+
+Root cause fix: `generatePremiumDoc()` never called `/api/synthesize-premium`, so metadata was always null. Cover page quotes, radar chart, and signal bars were rendering empty.
+
+**Data flow fix:**
+- `generatePremiumDoc()` now calls `/api/synthesize-premium` FIRST
+- Stores metadata via `setPremiumMetadata()`
+- Passes premium lens + metadata to subsequent API calls
+- PremiumLensDocument receives populated metadata object
+
+**Full 8-page layout (Swiss Style):**
+| Page | Content |
+|------|---------|
+| 1 | Cover: LENS wordmark, name, date, essence statement in italics |
+| 2 | Identity Portrait: SVG radar chart (6 dimensions), key phrases as pills |
+| 3-5 | Dimension Deep Dives: signal bars, narrative, pull quotes |
+| 6 | Resume Enhancements (conditional): lens vs resume comparison cards |
+| 7 | Next Steps: grouped by timeframe (this_week, in_conversations, ongoing) |
+| 8 | About Your Lens: static explainer content |
+
+**Design tokens:**
+- `#D93025` red, `#2D6A2D` green, `#E8590C` orange
+- `#F0F0F0` container bg, `#EEEEEE` hairline (0.5px)
+- Zero border-radius everywhere
+- Monospace for scores, system sans-serif for text
+
+---
+
+### lens-app 2026.04.28-c
+
+**UI polish: consolidated PDF buttons**
+
+- Done phase button: "Download PDF" (was "Download Premium PDF")
+- Modal button: "Save as PDF" (unchanged)
+- Reduces confusion from having two differently-labeled PDF actions
+
+---
+
+### lens-app 2026.04.28-b
+
+**Fixed print-to-PDF blank output and simplified UI:**
+
+- Fixed print CSS that was hiding all content (missing element targeting)
+- Removed Report/Markdown tabs from done phase
+- Single "Download Premium PDF" button replaces old button cluster
+- Print styles now properly preserve colors and remove overlay
+
+---
+
+### lens-app 2026.04.28-a
+
+**Added premium multi-page PDF deliverable with actionable guidance:**
+
+New "Premium PDF with next steps" button in the done phase generates an enhanced document including:
+- Cover page with key phrases and signal strength visualization
+- Full Lens narrative (all 6 sections)
+- 3 actionable next steps with sub-tasks and timelines
+- Resume alignment suggestions (when resume uploaded)
+
+**New API routes:**
+| Route | Model | Purpose |
+|-------|-------|---------|
+| `/api/synthesize-premium` | Sonnet | Lens + structured metadata JSON |
+| `/api/next-steps` | Haiku | 3 actionable career steps |
+| `/api/resume-suggestions` | Haiku | Resume revision suggestions |
+
+**Architecture:**
+- All changes additive — existing Report/Markdown tabs unchanged
+- Premium metadata appended to synthesis via opt-in flag
+- Print-to-PDF via browser (no new dependencies)
+- Swiss Style design tokens throughout
+
+**Files Created:**
+- `app/api/_prompts/next-steps.js`
+- `app/api/_prompts/resume-suggestions.js`
+- `app/api/next-steps/route.js`
+- `app/api/resume-suggestions/route.js`
+- `app/api/synthesize-premium/route.js`
+- `app/components/PremiumLensDocument.jsx`
+
+**Files Modified:**
+- `app/api/_prompts/synthesis.js` (added `PREMIUM_METADATA_INSTRUCTIONS`, `parsePremiumSynthesisResponse()`)
+- `app/components/LensIntake.jsx` (premium state, button, modal)
+
+---
+
 ## [2026-04-24] Streaming API for Synthesis Timeouts
 
 ### lens-app 2026.04.24-a
@@ -313,19 +438,19 @@ Adds Team Identity Validation experiment per James Pratt spec (v1.0). Tests core
 ## [2026-04-15] Replace Scorecard with Lens Document (P0 Fix)
 
 ### lens-app 2026.04.15-n (Lens Document Output)
-Fixes deviation from brief: R→C Step 4 now produces a **lens document** (markdown + YAML) instead of a JSON scorecard. Per the brief: "The lens is a conversation catalyst, not an assessment verdict."
+Fixes deviation from brief: R→C Step 4 now produces a **Lens document** (markdown + YAML) instead of a JSON scorecard. Per the brief: "The Lens is a conversation catalyst, not an assessment verdict."
 
 **Key Changes:**
-1. **rc-synthesis.js** — Complete rewrite. Now produces 7-section lens document (standard 6 + Role Fit section) instead of JSON scorecard. Role Fit section addresses alignment, productive tension, and open questions without scoring/verdicts.
+1. **rc-synthesis.js** — Complete rewrite. Now produces 7-section Lens document (standard 6 + Role Fit section) instead of JSON scorecard. Role Fit section addresses alignment, productive tension, and open questions without scoring/verdicts.
 
 2. **rc-synthesize/route.js** — Returns `{ lens: markdownText }` instead of `{ scorecard: jsonObject }`. Added streaming for timeout avoidance and sensitivity filtering.
 
-3. **RecruiterCandidateIntake.jsx** — Complete phase now renders lens document with inline markdown parser. Displays stats bar from YAML frontmatter, section headers, and prose. "Copy Lens Markdown" replaces "Copy Scorecard JSON".
+3. **RecruiterCandidateIntake.jsx** — Complete phase now renders Lens document with inline markdown parser. Displays stats bar from YAML frontmatter, section headers, and prose. "Copy Lens Markdown" replaces "Copy Scorecard JSON".
 
 **Why this matters:**
 - Scorecard implied assessment verdict (fit score 1-5, "Advance/Do Not Advance")
 - Lens document is a conversation catalyst that both candidate and recruiter can use
-- Candidate owns their lens document — it's their professional identity, not an evaluation
+- Candidate owns their Lens document — it's their professional identity, not an evaluation
 - Role Fit section gives language for discussing fit without reducing to a score
 
 **Files Modified:**
@@ -360,7 +485,7 @@ Adds the candidate discovery conversation fork for R→C flow. Consumes `session
 **Architecture Decision:** FORK (not parameterize)
 - System prompts fundamentally different (R→C context-aware, includes role context)
 - Sections dynamic from session-config (foundation + tailored) vs. hardcoded 8
-- Synthesis output different (JSON scorecard vs. lens document)
+- Synthesis output different (JSON scorecard vs. Lens document)
 - Preserves existing C→C flow without risk of regression
 
 **New Route:** `/recruiter/candidate`
@@ -653,7 +778,7 @@ Adds code-level filter to catch clinical labels that slip through prompt-based f
 
 **Problem:**
 - Build 2026.04.12-j's timeout fix caused validation to be skipped
-- Without validation, ADHD label appeared in lens output: "Eric has ADHD, which means..."
+- Without validation, ADHD label appeared in Lens output: "Eric has ADHD, which means..."
 - Model-based prohibition in synthesis prompt is not 100% reliable
 
 **Solution: Belt-and-suspenders approach**
@@ -805,7 +930,7 @@ Implements `integration-spec-addendum-v1.1.md` — addresses three issues found 
 - **Fix**: Store `originalLensDoc` before re-synthesis for fallback (prevents data loss on failed re-synthesis)
 - **Fix**: Shared timeout budget via `getRemainingTimeout()` (prevents 4 × 50s exceeding Vercel 60s limit)
 - **Fix**: Added `RETRY_TEMPERATURE = 0.8` for retry variation (was identical inputs)
-- **Fix**: Validate revised lens section count before accepting (prevents accepting malformed re-synthesis)
+- **Fix**: Validate revised Lens section count before accepting (prevents accepting malformed re-synthesis)
 
 ---
 
@@ -844,7 +969,7 @@ Discovery → Synthesis → Validation → [Re-synthesis if gaps] → Render
 - **Fix**: Retry logic now validates second attempt quality (returns 502 if still malformed)
 
 ### lens-app 2026.04.12-a
-Implements `lens-context-integration-spec-v1.0.md` — uploaded documents (resume, LinkedIn, assessments) now flow into synthesis for evidence-grounded lens output.
+Implements `lens-context-integration-spec-v1.0.md` — uploaded documents (resume, LinkedIn, assessments) now flow into synthesis for evidence-grounded Lens output.
 
 **New: Document Context Extraction**
 - Added `documentContext` extraction from uploaded files (memoized)
@@ -977,7 +1102,7 @@ Added 9 fields to `Lens Feedback` table:
   - Rewrote all discovery prompts to be neutral (removed Eric-specific bias)
 - **Build b**: Serverless proxy architecture
   - Created `/api/discover` route for discovery conversations
-  - Created `/api/synthesize` route for lens generation
+  - Created `/api/synthesize` route for Lens generation
   - Moved all system prompts to server-side (`app/api/_prompts/`)
   - Refactored client to use proxy routes (prompts no longer in browser)
 - **Build c**: Opus code review fixes

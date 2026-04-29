@@ -112,7 +112,7 @@ Each bullet is either a strength (green) or watch (orange). Never neutral.
 - "Protectiveness over key accounts could clash with Maria's direct access style."
 
 Rules:
-- Every bullet must reference a specific finding from the lens. No generic language.
+- Every bullet must reference a specific finding from the Lens. No generic language.
 - Write in recruiter voice, not assessment voice.
 - Mix strengths and watches — typically 3-4 strengths, 1-2 watches.
 
@@ -125,7 +125,7 @@ Rules:
 **OPEN QUESTIONS:** 3-5 questions total.
 - Split between questions for the hiring manager/stakeholders (about the role, team, org) and questions for the candidate
 - Each question must be grounded in a specific tension or gap from the match analysis
-- NO generic interview questions. Every question must trace to something specific from the lens.
+- NO generic interview questions. Every question must trace to something specific from the Lens.
 
 ## CRITICAL RULES
 
@@ -137,14 +137,14 @@ Rules:
 
 ## EXTRACTING FROM LENS
 
-Pull content from these lens sections:
+Pull content from these Lens sections:
 - **Essence:** Identity statement, pull quotes, unusual combinations
 - **Skills & Experience:** Track record numbers, career arc, what they carry forward
 - **Values:** Named values with behavioral evidence
 - **Mission & Direction:** Target stage/size/sector, where they're headed
 - **Work Style:** Remote/hybrid preferences, collaboration patterns
 - **Non-Negotiables:** Comp floor, hard boundaries, dealbreakers
-- **Role Fit:** (if R→C lens) Alignment areas, tensions, open questions
+- **Role Fit:** (if R→C Lens) Alignment areas, tensions, open questions
 
 The metadata object may contain:
 - soft_gates: dimension scores (use for identifying weak areas to probe, not for display)
@@ -272,7 +272,7 @@ export function buildRecruiterBriefUserContent({
   sections.push("Generate the recruiter brief as a JSON object following the schema in your instructions.");
   sections.push("- Extract showstoppers (comp, location, dealbreakers) for AT A GLANCE");
   sections.push("- Write 4-6 SIGNAL bullets mixing strengths and watches");
-  sections.push("- Ground every OPEN QUESTION in a specific tension from the lens");
+  sections.push("- Ground every OPEN QUESTION in a specific tension from the Lens");
   sections.push("- Recruiter voice throughout — no assessment language");
   sections.push("- Output valid JSON only, no markdown wrapper");
 
