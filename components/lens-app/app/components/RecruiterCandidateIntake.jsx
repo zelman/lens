@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { getDemoCandidate, isDemoModeEnabled } from "../../config/demo-candidates";
 import PremiumLensDocument from "./PremiumLensDocument";
+import RecruiterBrief from "./RecruiterBrief";
 
-const BUILD_ID = "2026.04.28-i";
+const BUILD_ID = "2026.04.29-a";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
@@ -127,6 +128,10 @@ export default function RecruiterCandidateIntake() {
   const [lensError, setLensError] = useState(null);
   const [copyFeedback, setCopyFeedback] = useState(null); // "Copied!" or error message
   const [showPremiumDoc, setShowPremiumDoc] = useState(false); // Modal state for premium document
+  const [recruiterBrief, setRecruiterBrief] = useState(null); // From /api/recruiter-brief
+  const [showRecruiterBrief, setShowRecruiterBrief] = useState(false); // Modal state for recruiter brief
+  const [briefLoading, setBriefLoading] = useState(false); // Loading state for brief generation
+  const [briefError, setBriefError] = useState(null); // Error state for brief generation
 
   // ── Refs ──
   const messagesEndRef = useRef(null);
@@ -907,6 +912,75 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
   }
 
   // ════════════════════════════════════════
+  // Generate Recruiter Brief
+  // ════════════════════════════════════════
+
+  async function generateRecruiterBrief() {
+    if (!lens) {
+      setBriefError("No lens document available");
+      return;
+    }
+
+    setBriefLoading(true);
+    setBriefError(null);
+
+    const meta = sessionConfig?.metadata || {};
+
+    try {
+      const res = await fetch("/api/recruiter-brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lensMarkdown: lens,
+          metadata: lensMetadata || null,
+          roleContext: {
+            title: meta.roleTitle || "Unknown Role",
+            company: meta.company || "Unknown Company",
+            stage: meta.stage || null,
+            size: meta.size || null,
+            sector: meta.sector || null,
+            location: meta.location || null,
+            arrangement: meta.arrangement || null,
+            stakeholders: meta.stakeholders || [],
+            requirements: meta.requirements || [],
+            criticalDimensions: sessionConfig?.tailored || [],
+          },
+          candidateProfile: {
+            name: candidateData?.name || null,
+            location: candidateData?.location || null,
+            experienceYears: candidateData?.experienceYears || null,
+            domain: candidateData?.domain || null,
+            currentTitle: candidateData?.currentTitle || null,
+            currentCompany: candidateData?.currentCompany || null,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error (${res.status})`);
+      }
+
+      const data = await res.json();
+
+      if (data.brief) {
+        setRecruiterBrief(data.brief);
+        setShowRecruiterBrief(true);
+        console.log("[RC] Recruiter brief generated:", data.brief.signal?.length, "signals");
+      } else {
+        throw new Error("No brief data returned");
+      }
+
+    } catch (err) {
+      console.error("generateRecruiterBrief error:", err);
+      trackApiError("/api/recruiter-brief", null, err.message);
+      setBriefError(err.message || "Failed to generate recruiter brief");
+    } finally {
+      setBriefLoading(false);
+    }
+  }
+
+  // ════════════════════════════════════════
   // Render: Loading / Error State
   // ════════════════════════════════════════
 
@@ -1485,6 +1559,20 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
   if (phase === "complete" && lens) {
     const meta = sessionConfig?.metadata || {};
 
+    // Show Recruiter Brief modal
+    if (showRecruiterBrief && recruiterBrief) {
+      return (
+        <>
+          <RecruiterBrief
+            brief={recruiterBrief}
+            onClose={() => setShowRecruiterBrief(false)}
+            inline={false}
+          />
+          {buildFooter}
+        </>
+      );
+    }
+
     // Show Premium Document modal
     if (showPremiumDoc) {
       return (
@@ -1556,8 +1644,47 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
               marginBottom: "12px",
             }}
           >
-            View Premium Document
+            View Candidate Lens
           </button>
+          <button
+            onClick={() => {
+              if (recruiterBrief) {
+                setShowRecruiterBrief(true);
+              } else {
+                generateRecruiterBrief();
+              }
+            }}
+            disabled={briefLoading}
+            style={{
+              width: "100%",
+              padding: "14px",
+              fontFamily: FONT,
+              fontSize: "13px",
+              fontWeight: 600,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              background: briefLoading ? "#f8f8f8" : ORANGE,
+              color: briefLoading ? GRY : "#fff",
+              border: "none",
+              cursor: briefLoading ? "wait" : "pointer",
+              borderRadius: 0,
+              marginBottom: "12px",
+            }}
+          >
+            {briefLoading ? "Generating Brief..." : recruiterBrief ? "View Recruiter Brief" : "Generate Recruiter Brief"}
+          </button>
+          {briefError && (
+            <div style={{
+              fontSize: "11px",
+              color: RED,
+              marginBottom: "12px",
+              padding: "8px",
+              background: "#fff5f5",
+              border: `1px solid ${RED}`,
+            }}>
+              {briefError}
+            </div>
+          )}
           <button
             onClick={() => {
               navigator.clipboard.writeText(lens)
