@@ -3,15 +3,19 @@
 // System prompts are loaded server-side and NEVER sent to client
 // Includes post-synthesis validation gate (ported from /api/synthesize)
 // v1.1: SDK streaming to avoid Vercel timeout cliff (matches /api/synthesize pattern)
+// v1.2: Premium metadata output for radar chart, essence statement, key phrases
 
 import Anthropic from "@anthropic-ai/sdk";
-import { RC_SYNTHESIS_SYSTEM_PROMPT, buildRCSynthesisUserContent } from "../_prompts/rc-synthesis";
+import { RC_SYNTHESIS_SYSTEM_PROMPT, RC_PREMIUM_METADATA_INSTRUCTIONS, buildRCSynthesisUserContent, parsePremiumSynthesisResponse } from "../_prompts/rc-synthesis";
 import { VALIDATION_SYSTEM_PROMPT, buildValidationUserContent, buildRevisionAddendum } from "../_prompts/validation";
 
 const MODEL = "claude-sonnet-4-6";
-const MAX_TOKENS = 6000; // Lens documents require extended token limit for 7-section narrative
+const MAX_TOKENS = 8000; // Premium output: 7-section narrative + metadata JSON block
 const VALIDATION_MAX_TOKENS = 1500; // Gap report is smaller
 // Note: temperature param removed — deprecated in Claude 4.5+ models
+
+// Full system prompt with premium metadata instructions appended
+const FULL_SYSTEM_PROMPT = RC_SYNTHESIS_SYSTEM_PROMPT + RC_PREMIUM_METADATA_INSTRUCTIONS;
 
 // Streaming eliminates the hard timeout cliff - Vercel timeout applies to time between bytes, not total request time
 const STREAM_TIMEOUT_MS = 120000; // 2 min total budget now safe with streaming
@@ -149,15 +153,16 @@ export async function POST(request) {
     // ═══════════════════════════════════════════════════════════════════════
     const requestStart = Date.now();
 
-    // Build user content
+    // Build user content with premium metadata flag
     let userContent;
     try {
       userContent = buildRCSynthesisUserContent({
         sessionConfig,
         sectionData,
         candidateContext: candidateContext || null,
+        includePremiumMetadata: true,
       });
-      console.log(`[RC-Synthesize] userContent: ${userContent.length} chars, prompt: ${RC_SYNTHESIS_SYSTEM_PROMPT.length} chars`);
+      console.log(`[RC-Synthesize] userContent: ${userContent.length} chars, prompt: ${FULL_SYSTEM_PROMPT.length} chars`);
     } catch (buildErr) {
       console.error("[RC-Synthesize] buildRCSynthesisUserContent failed:", buildErr.message);
       throw buildErr;
@@ -228,8 +233,17 @@ export async function POST(request) {
     // ═══════════════════════════════════════════════════════════════════════
     // PHASE 1: Initial Synthesis (SDK streaming for large output)
     // ═══════════════════════════════════════════════════════════════════════
-    console.log(`[RC-Synthesize] Phase 1 starting with SDK streaming`);
-    let lensDoc = await callAnthropicStreaming(RC_SYNTHESIS_SYSTEM_PROMPT, userContent);
+    console.log(`[RC-Synthesize] Phase 1 starting with SDK streaming (premium metadata enabled)`);
+    let rawResponse = await callAnthropicStreaming(FULL_SYSTEM_PROMPT, userContent);
+
+    // Parse response to extract markdown and metadata
+    let { markdown: lensDoc, metadata, parseError } = parsePremiumSynthesisResponse(rawResponse);
+    if (parseError) {
+      console.warn(`[RC-Synthesize] Metadata parse warning: ${parseError}`);
+    }
+    if (metadata) {
+      console.log(`[RC-Synthesize] Extracted metadata with soft_gates:`, Object.keys(metadata.soft_gates || {}));
+    }
 
     console.log("[RC-Synthesize] Phase 1 complete. Length:", lensDoc.length);
 
@@ -308,20 +322,22 @@ export async function POST(request) {
           } else {
             console.log(`[RC-Synthesize] Validation found issues: ${reasons.join(", ")}, triggering re-synthesis (${Math.round(resynthBudget / 1000)}s remaining)`);
 
-            // Build revision addendum and append to original synthesis prompt
+            // Build revision addendum and append to full system prompt (with premium metadata)
             const revisionAddendum = buildRevisionAddendum(gapReport);
-            const revisedSystemPrompt = RC_SYNTHESIS_SYSTEM_PROMPT + revisionAddendum;
+            const revisedSystemPrompt = FULL_SYSTEM_PROMPT + revisionAddendum;
 
             // Re-run synthesis with gap instructions (use streaming for large output)
             try {
-              const revisedLens = await callAnthropicStreaming(revisedSystemPrompt, userContent);
+              const revisedRawResponse = await callAnthropicStreaming(revisedSystemPrompt, userContent);
+              const revisedParsed = parsePremiumSynthesisResponse(revisedRawResponse);
 
               // Validate revised output before accepting it
-              const revisedSectionCount = (revisedLens.match(/^##\s+/gm) || []).length;
+              const revisedSectionCount = (revisedParsed.markdown.match(/^##\s+/gm) || []).length;
               if (revisedSectionCount < 5) {
                 console.warn(`[RC-Synthesize] Re-synthesis produced only ${revisedSectionCount} sections, keeping original`);
               } else {
-                lensDoc = revisedLens;
+                lensDoc = revisedParsed.markdown;
+                metadata = revisedParsed.metadata || metadata; // Keep original metadata if re-synthesis didn't produce any
                 console.log("[RC-Synthesize] Re-synthesis accepted");
               }
             } catch (resynthErr) {
@@ -349,11 +365,15 @@ export async function POST(request) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // PHASE 4: Return final lens document
+    // PHASE 4: Return final lens document with metadata
     // ═══════════════════════════════════════════════════════════════════════
-    console.log(`[RC-Synthesize] Lens generated successfully`);
+    console.log(`[RC-Synthesize] Lens generated successfully (metadata: ${metadata ? 'yes' : 'no'})`);
 
-    return Response.json({ lens: sanitized });
+    return Response.json({
+      lens: sanitized,
+      metadata: metadata || null,
+      premium: true,
+    });
 
   } catch (err) {
     const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError' || err.message?.includes('timeout');

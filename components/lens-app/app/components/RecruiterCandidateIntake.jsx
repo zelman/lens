@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { getDemoCandidate, isDemoModeEnabled } from "../../config/demo-candidates";
+import PremiumLensDocument from "./PremiumLensDocument";
 
-const BUILD_ID = "2026.04.28-h";
+const BUILD_ID = "2026.04.28-i";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
@@ -120,8 +121,12 @@ export default function RecruiterCandidateIntake() {
 
   // ── Lens document output ──
   const [lens, setLens] = useState(null);
+  const [lensMetadata, setLensMetadata] = useState(null); // Premium metadata (soft_gates, essence_statement, etc.)
+  const [nextSteps, setNextSteps] = useState(null); // From /api/next-steps
+  const [resumeSuggestions, setResumeSuggestions] = useState(null); // From /api/resume-suggestions
   const [lensError, setLensError] = useState(null);
   const [copyFeedback, setCopyFeedback] = useState(null); // "Copied!" or error message
+  const [showPremiumDoc, setShowPremiumDoc] = useState(false); // Modal state for premium document
 
   // ── Refs ──
   const messagesEndRef = useRef(null);
@@ -802,6 +807,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
     const dataToSynthesize = overrideSectionData || sectionData;
 
     try {
+      // Step 1: Generate lens with premium metadata
       const res = await fetch("/api/rc-synthesize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -824,15 +830,69 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
 
       const data = await res.json();
 
-      if (data.lens) {
-        setLens(data.lens);
-        setPhase("complete");
-        // Clear localStorage since session is complete (use session-scoped key)
-        if (sessionConfig?.sessionId) {
-          localStorage.removeItem(`${RC_STORAGE_KEY}_${sessionConfig.sessionId}`);
-        }
-      } else {
+      if (!data.lens) {
         throw new Error(data.error || "Failed to generate lens document");
+      }
+
+      // Store lens and metadata
+      setLens(data.lens);
+      if (data.metadata) {
+        setLensMetadata(data.metadata);
+        console.log("[RC] Premium metadata received:", Object.keys(data.metadata));
+      }
+
+      // Step 2: Fetch next steps (fire and don't block completion)
+      fetch("/api/next-steps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lensMarkdown: data.lens,
+          metadata: data.metadata || null,
+        }),
+      })
+        .then((r) => r.ok ? r.json() : null)
+        .then((nextStepsData) => {
+          if (nextStepsData?.next_steps) {
+            setNextSteps(nextStepsData.next_steps);
+            console.log("[RC] Next steps received:", nextStepsData.next_steps.length);
+          }
+        })
+        .catch((err) => {
+          console.warn("[RC] next-steps fetch failed:", err.message);
+          trackApiError("/api/next-steps", null, err.message);
+        });
+
+      // Step 3: Fetch resume suggestions if resume exists (fire and don't block)
+      if (candidateData?.resumeText) {
+        fetch("/api/resume-suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lensMarkdown: data.lens,
+            resumeText: candidateData.resumeText,
+            metadata: data.metadata || null,
+          }),
+        })
+          .then((r) => r.ok ? r.json() : null)
+          .then((resumeData) => {
+            if (resumeData?.suggestions) {
+              setResumeSuggestions(resumeData);
+              console.log("[RC] Resume suggestions received:", resumeData.suggestions.length);
+            }
+          })
+          .catch((err) => {
+            console.warn("[RC] resume-suggestions fetch failed:", err.message);
+            trackApiError("/api/resume-suggestions", null, err.message);
+          });
+      }
+
+      // Complete immediately after synthesis - premium data loads async
+      setPhase("complete");
+      setShowPremiumDoc(true); // Show premium doc modal by default
+
+      // Clear localStorage since session is complete (use session-scoped key)
+      if (sessionConfig?.sessionId) {
+        localStorage.removeItem(`${RC_STORAGE_KEY}_${sessionConfig.sessionId}`);
       }
 
     } catch (err) {
@@ -1419,189 +1479,38 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
   }
 
   // ════════════════════════════════════════
-  // Render: Complete Phase (Lens Document Display)
+  // Render: Complete Phase (Premium Lens Document)
   // ════════════════════════════════════════
 
   if (phase === "complete" && lens) {
     const meta = sessionConfig?.metadata || {};
 
-    // Simple markdown renderer for lens document
-    const renderMarkdownContent = (md) => {
-      if (!md) return null;
+    // Show Premium Document modal
+    if (showPremiumDoc) {
+      return (
+        <>
+          <PremiumLensDocument
+            lensMarkdown={lens}
+            metadata={lensMetadata}
+            nextSteps={nextSteps}
+            resumeSuggestions={resumeSuggestions}
+            hasResumeData={!!candidateData?.resumeText}
+            onClose={() => setShowPremiumDoc(false)}
+            inline={false}
+          />
+          {buildFooter}
+        </>
+      );
+    }
 
-      const lines = md.split("\n");
-      const elements = [];
-      let currentParagraph = [];
-      let inYamlFrontmatter = false;
-      let yamlContent = [];
-
-      // Render inline markdown (bold, italic)
-      const renderInlineMarkdown = (text) => {
-        // Split on bold (**text**) and italic (*text*) patterns
-        const parts = [];
-        let remaining = text;
-        let key = 0;
-        let iterations = 0;
-        const maxIterations = 1000; // Safety guard against infinite loops
-
-        while (remaining.length > 0 && iterations < maxIterations) {
-          iterations++;
-          const prevLength = remaining.length;
-
-          // Bold first (greedy match for **)
-          const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
-          // Italic (single *) - simplified to avoid lookbehind for Safari compatibility
-          const italicMatch = remaining.match(/(?:^|[^*])\*([^*]+)\*(?:[^*]|$)/);
-
-          if (boldMatch && (!italicMatch || boldMatch.index <= (italicMatch.index || 0))) {
-            if (boldMatch.index > 0) {
-              parts.push(<span key={key++}>{remaining.slice(0, boldMatch.index)}</span>);
-            }
-            parts.push(<strong key={key++}>{boldMatch[1]}</strong>);
-            remaining = remaining.slice(boldMatch.index + boldMatch[0].length);
-          } else if (italicMatch) {
-            // Account for potential leading character in match
-            const actualIndex = italicMatch.index + (italicMatch[0].startsWith("*") ? 0 : 1);
-            if (actualIndex > 0) {
-              parts.push(<span key={key++}>{remaining.slice(0, actualIndex)}</span>);
-            }
-            parts.push(<em key={key++}>{italicMatch[1]}</em>);
-            const matchEnd = actualIndex + italicMatch[1].length + 2; // +2 for the asterisks
-            remaining = remaining.slice(matchEnd);
-          } else {
-            parts.push(<span key={key++}>{remaining}</span>);
-            break;
-          }
-
-          // Safety check: if no progress was made, break to avoid infinite loop
-          if (remaining.length >= prevLength) {
-            parts.push(<span key={key++}>{remaining}</span>);
-            break;
-          }
-        }
-
-        return parts.length > 0 ? parts : text;
-      };
-
-      const flushParagraph = () => {
-        if (currentParagraph.length > 0) {
-          const text = currentParagraph.join(" ").trim();
-          if (text) {
-            elements.push(
-              <p key={elements.length} style={{ fontSize: "14px", color: "#333", lineHeight: 1.8, margin: "0 0 16px" }}>
-                {renderInlineMarkdown(text)}
-              </p>
-            );
-          }
-          currentParagraph = [];
-        }
-      };
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
-        // Handle YAML frontmatter
-        if (line.trim() === "---") {
-          if (!inYamlFrontmatter && yamlContent.length === 0) {
-            inYamlFrontmatter = true;
-            continue;
-          } else if (inYamlFrontmatter) {
-            inYamlFrontmatter = false;
-            // Render YAML as stats bar
-            const statsLine = yamlContent.find(l => l.startsWith("stats:"));
-            const roleLine = yamlContent.find(l => l.startsWith("role_context:"));
-            if (statsLine || roleLine) {
-              elements.push(
-                <div key={elements.length} style={{
-                  padding: "16px 20px",
-                  background: "#fafafa",
-                  border: `1px solid ${RULE}`,
-                  marginBottom: "24px",
-                  fontSize: "13px",
-                  color: GRY,
-                }}>
-                  {statsLine && (
-                    <div style={{ fontWeight: 500, color: BLK }}>
-                      {statsLine.replace("stats:", "").trim().replace(/"/g, "")}
-                    </div>
-                  )}
-                  {roleLine && (
-                    <div style={{ marginTop: "8px", fontSize: "12px" }}>
-                      Role context: {roleLine.replace("role_context:", "").trim().replace(/"/g, "")}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            yamlContent = [];
-            continue;
-          }
-        }
-
-        if (inYamlFrontmatter) {
-          yamlContent.push(line);
-          continue;
-        }
-
-        // H2 headers
-        if (line.startsWith("## ")) {
-          flushParagraph();
-          const headerText = line.replace("## ", "").trim();
-          const isRoleFit = headerText.toLowerCase().startsWith("role fit");
-          elements.push(
-            <h2 key={elements.length} style={{
-              fontFamily: FONT,
-              fontSize: "18px",
-              fontWeight: 700,
-              color: isRoleFit ? RED : BLK,
-              margin: "32px 0 16px",
-              paddingBottom: "8px",
-              borderBottom: isRoleFit ? `2px solid ${RED}` : `1px solid ${RULE}`,
-            }}>
-              {headerText}
-            </h2>
-          );
-          continue;
-        }
-
-        // H1 headers (usually just the name)
-        if (line.startsWith("# ")) {
-          flushParagraph();
-          elements.push(
-            <h1 key={elements.length} style={{
-              fontFamily: FONT,
-              fontSize: "24px",
-              fontWeight: 700,
-              color: BLK,
-              margin: "0 0 8px",
-            }}>
-              {line.replace("# ", "").trim()}
-            </h1>
-          );
-          continue;
-        }
-
-        // Empty line = paragraph break
-        if (line.trim() === "") {
-          flushParagraph();
-          continue;
-        }
-
-        // Regular text
-        currentParagraph.push(line);
-      }
-
-      flushParagraph();
-      return elements;
-    };
-
+    // Fallback: Simple markdown view with option to return to premium doc
     return (
       <>
       <div style={containerStyle}>
         {/* Header */}
         <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "28px" }}>
           <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
-            Candidate Lens
+            Candidate Lens — Markdown View
           </div>
           <h1 style={{ fontFamily: FONT, fontSize: "24px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
             {meta.roleTitle} at {meta.company}
@@ -1611,13 +1520,44 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
           </div>
         </div>
 
-        {/* Lens Document */}
-        <div style={{ marginBottom: "28px" }}>
-          {renderMarkdownContent(lens)}
-        </div>
+        {/* Raw Markdown Display */}
+        <pre style={{
+          fontFamily: "monospace",
+          fontSize: "12px",
+          background: "#f8f8f8",
+          padding: "20px",
+          overflow: "auto",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          border: `1px solid ${RULE}`,
+          marginBottom: "28px",
+          maxHeight: "60vh",
+        }}>
+          {lens}
+        </pre>
 
         {/* Actions */}
         <div style={{ borderTop: `2px solid ${BLK}`, paddingTop: "20px" }}>
+          <button
+            onClick={() => setShowPremiumDoc(true)}
+            style={{
+              width: "100%",
+              padding: "14px",
+              fontFamily: FONT,
+              fontSize: "13px",
+              fontWeight: 600,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              background: RED,
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+              borderRadius: 0,
+              marginBottom: "12px",
+            }}
+          >
+            View Premium Document
+          </button>
           <button
             onClick={() => {
               navigator.clipboard.writeText(lens)
@@ -1662,9 +1602,10 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
               letterSpacing: "0.1em",
               textTransform: "uppercase",
               textAlign: "center",
-              background: RED,
-              color: "#fff",
+              background: "#fff",
+              color: BLK,
               textDecoration: "none",
+              border: `1.5px solid ${BLK}`,
               borderRadius: 0,
               boxSizing: "border-box",
             }}

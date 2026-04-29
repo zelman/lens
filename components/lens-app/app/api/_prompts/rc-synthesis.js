@@ -1,6 +1,10 @@
 // Server-side R→C synthesis prompts - NEVER sent to client
 // Generates lens document (markdown + YAML) from role-contextualized discovery conversation
 // The lens is a conversation catalyst, not an assessment verdict
+// v1.1: Added premium metadata output for radar chart, essence statement, key phrases
+
+// Re-export parsePremiumSynthesisResponse for use by rc-synthesize route
+export { parsePremiumSynthesisResponse } from "./synthesis";
 
 export const RC_SYNTHESIS_SYSTEM_PROMPT = `You are writing a professional identity document — a "lens" — based on a discovery conversation you just had with a candidate being considered for a specific role. This document will be shared with both the candidate AND the recruiter/hiring manager. It needs to be honest, specific, and useful for both parties.
 
@@ -141,15 +145,93 @@ The lens belongs to the candidate. It's their professional identity document. Th
 - **The vagueness trap:** "Passionate about making a difference." Delete and replace with specifics.
 - **The false positivity trap:** Pretending alignment exists where it doesn't.`;
 
+// Premium metadata output instructions for R→C flow
+// Adapted from synthesis.js PREMIUM_METADATA_INSTRUCTIONS but specifies 7 sections (includes Role Fit)
+export const RC_PREMIUM_METADATA_INSTRUCTIONS = `
+
+## PREMIUM METADATA OUTPUT
+
+After the complete lens document, append a fenced JSON block containing structured metadata for the premium deliverable. This metadata enables visual presentation (radar chart, cover page) and actionable guidance.
+
+Format your output as:
+1. The complete lens document (markdown with YAML frontmatter, all 7 sections including Role Fit)
+2. A separator line: \`---PREMIUM_METADATA---\`
+3. A fenced JSON block with the metadata
+
+The JSON block must have this exact structure:
+
+\`\`\`json
+{
+  "essence_statement": "<A single sentence (max 25 words) that captures who this person is professionally - their core identity distilled. This appears on the cover page. Use their own words when vivid.>",
+  "soft_gates": {
+    "essence_clarity": <0-100>,
+    "skill_depth": <0-100>,
+    "values_articulation": <0-100>,
+    "mission_alignment": <0-100>,
+    "work_style_clarity": <0-100>,
+    "boundaries_defined": <0-100>
+  },
+  "key_phrases": [
+    "<2-3 quotable highlights from the lens - phrases that capture the person's essence in 10 words or less>"
+  ],
+  "suggested_targeting": [
+    "<3-5 specific company characteristics this person should look for, based on their lens>"
+  ],
+  "role_fit_summary": {
+    "alignment_areas": ["<2-3 key areas of strong alignment with this specific role>"],
+    "tension_areas": ["<1-2 areas of productive tension to explore>"],
+    "open_questions": ["<2-3 questions the hiring conversation should address>"]
+  }
+}
+\`\`\`
+
+### Essence Statement Guidelines:
+
+Write a single sentence (max 25 words) that captures the person's professional identity at its core. This is the first thing readers see on the cover page after the person's name. Use vivid language from the discovery conversation when available. Examples:
+- "A builder who creates customer success organizations from scratch, then systematizes them for scale."
+- "The bridge between technical complexity and human understanding."
+- "A leader who finds order in chaos and brings others along for the journey."
+
+### Soft Gates Scoring Guide:
+
+**CRITICAL CALIBRATION RULE:** Use the full 0-100 range. Most people should have 2-3 dimensions in the 55-75 range and only 1-2 above 85. A score of 90+ means overwhelming, multi-layered evidence with zero ambiguity. A score of 70 means solid signal with some nuance. A score of 55 means the signal is present but not fully articulated. Do not inflate scores to be kind — an honest, differentiated profile is more useful than a flattering uniform one. A near-perfect circle (all scores 85+) defeats the purpose of the radar chart.
+
+Each score corresponds to one of the 6 standard lens sections (NOT the Role Fit section) and reflects how clearly the person articulated that dimension:
+
+- **essence_clarity** (0-100): How clear is their professional identity? 90+ = vivid, distinctive self-understanding with specific language and multiple reinforcing examples.
+- **skill_depth** (0-100): How well do they articulate their skills and experience? 90+ = specific capabilities with metrics, evidence, and differentiated positioning.
+- **values_articulation** (0-100): How clearly have they articulated their values? 90+ = specific values with behavioral evidence, stories, and clear hierarchy.
+- **mission_alignment** (0-100): How clear is their mission and career direction? 90+ = specific next chapter vision with compelling reasoning.
+- **work_style_clarity** (0-100): How well do they understand their work style? 90+ = specific preferences with deep self-awareness and examples.
+- **boundaries_defined** (0-100): How clearly have they articulated their non-negotiables? 90+ = specific boundaries with reasoning and willingness to walk away.
+
+### Key Phrases Guidelines:
+
+Extract 2-3 phrases that:
+- Capture the person's professional essence in memorable language
+- Could be used as pull quotes in a document header
+- Use their own words when vivid, or synthesize when clearer
+- Examples: "builds the bridge between product and people", "translates chaos into structure", "the calm in the room when others are reactive"
+
+### Role Fit Summary Guidelines:
+
+This is specific to the R→C flow. Summarize the Role Fit section as structured data:
+- **alignment_areas**: 2-3 specific strengths that map to this role's needs
+- **tension_areas**: 1-2 areas where fit is uncertain or requires discussion (not red flags, just areas to explore)
+- **open_questions**: 2-3 questions the hiring conversation should address to clarify fit
+
+IMPORTANT: The premium metadata is ADDITIVE. The lens document itself must be complete with all 7 sections. The metadata block is appended after, not integrated into, the narrative sections.`;
+
 /**
  * Build the user content for R→C synthesis
  * @param {Object} params
  * @param {Object} params.sessionConfig - The full session configuration
  * @param {Object} params.sectionData - Map of sectionId to conversation summary
  * @param {Object|null} params.candidateContext - Optional candidate info
+ * @param {boolean} params.includePremiumMetadata - Whether to include premium metadata instructions
  * @returns {string} Formatted content for synthesis prompt
  */
-export function buildRCSynthesisUserContent({ sessionConfig, sectionData, candidateContext }) {
+export function buildRCSynthesisUserContent({ sessionConfig, sectionData, candidateContext, includePremiumMetadata = false }) {
   const sections = [];
   const meta = sessionConfig.metadata || {};
 
@@ -237,7 +319,12 @@ export function buildRCSynthesisUserContent({ sessionConfig, sectionData, candid
   sections.push(`- 7 sections: Essence, Skills & Experience, Values, Mission & Direction, Work Style, Non-Negotiables, Role Fit`);
   sections.push(`- The Role Fit section must specifically address: ${meta.roleTitle} at ${meta.company}`);
   sections.push(`- Third person voice, narrative prose, honest and specific`);
-  sections.push(`- Output raw markdown — no JSON, no code blocks wrapping the document`);
+
+  if (includePremiumMetadata) {
+    sections.push(`- PREMIUM OUTPUT: After the complete lens document, append the structured metadata block per the PREMIUM METADATA OUTPUT instructions in your system prompt`);
+  } else {
+    sections.push(`- Output raw markdown — no JSON, no code blocks wrapping the document`);
+  }
 
   return sections.join("\n");
 }
