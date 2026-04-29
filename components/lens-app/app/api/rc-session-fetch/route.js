@@ -49,7 +49,7 @@ export async function GET(request) {
     // Look up session by token (token is now validated as safe for formula)
     const filterFormula = encodeURIComponent(`{Session Token} = "${token}"`);
     const res = await fetch(
-      `${AIRTABLE_API_URL}/${BASE_ID}/${TABLE_ID}?filterByFormula=${filterFormula}&maxRecords=1`,
+      `${AIRTABLE_API_URL}/${BASE_ID}/${TABLE_ID}?filterByFormula=${filterFormula}&maxRecords=1&returnFieldsByFieldId=true`,
       {
         headers: {
           "Authorization": `Bearer ${apiKey}`,

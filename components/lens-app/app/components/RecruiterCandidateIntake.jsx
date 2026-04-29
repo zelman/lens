@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { getDemoCandidate, isDemoModeEnabled } from "../../config/demo-candidates";
 
-const BUILD_ID = "2026.04.24-b";
+const BUILD_ID = "2026.04.28-d";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
@@ -674,8 +675,64 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
   async function sendMessage() {
     if (!input.trim() || loading) return;
 
-    const sec = sections[currentSection];
     const userMsg = input.trim();
+
+    // ── Demo mode: /skip command ──
+    if (userMsg.toLowerCase() === "/skip") {
+      if (!isDemoModeEnabled()) {
+        setInput("");
+        setMessages((prev) => [
+          ...prev,
+          { role: "user", content: userMsg },
+          { role: "assistant", content: "Demo mode is not enabled. The /skip command only works when NEXT_PUBLIC_DEMO_MODE=true." },
+        ]);
+        return;
+      }
+
+      const demoCandidate = getDemoCandidate("sarah-chen");
+      if (!demoCandidate) {
+        setInput("");
+        setMessages((prev) => [
+          ...prev,
+          { role: "user", content: userMsg },
+          { role: "assistant", content: "Demo candidate not found." },
+        ]);
+        return;
+      }
+
+      setInput("");
+      setLoading(true);
+
+      // Build sectionData from demo responses, matching actual section IDs
+      const demoSectionData = {};
+      for (const sec of sections) {
+        const response = demoCandidate.responses[sec.id];
+        if (response) {
+          demoSectionData[sec.id] = response;
+        } else {
+          // Fallback: use a generic response based on section type
+          demoSectionData[sec.id] = demoCandidate.responses.essence ||
+            `[Demo response for ${sec.label}] Sarah Chen brings 10+ years of healthcare and customer success experience, with deep clinical fluency from her nursing background and proven ability to build CS functions from zero.`;
+        }
+      }
+
+      setSectionData(demoSectionData);
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: userMsg },
+        { role: "assistant", content: `Demo mode: Loaded ${demoCandidate.name} responses for ${sections.length} sections. Proceeding to synthesis...` },
+      ]);
+
+      // Brief delay for UX, then trigger synthesis
+      setTimeout(() => {
+        setLoading(false);
+        generateLens();
+      }, 1000);
+
+      return;
+    }
+
+    const sec = sections[currentSection];
     setInput("");
     const newMsgs = [...messages, { role: "user", content: userMsg }];
     setMessages(newMsgs);
