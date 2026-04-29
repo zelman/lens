@@ -10,15 +10,15 @@
 
 ## Purpose
 
-This spec defines the recruiter-facing candidate lens — the flow in which a recruiter uses the Lens product to build a structured professional identity document about a candidate they're placing. This is distinct from the self-service candidate lens (where a candidate builds their own lens independently).
+This spec defines the recruiter-facing Candidate Lens — the flow in which a recruiter uses the Lens product to build a structured professional identity document about a candidate they're placing. This is distinct from the self-service Candidate Lens (where a candidate builds their own lens independently).
 
-The recruiter→candidate lens is the primary product for the target buyer: boutique retained executive search firms placing $300K+ candidates.
+The recruiter→Candidate Lens is the primary product for the target buyer: boutique retained executive search firms placing $300K+ candidates.
 
 ---
 
 ## Core Principles
 
-1. **The lens is a conversation catalyst, not an assessment verdict.** The output isn't a score — it's a shared object that enables better conversations between recruiter↔candidate, recruiter↔client, and eventually peer↔peer. (Source: Jordan Frank insight on DISC peer discussions, April 2026.)
+1. **The Lens is a conversation catalyst, not an assessment verdict.** The output isn't a score — it's a shared object that enables better conversations between recruiter↔candidate, recruiter↔client, and eventually peer↔peer. (Source: Jordan Frank insight on DISC peer discussions, April 2026.)
 
 2. **Signal matching over keyword matching.** The system extracts identity-level signal, not resume keywords.
 
@@ -31,9 +31,9 @@ The recruiter→candidate lens is the primary product for the target buyer: bout
 **Decision:** Model C (recruiter-primed candidate session) is the target. Model B (candidate self-service with recruiter editorial) is viable for MVP/POC.
 
 - **Model B (MVP):** Recruiter sends candidate a link. Candidate completes a discovery session. Recruiter reviews output and adds annotations.
-- **Model C (target):** Recruiter builds a role lens first. Role lens context primes a tailored AI conversation with the candidate. Recruiter reviews output with both self-reported and role-specific signal.
+- **Model C (target):** Recruiter builds a Role Lens first. Role lens context primes a tailored AI conversation with the candidate. Recruiter reviews output with both self-reported and role-specific signal.
 
-**Implication:** The role lens is the prerequisite for Model C. It must exist before the candidate session can be intelligently primed. Role lens leads in both pitch sequencing and product sequencing.
+**Implication:** The Role Lens is the prerequisite for Model C. It must exist before the candidate session can be intelligently primed. Role lens leads in both pitch sequencing and product sequencing.
 
 ---
 
@@ -81,7 +81,7 @@ One underlying data object with three views:
 - What the candidate reviews and approves
 
 ### Recruiter view
-- Everything: candidate lens + injected primer + recruiter notes + auto-derived signals + match score against role lens + candidate comparison within the search
+- Everything: Candidate Lens + injected primer + recruiter notes + auto-derived signals + match score against Role Lens + candidate comparison within the search
 - The recruiter's working document
 
 ### Client view (MVP: auto-generated brief)
@@ -91,12 +91,12 @@ One underlying data object with three views:
 - **Future:** Live document with interactive features
 
 ### Auto-generated brief pattern
-System drafts the brief from the candidate lens + role lens match. Recruiter edits before sending. Same mental model as AI-assisted writing — you don't want a blank page, you want a strong draft to shape.
+System drafts the brief from the Candidate Lens + Role Lens match. Recruiter edits before sending. Same mental model as AI-assisted writing — you don't want a blank page, you want a strong draft to shape.
 
 ### Future: Dynamic client view
 - Live document with sliders to re-weight scoring dimensions
-- Side-by-side candidate comparison against role lens
-- Dimensions are generated from the specific role lens, not hardcoded
+- Side-by-side candidate comparison against Role Lens
+- Dimensions are generated from the specific Role Lens, not hardcoded
 - Slider guardrails prevent extreme/invalid weightings
 - **Key moment:** Sliders make stakeholder misalignment visible. Different stakeholders weight differently → rank order shifts → recruiter surfaces a disagreement the client didn't know they had.
 
@@ -104,9 +104,9 @@ System drafts the brief from the candidate lens + role lens match. Recruiter edi
 
 ## 4. Role Lens Connection
 
-**Decision:** Model B — the role lens generates the candidate session.
+**Decision:** Model B — the Role Lens generates the candidate session.
 
-The role lens captures stakeholder-aligned requirements for a specific search. The candidate session is tailored to explore dimensions that matter for this role. This means:
+The Role Lens captures stakeholder-aligned requirements for a specific search. The candidate session is tailored to explore dimensions that matter for this role. This means:
 
 - Every search produces a role-specific candidate session
 - The AI doesn't re-ask things the recruiter already knows
@@ -124,10 +124,10 @@ Tensions are called out separately from scores. No amount of re-weighting fixes 
 
 ### Shared taxonomy (future state)
 
-A meta-dimension layer that both role lenses and candidate lenses map to. Enables:
+A meta-dimension layer that both Role Lenses and Candidate Lenses map to. Enables:
 - Cross-search candidate comparison
 - Enterprise organizational lens (shared culture/values + role-specific variations)
-- Internal mobility (re-score existing candidate lens against new role lens)
+- Internal mobility (re-score existing Candidate Lens against new Role Lens)
 
 **Decision:** Shared taxonomy emerges from usage, not imposed upfront. Build for Model B now; architecture should not preclude taxonomy layer.
 
@@ -144,10 +144,10 @@ Every candidate session covers core territory regardless of role:
 - What do you want
 - Hard no's / disqualifiers
 
-Ensures a complete lens document. Feeds the shared taxonomy in future state. Consistent baseline signal across all candidates.
+Ensures a complete Lens document. Feeds the shared taxonomy in future state. Consistent baseline signal across all candidates.
 
-### Layer 2: Tailored deep-dive (from role lens, ~15-20 min)
-Generated from role lens dimensions. Questions that don't exist in generic discovery:
+### Layer 2: Tailored deep-dive (from Role Lens, ~15-20 min)
+Generated from Role Lens dimensions. Questions that don't exist in generic discovery:
 - "How have you handled inherited messes?"
 - "Tell me about rebuilding trust with enterprise accounts"
 - "What's your approach when customers are already angry?"
@@ -178,7 +178,7 @@ Candidate should not notice a gear shift.
 Candidates sent a link by a recruiter will perform, not reflect. This is structural, not fixable. Design around it:
 
 - **Performative responses are still signal.** What someone emphasizes, skips, and how they frame failures is readable even when they're performing.
-- **The lens is a structured self-presentation, honestly labeled.** Not pretending to be deeper.
+- **The Lens is a structured self-presentation, honestly labeled.** Not pretending to be deeper.
 - **Pre-session curation choices are behavioral signal.** Which documents they upload, which LinkedIn recommendations they kept, what they chose to share — captured before performance begins.
 - **The coaching framing helps at the margins** but doesn't solve the fundamental incentive.
 - **The real honesty unlock is the conversation that follows,** not the session itself. The lens creates the scaffolding for a human conversation where probing, clarification, and authentic signal emerge.
@@ -195,7 +195,7 @@ Six detection patterns:
 | **Rehearsed material** | Polished, no pauses, sounds like a pitch | Shift to an unexpected follow-up that forces real-time thinking | Gap between rehearsed and authentic reveals self-awareness |
 | **Repetition** | Candidate reuses a story from earlier | Name it gently, ask for a different example | May indicate limited experience breadth |
 | **Surface-level engagement** | Brief, non-specific answers across multiple questions | Ask for a specific story or moment; name the pattern if persistent | Performance mode — the pattern is the signal |
-| **Emotional shifts** | Energy or specificity changes between topics | Name positive shifts ("you seem energized by that"); note negative shifts silently | Maps to energy/drain patterns in the lens |
+| **Emotional shifts** | Energy or specificity changes between topics | Name positive shifts ("you seem energized by that"); note negative shifts silently | Maps to energy/drain patterns in the Lens |
 | **Contradictions** | Statement conflicts with earlier answer | Probe gently ("help me understand how those fit together") | Response reveals growth, context-shifting, or avoidance |
 
 These patterns are captured in the session config's `conversationConfig.engagementDetection` field and are instructions for the conversation AI, not a separate feature. They should make the conversation feel responsive and human without making the candidate feel surveilled.
@@ -214,7 +214,7 @@ Four observer types, layered:
 
 | Observer | Source | Enters system via | MVP? |
 |---|---|---|---|
-| **Recruiter** | Intake calls, references, behavioral observations | Structured annotations per lens section | Yes |
+| **Recruiter** | Intake calls, references, behavioral observations | Structured annotations per Lens section | Yes |
 | **AI** | Conversation pattern analysis (response specificity, energy shifts, contradictions) | Auto-derived, surfaced as observations not conclusions | No — next layer |
 | **Client** | Interaction analytics on live document (time spent, slider adjustments, sections explored) | Passive capture | No — future |
 | **Peer** | Team members reviewing each other's lenses | Structured prompts after peer review | No — enterprise expansion |
@@ -236,7 +236,7 @@ Four observer types, layered:
 
 ### Portability (design principle, not launch feature)
 
-- Build the lens format so it doesn't preclude portability
+- Build the Lens format so it doesn't preclude portability
 - Recruiter flow produces firm-owned asset at launch
 - Self-service flow produces candidate-owned asset
 - Both output the same format
@@ -248,7 +248,7 @@ Four observer types, layered:
 - Public lens = shared professional identity (public key)
 - Private lens = kept by candidate (private key)
 - Recruiter/firm = certificate authority (validates the lens)
-- Interoperable protocol = any candidate lens scores against any role lens
+- Interoperable protocol = any Candidate Lens scores against any Role Lens
 - Long-term: professional identity verification layer embedded in hiring
 
 ---
@@ -261,8 +261,8 @@ Four observer types, layered:
 
 | Phase | Timeline | What happens today | Lens entry point |
 |---|---|---|---|
-| Client engagement | Weeks 1-2 | Written spec / internal brief | Role lens (future) |
-| Sourcing | Weeks 2-4 | LinkedIn, network, referrals | None (unless candidate has prior lens) |
+| Client engagement | Weeks 1-2 | Written spec / internal brief | Role Lens (future) |
+| Sourcing | Weeks 2-4 | LinkedIn, network, referrals | None (unless candidate has prior Lens) |
 | First-round screening | Weeks 3-6 | 30-min phone screens, narrow to 8-10 | Quick screen tier |
 | Deep evaluation | Weeks 5-8 | Substantive conversations, references | Standard discovery |
 | Finalist presentation | Weeks 7-10 | Written brief, verbal walkthrough | Auto-generated candidate brief |
@@ -299,7 +299,7 @@ Live document with sliders, side-by-side comparison, interview prep generation. 
 ### Five-step flow
 
 ```
-1. Recruiter enters role context (structured form, not full AI role lens)
+1. Recruiter enters role context (structured form, not full AI Role Lens)
         ↓
 2. System generates a tailored candidate session
         ↓
@@ -314,13 +314,13 @@ Live document with sliders, side-by-side comparison, interview prep generation. 
 
 - Structured role input (key dimensions, priorities, context — form-based)
 - Single-depth candidate session (15-20 min, role-context-shaped)
-- Candidate lens output (YAML + markdown)
+- Candidate Lens output (YAML + markdown)
 - Recruiter review and annotation interface
 - Auto-generated candidate brief for forwarding
 
 ### What's out (for now)
 
-- Full AI-facilitated role lens builder
+- Full AI-facilitated Role Lens builder
 - Multiple depth tiers (quick screen, full depth)
 - AI observer signal surfacing
 - Dynamic sliders and re-weighting
@@ -351,7 +351,7 @@ A recruiter uses the POC on a live search and says: "The candidate brief was goo
 ```
 NOW:    POC (5-step flow above)
         ↓
-NEXT:   Full role lens builder
+NEXT:   Full Role Lens builder
         Multiple depth tiers
         AI observer signal layer
         ↓

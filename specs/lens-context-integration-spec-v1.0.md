@@ -1,6 +1,6 @@
 # Lens Context Integration Spec v1.0
 
-> Addresses the gap where uploaded materials (resume, LinkedIn, assessments) are ignored during discovery and absent from synthesis output. Derived from analysis of Ravi Katam's lens output vs. source materials and his direct feedback (April 10, 2026 call).
+> Addresses the gap where uploaded materials (resume, LinkedIn, assessments) are ignored during discovery and absent from synthesis output. Derived from analysis of Ravi Katam's Lens output vs. source materials and his direct feedback (April 10, 2026 call).
 
 ---
 
@@ -97,7 +97,7 @@ These populate the `stats:` field in YAML frontmatter and ground the narrative i
 
 The current SYNTHESIS-PROMPT.md tells the AI to write narrative prose in third person, with per-section voice guidance. But it contains **no instructions about incorporating resume/LinkedIn data** into the output. The result: synthesis is generated purely from conversational recall, and hard evidence (metrics, company names, client logos, technical skills, career trajectory milestones) gets lost.
 
-Ravi's lens document demonstrates this precisely:
+Ravi's Lens document demonstrates this precisely:
 - Section 01 (Essence) describes his interpersonal operating style but never identifies him as a CS leader who managed $40M ARR
 - Section 02 (Skills) talks about "cross-functional orchestration" generically but never mentions scaling from 2 to 24 CSMs, 120% NRR, or the technical engineering background that differentiates him
 - No section mentions enterprise clients (Cisco, Thomson Reuters, Yahoo, Harvard Medical), global scope (NA + EMEA), or the AI-driven health scoring framework he built
@@ -151,7 +151,7 @@ The user may have uploaded documents during intake: resume, LinkedIn profile, wr
 
 ### What NOT to do with document evidence:
 
-- Don't reproduce the resume in narrative form. The lens is not a prose resume.
+- Don't reproduce the resume in narrative form. The Lens is not a prose resume.
 - Don't let document data overwhelm conversational insights. The discovery conversation reveals what the resume can't — motivation, values, self-awareness. Both sources must be present.
 - Don't attribute document evidence with "according to their resume" — write as if you simply know these things about the person.
 - Don't include every metric or every company. Select what's most relevant to the person's identity and what differentiates them.
@@ -207,4 +207,4 @@ If the person's tenure patterns or career transitions suggest disqualifiers (e.g
 
 ---
 
-*This spec is versioned as v1.0. It addresses the document-integration gap identified through Ravi Katam's tester experience. The underlying principle: the resume is proof, the conversation is depth. Neither alone produces a good lens. Both together produce something worth sharing.*
+*This spec is versioned as v1.0. It addresses the document-integration gap identified through Ravi Katam's tester experience. The underlying principle: the resume is proof, the conversation is depth. Neither alone produces a good Lens. Both together produce something worth sharing.*

@@ -118,7 +118,7 @@ When pitching, don't pretend Jack & Jill doesn't exist or doesn't matter. Acknow
 
 ## Three claims to add
 
-1. **Portability as first-principle differentiation.** Every pitch should include: *"The candidate owns their lens. Jack & Jill's candidates do not own their profile. This is a deliberate strategic choice on both sides."*
+1. **Portability as first-principle differentiation.** Every pitch should include: *"The candidate owns their Lens. Jack & Jill's candidates do not own their profile. This is a deliberate strategic choice on both sides."*
 
 2. **Retained-exec-search specificity.** Every pitch should name the buyer: *"Retained executive search firms placing $300K+ roles. Mis-hire cost is $1M+. Recruiter fees are $100K+. Not a volume market."*
 

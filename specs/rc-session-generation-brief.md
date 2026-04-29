@@ -227,7 +227,7 @@ The session has three layers:
 
 FOUNDATION LAYER (~40% of session time):
 Standard discovery sections that every candidate goes through regardless of role.
-These ensure a complete lens document. The sections are:
+These ensure a complete Lens document. The sections are:
 1. Essence — identity patterns, throughline across career contexts
 2. Values — behavioral evidence of what they actually value
 3. Work Style — how they operate day-to-day

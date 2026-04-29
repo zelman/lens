@@ -6,7 +6,7 @@
 
 ## The Problem
 
-The current agent lens (v2.15) is a single 39KB file serving three audiences simultaneously:
+The current Agent Lens (v2.15) is a single 39KB file serving three audiences simultaneously:
 
 1. **n8n pipeline** reads the YAML frontmatter for machine-readable gates, penalties, bonuses, thresholds
 2. **Eric** reads the prose sections for manual evaluation reference
@@ -62,11 +62,11 @@ Two files, two consumers:
 - **Shared across all users:** Point values, threshold bands, data validation, investor lookup, business model gate examples
 - **Assembled per-user from their lens:** Disqualifier list, sector bonuses, role type preferences, penalties specific to their context
 
-**The assembly step:** When the pipeline scores an opportunity for a user, it reads their `lens.md` YAML for preferences and merges it with the shared `scoring-config.yaml` to produce the complete prompt. The engine doesn't care whether the lens was hand-built by Eric or generated through a 30-minute AI coaching session; it consumes the same YAML structure.
+**The assembly step:** When the pipeline scores an opportunity for a user, it reads their `lens.md` YAML for preferences and merges it with the shared `scoring-config.yaml` to produce the complete prompt. The engine doesn't care whether the Lens was hand-built by Eric or generated through a 30-minute AI coaching session; it consumes the same YAML structure.
 
 ## How the JSX Scorer Changes
 
-Currently: fetches the full agent lens from GitHub, dumps everything into the system prompt.
+Currently: fetches the full Agent Lens from GitHub, dumps everything into the system prompt.
 
 After the split:
 - **Tier 1** = universal engine instructions + `scoring-config.yaml` (hardcoded or fetched once)
@@ -77,7 +77,7 @@ The scorer becomes genuinely user-agnostic. Eric's URL produces Eric's scores. R
 
 ## What Doesn't Change
 
-- The lens document format (markdown + YAML frontmatter)
+- The Lens document format (markdown + YAML frontmatter)
 - The scoring dimensions (Company Stage 50, Role Type 30, Mission 20)
 - The bonus/penalty architecture
 - The threshold bands
@@ -87,14 +87,14 @@ The scorer becomes genuinely user-agnostic. Eric's URL produces Eric's scores. R
 
 Eric's personal pipeline uses a 3-dimension weight model (Company Stage 50, Role Type 30, Mission 20) that was calibrated through months of daily scoring before the product schema was formalized. This is a **user-specific weight implementation** — a collapsed version of the 6-dimension model where Culture, Work Style, and Energy are evaluated qualitatively within the LLM prompt rather than scored as independent weighted dimensions.
 
-The **product standard is 6 dimensions** (Mission, Role Fit, Culture, Skill, Work Style, Energy summing to 100). This is what the candidate lens schema, role lens schema, bidirectional system spec, and LENS-SPEC all define. New users, coach personas, and the intake form all produce 6-dimension lenses.
+The **product standard is 6 dimensions** (Mission, Role Fit, Culture, Skill, Work Style, Energy summing to 100). This is what the Candidate Lens schema, Role Lens schema, bidirectional system spec, and LENS-SPEC all define. New users, coach personas, and the intake form all produce 6-dimension lenses.
 
 Eric's 3-dimension config will be migrated to the 6-dimension model when his personal pipeline is refactored to use the product scoring engine. Until then, both models coexist — Eric's as a working implementation, the 6-dimension model as the product specification.
 
 ## Migration Path
 
-1. Extract `scoring-config.yaml` from the current lens (the YAML penalties, bonuses, thresholds, data validation, customer persona gate)
+1. Extract `scoring-config.yaml` from the current Lens (the YAML penalties, bonuses, thresholds, data validation, customer persona gate)
 2. Strip those sections from the lens, leaving identity + preferences + user-specific disqualifiers
 3. Update n8n to read config from a separate file (or inline in the workflow)
 4. Update the JSX scorer to load config separately from the lens
-5. Update the intake form's output format to match the leaner lens structure
+5. Update the intake form's output format to match the leaner Lens structure

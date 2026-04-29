@@ -2,14 +2,14 @@
 
 > **Depends on:** RecruiterRoleForm.jsx (Step 1), /api/extract-dimensions (Step 2), /api/generate-session (Step 3)
 > **Consumes:** `session-config` from sessionStorage (written by Step 3)
-> **Produces:** A candidate lens document shaped by the role context
+> **Produces:** A Candidate Lens document shaped by the role context
 > **Status:** BRIEF — ready for Claude Code
 
 ---
 
 ## WHAT THIS IS
 
-The final piece of the R→C recruiter flow. When a recruiter completes the role input form, dimensions are extracted, and a session config is generated, the candidate needs to go through a tailored discovery conversation that produces a lens document specifically useful for evaluating fit against that role.
+The final piece of the R→C recruiter flow. When a recruiter completes the role input form, dimensions are extracted, and a session config is generated, the candidate needs to go through a tailored discovery conversation that produces a Lens document specifically useful for evaluating fit against that role.
 
 Right now, the standard candidate flow (LensIntake.jsx) runs 8 fixed sections with generic coaching prompts. This step creates an alternative entry point where the discovery conversation is governed by the session-config — different sections, different time allocations, different probing strategies, all tuned to the dimensions the recruiter and AI identified as critical for this specific role.
 
@@ -91,7 +91,7 @@ Create a new component `RecruiterCandidateIntake.jsx` that reuses the existing i
    - The dimension definitions and priority levels
    - Instruction to produce a lens document that explicitly addresses each dimension with evidence from the conversation
 
-7. **Output is a standard lens document** with the same markdown + YAML structure, but the dimensions and signals are role-specific rather than generic.
+7. **Output is a standard Lens document** with the same markdown + YAML structure, but the dimensions and signals are role-specific rather than generic.
 
 ### New Files
 
@@ -160,7 +160,7 @@ Or: create a separate `/api/rc-synthesize` route if the prompt differences are l
 ### What NOT to Build
 
 - **No scoring in this step.** The lens document is the output. Scoring (matching the candidate lens against the role lens) is a separate future step (`/api/score-role`).
-- **No recruiter dashboard.** The recruiter gets the lens document via the same download/copy mechanism as the standard flow. A dashboard for viewing multiple candidates is future work.
+- **No recruiter dashboard.** The recruiter gets the Lens document via the same download/copy mechanism as the standard flow. A dashboard for viewing multiple candidates is future work.
 - **No multi-candidate management.** One candidate at a time. The recruiter sends the link, the candidate completes it, the lens document is produced.
 - **No authentication.** Same as the standard flow — shareable link, no login.
 
@@ -170,7 +170,7 @@ The candidate should NOT feel like they're being interviewed or assessed. The fr
 
 > "[Company] wants to understand you beyond your resume. This is a guided conversation — about 25 minutes — designed to help articulate who you are as a professional. The output is a document that both you and [Company] will see. Nothing is hidden."
 
-This preserves the core Lens principle: the lens is a conversation catalyst, not an assessment verdict. The candidate owns their lens document.
+This preserves the core Lens principle: the Lens is a conversation catalyst, not an assessment verdict. The candidate owns their Lens document.
 
 ## TESTING
 
@@ -179,7 +179,7 @@ Use the three existing test scenarios from `rc-lens-test-data-v1.0.md`:
 2. [Scenario 2 from test data]
 3. [Scenario 3 from test data]
 
-For each: complete the recruiter flow → extract dimensions → generate session → run candidate through discovery → verify lens document addresses the role's dimensions with behavioral evidence.
+For each: complete the recruiter flow → extract dimensions → generate session → run candidate through discovery → verify Lens document addresses the role's dimensions with behavioral evidence.
 
 The live session test already validated that the session config produces good coaching-style questions (per the April 15 session log). This step wires that into the actual product flow.
 
@@ -195,4 +195,4 @@ The live session test already validated that the session config produces good co
 
 ---
 
-*This brief completes the R→C POC flow: recruiter defines role → AI extracts dimensions → recruiter reviews → session generated → candidate goes through tailored discovery → lens document produced. The end-to-end demo is the thing to show Graham Kittle, James's network contacts, and Jenn Monkiewicz.*
+*This brief completes the R→C POC flow: recruiter defines role → AI extracts dimensions → recruiter reviews → session generated → candidate goes through tailored discovery → Lens document produced. The end-to-end demo is the thing to show Graham Kittle, James's network contacts, and Jenn Monkiewicz.*

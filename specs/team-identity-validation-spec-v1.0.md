@@ -1,7 +1,7 @@
 # Team Identity Validation Test — Experiment Spec v1.0
 
 > **Origin:** James Pratt, April 15, 2026 call
-> **Purpose:** Validate the core role lens premise before building the full intake flow
+> **Purpose:** Validate the core Role Lens premise before building the full intake flow
 > **Status:** SPEC — not yet executed
 
 ---
@@ -12,13 +12,13 @@ An AI can synthesize individual values and work-style inputs from a team into a 
 
 If this works, it proves the foundational capability behind the role lens: that Lens can articulate "who we are" for a group in a way that resonates — which is the prerequisite for matching candidates against that identity.
 
-If this doesn't work, the full role lens build is premature.
+If this doesn't work, the full Role Lens build is premature.
 
 ## WHY THIS MATTERS
 
 James's framing: "Before you spend the time and energy to build all of that stuff... is there a simpler way that you can see if there's signal here?"
 
-The role lens schema (`role-lens-schema.md`) defines a full intake flow with stakeholder interviews, team dynamics mapping, and scoring output. That's a significant build. This experiment isolates the single riskiest assumption: **can AI synthesize group identity from individual inputs in a way that feels true?**
+The Role Lens schema (`role-lens-schema.md`) defines a full intake flow with stakeholder interviews, team dynamics mapping, and scoring output. That's a significant build. This experiment isolates the single riskiest assumption: **can AI synthesize group identity from individual inputs in a way that feels true?**
 
 Every assessment tool James has seen — StrengthsFinder, DISC, colors — is basically a horoscope. The bar here isn't perfection. It's resonance: does the team say "yes, that's us"?
 
@@ -109,7 +109,7 @@ Total effort per team: ~2 hours of Eric's time. Total effort for 5 teams: ~10 ho
 
 ## CONNECTION TO THE ROLE LENS
 
-If this experiment succeeds, the Team Identity Portrait becomes the **core of the role lens document**. The role lens schema already defines sections for team dynamics, values alignment, and work style — this experiment validates that AI can fill those sections from real input.
+If this experiment succeeds, the Team Identity Portrait becomes the **core of the Role Lens document**. The Role Lens schema already defines sections for team dynamics, values alignment, and work style — this experiment validates that AI can fill those sections from real input.
 
 The synthesis prompt used in this experiment becomes the seed for the `/api/synthesize-team` endpoint. The form becomes the seed for the stakeholder intake flow.
 
@@ -137,7 +137,7 @@ If this experiment fails, it tells you either: (a) the input format needs work, 
 - Log everything in Airtable (new table or extend Feedback Archive)
 
 **Phase 5: Decide (1 day)**
-- If strong signal → feed learnings into role lens schema, build the real intake flow
+- If strong signal → feed learnings into Role Lens schema, build the real intake flow
 - If weak signal → iterate on input format or synthesis prompt, run again
 - If no signal → reassess whether team identity synthesis is the right entry point
 

@@ -13,7 +13,7 @@
 
 This document specifies the feedback loop that makes the Lens Project a learning system rather than a static tool. The loop operates at three levels: per-user weight calibration, per-user disqualifier refinement, and global model improvement. The core design principle is **"append, don't overwrite"** — the system surfaces insights and asks the user to confirm changes rather than silently adjusting behavior.
 
-The feedback loop is what makes the product investable. Without it, the lens is a one-time document generator. With it, the lens becomes a persistent, self-improving matching engine with compounding data value.
+The feedback loop is what makes the product investable. Without it, the Lens is a one-time document generator. With it, the Lens becomes a persistent, self-improving matching engine with compounding data value.
 
 ---
 
@@ -36,7 +36,7 @@ These are actions the user takes deliberately. Each has a defined strength, dire
 | **Match Report Rating** | User rates the report 1-5 | 0.3 | Meta-signal | Adjusts prompt behavior: "too generous" → lower scores next time; "too harsh" → raise floor; "missed the point" → review cross-mapping |
 | **"This alignment sold me"** | User tags a specific alignment signal | 0.5 | Dimension-specific positive | Increases weight of the tagged dimension by signal_strength × learning_rate |
 | **"This tension was the dealbreaker"** | User tags a specific tension signal | 0.7 | Dimension-specific negative | Adds a soft disqualifier or increases weight of the tagged dimension |
-| **Lens Edit** | User manually edits their lens document | 0.0 (trigger only) | N/A | Triggers re-scoring of all active matches; creates a lens version snapshot for drift tracking |
+| **Lens Edit** | User manually edits their Lens document | 0.0 (trigger only) | N/A | Triggers re-scoring of all active matches; creates a Lens version snapshot for drift tracking |
 
 ### 2.2 Implicit Signals (observed from behavior)
 
@@ -80,7 +80,7 @@ The decay function ensures the system adapts to evolving preferences without req
 
 ### 3.1 Per-User Weight Calibration
 
-Each user's lens document has a `scoring.dimensions` object with weights that sum to 100:
+Each user's Lens document has a `scoring.dimensions` object with weights that sum to 100:
 
 ```yaml
 scoring:
@@ -275,13 +275,13 @@ gate_events:
 
 ### 5.1 What Drift Is
 
-Drift is the measurable gap between what a user's lens says they want and what their actions reveal they actually pursue. Some drift is normal — preferences evolve, especially during a job search. The system's job is to surface drift transparently, not correct it silently.
+Drift is the measurable gap between what a user's Lens says they want and what their actions reveal they actually pursue. Some drift is normal — preferences evolve, especially during a job search. The system's job is to surface drift transparently, not correct it silently.
 
 ### 5.2 How Drift Is Measured
 
 For each dimension, the system maintains two values:
 
-- **Stated weight:** The current weight in the lens document (e.g., Mission: 25)
+- **Stated weight:** The current weight in the Lens document (e.g., Mission: 25)
 - **Revealed weight:** The weight implied by the user's feedback signals over the trailing 30 days
 
 ```
@@ -325,14 +325,14 @@ Skill:       17  █████        Skill:       17  █████
 Work Style:  12  ████         Work Style:  14  ████
 Energy:       8  ██           Energy:       8  ██
 
-"Over the past month, you've been pursuing opportunities where Culture 
-scored highest, even when Mission scored low. Your lens weights Mission 
-as your top priority, but your actions suggest Culture matters more 
+"Over the past month, you've been pursuing opportunities where Culture
+scored highest, even when Mission scored low. Your Lens weights Mission
+as your top priority, but your actions suggest Culture matters more
 right now."
 
 Options:
-  [ Update my lens to match my actions ]  → Adjusts weights to revealed
-  [ Keep my lens as-is ]                  → Resets drift counter
+  [ Update my Lens to match my actions ]  → Adjusts weights to revealed
+  [ Keep my Lens as-is ]                  → Resets drift counter
   [ I was exploring, not shifting ]       → Marks trailing signals as exploratory (reduced weight)
 ```
 

@@ -175,7 +175,7 @@ This object gets consumed by the session generation step (separate build). For n
 - `lens-intake.jsx` (~680 lines) — design and UX reference for the candidate side
 - `lens-form.jsx` (~800 lines) — Claude API integration reference
 - `api/submit.js` in feedback form — Vercel serverless proxy pattern
-- `recruiter-candidate-lens-spec-v0.1.md` — full spec
+- `recruiter-candidate-lens-spec-v0.1.md` — full R→C spec
 
 ---
 
