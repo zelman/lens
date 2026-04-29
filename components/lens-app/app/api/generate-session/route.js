@@ -217,10 +217,33 @@ function parseJsonWithRepairs(text, prefilled = false) {
     }
   }
 
-  // Attempt 2: Escape unescaped newlines in strings (common model error)
-  const escapedText = escapeNewlinesInStrings(cleanText);
-  if (escapedText !== cleanText) {
-    console.log("[generate-session] Applied newline escaping, diff length:", escapedText.length - cleanText.length);
+  // Attempt 2: Fix broken strings where model forgot closing quote before newline
+  // Pattern: "text\n        "nextField": -> "text",\n        "nextField":
+  let brokenStringFixed = cleanText.replace(
+    /([^\\])\n(\s*)"([a-zA-Z_][a-zA-Z0-9_]*)"\s*:/g,
+    (match, lastChar, whitespace, fieldName) => {
+      // Only fix if we're likely inside a broken string (lastChar is alphanumeric or punctuation)
+      if (/[a-zA-Z0-9.,;:!?\-'")}\]]/.test(lastChar)) {
+        console.log("[generate-session] Fixing broken string before field:", fieldName);
+        return `${lastChar}",\n${whitespace}"${fieldName}":`;
+      }
+      return match;
+    }
+  );
+
+  if (brokenStringFixed !== cleanText) {
+    console.log("[generate-session] Applied broken string fix");
+    try {
+      return JSON.parse(brokenStringFixed);
+    } catch (err2b) {
+      console.log("[generate-session] Broken string fix parse failed:", err2b.message);
+    }
+  }
+
+  // Attempt 3: Escape unescaped newlines in strings (common model error)
+  const escapedText = escapeNewlinesInStrings(brokenStringFixed);
+  if (escapedText !== brokenStringFixed) {
+    console.log("[generate-session] Applied newline escaping, diff length:", escapedText.length - brokenStringFixed.length);
     try {
       return JSON.parse(escapedText);
     } catch (err2a) {
@@ -228,7 +251,7 @@ function parseJsonWithRepairs(text, prefilled = false) {
     }
   }
 
-  // Attempt 3: Basic repairs (control chars, trailing commas) — cascade from escapedText
+  // Attempt 5: Basic repairs (control chars, trailing commas) — cascade from escapedText
   let repairedText = escapedText
     .replace(/[\x00-\x1F\x7F]/g, (char) => {
       if (char === '\n' || char === '\r' || char === '\t') return ' '; // Replace with space instead of keeping
@@ -243,7 +266,7 @@ function parseJsonWithRepairs(text, prefilled = false) {
     console.log("[generate-session] Basic repair parse failed:", err2.message);
   }
 
-  // Attempt 4: Find longest valid JSON prefix — cascade from repairedText
+  // Attempt 6: Find longest valid JSON prefix — cascade from repairedText
   const truncated = findLastValidJson(repairedText);
   if (truncated) {
     try {
