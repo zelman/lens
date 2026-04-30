@@ -40,6 +40,7 @@ function findLastValidJson(text) {
 }
 
 // Helper: Call Claude API and return streaming response as text
+// Uses prefill to guarantee JSON starts with opening brace
 async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
   const res = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
@@ -54,7 +55,8 @@ async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
       stream: true,
       system: systemPrompt,
       messages: [
-        { role: "user", content: userContent + "\n\nRespond with ONLY the JSON object, starting with {" }
+        { role: "user", content: userContent },
+        { role: "assistant", content: "{" }  // Prefill forces JSON start
       ],
     }),
   });
@@ -278,6 +280,45 @@ function parseJsonWithRepairs(text, prefilled = false) {
     }
   }
 
+  // Attempt 7: Try to fix incomplete strings at end of JSON
+  // Pattern: JSON truncated mid-string, ending like ..."some text
+  const incompleteStringFixed = repairedText.replace(
+    /("[^"]*?)$/,
+    (match) => {
+      console.log("[generate-session] Fixing incomplete string at end");
+      return match + '"}';
+    }
+  );
+  if (incompleteStringFixed !== repairedText) {
+    // Also need to close any open objects/arrays
+    let fixedWithBraces = incompleteStringFixed;
+    let openBraces = 0, openBrackets = 0;
+    for (const char of fixedWithBraces) {
+      if (char === '{') openBraces++;
+      else if (char === '}') openBraces--;
+      else if (char === '[') openBrackets++;
+      else if (char === ']') openBrackets--;
+    }
+    fixedWithBraces += ']'.repeat(Math.max(0, openBrackets)) + '}'.repeat(Math.max(0, openBraces));
+
+    try {
+      const result = JSON.parse(fixedWithBraces);
+      console.log("[generate-session] Incomplete string repair successful");
+      return result;
+    } catch (err4) {
+      console.log("[generate-session] Incomplete string repair failed:", err4.message);
+    }
+  }
+
+  // Log final failure context for debugging
+  console.error("[generate-session] All repair attempts failed. Text stats:", {
+    length: cleanText.length,
+    startsWithBrace: cleanText.startsWith('{'),
+    endsWithBrace: cleanText.endsWith('}'),
+    firstChars: cleanText.slice(0, 50),
+    lastChars: cleanText.slice(-100)
+  });
+
   return null;
 }
 
@@ -372,8 +413,8 @@ export async function POST(request) {
           continue;
         }
 
-        // Try to parse the response (no prefill used)
-        sessionConfig = parseJsonWithRepairs(fullText, false);
+        // Try to parse the response (prefill used - prepend { if needed)
+        sessionConfig = parseJsonWithRepairs(fullText, true);
 
         if (sessionConfig) {
           console.log(`[generate-session] Success on attempt ${attempt}`);
