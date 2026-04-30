@@ -1394,7 +1394,7 @@ export default function PremiumLensDocument({
             borderRadius: 0,
           }}
         >
-          {isPrinting ? 'Preparing...' : 'Save as PDF'}
+          {isPrinting ? 'Preparing...' : 'Download Your Lens'}
         </button>
         <button
           onClick={onClose}

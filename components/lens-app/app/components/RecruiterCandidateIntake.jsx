@@ -127,6 +127,7 @@ export default function RecruiterCandidateIntake() {
   const [resumeSuggestions, setResumeSuggestions] = useState(null); // From /api/resume-suggestions
   const [lensError, setLensError] = useState(null);
   const [copyFeedback, setCopyFeedback] = useState(null); // "Copied!" or error message
+  const [copyScoreFeedback, setCopyScoreFeedback] = useState(null); // "Copied ✓" for score data
   const [showPremiumDoc, setShowPremiumDoc] = useState(false); // Modal state for premium document
   const [recruiterBrief, setRecruiterBrief] = useState(null); // From /api/recruiter-brief
   const [showRecruiterBrief, setShowRecruiterBrief] = useState(false); // Modal state for recruiter brief
@@ -1594,154 +1595,95 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
       );
     }
 
-    // Fallback: Simple markdown view with option to return to premium doc
+    // Candidate completion screen - clean handoff view
     return (
       <>
       <div style={containerStyle}>
         {/* Header */}
         <div style={{ borderBottom: `2px solid ${BLK}`, paddingBottom: "12px", marginBottom: "28px" }}>
           <div style={{ fontSize: "10px", color: RED, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: 600 }}>
-            Candidate Lens — Markdown View
+            Complete
           </div>
           <h1 style={{ fontFamily: FONT, fontSize: "24px", fontWeight: 700, color: BLK, margin: 0, lineHeight: 1.2 }}>
-            {meta.roleTitle} at {meta.company}
+            Your Lens is ready
           </h1>
           <div style={{ fontSize: "12px", color: GRY, marginTop: "8px" }}>
-            Generated {new Date().toLocaleDateString()}
+            {meta.roleTitle} at {meta.company}
           </div>
         </div>
 
-        {/* Raw Markdown Display */}
-        <pre style={{
-          fontFamily: "monospace",
-          fontSize: "12px",
-          background: "#f8f8f8",
-          padding: "20px",
-          overflow: "auto",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          border: `1px solid ${RULE}`,
-          marginBottom: "28px",
-          maxHeight: "60vh",
-        }}>
-          {lens}
-        </pre>
+        {/* Download button - opens PremiumLensDocument modal for PDF */}
+        <button
+          onClick={() => setShowPremiumDoc(true)}
+          style={{
+            width: "100%",
+            padding: "16px",
+            fontFamily: FONT,
+            fontSize: "14px",
+            fontWeight: 600,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            background: RED,
+            color: "#fff",
+            border: "none",
+            cursor: "pointer",
+            borderRadius: 0,
+            marginBottom: "28px",
+          }}
+        >
+          Download Your Lens
+        </button>
 
-        {/* Actions */}
-        <div style={{ borderTop: `2px solid ${BLK}`, paddingTop: "20px" }}>
-          <button
-            onClick={() => setShowPremiumDoc(true)}
-            style={{
-              width: "100%",
-              padding: "14px",
-              fontFamily: FONT,
-              fontSize: "13px",
-              fontWeight: 600,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              background: RED,
-              color: "#fff",
-              border: "none",
-              cursor: "pointer",
-              borderRadius: 0,
-              marginBottom: "12px",
-            }}
-          >
-            View Candidate Lens
-          </button>
-          <button
-            onClick={() => {
-              if (recruiterBrief) {
-                setShowRecruiterBrief(true);
-              } else {
-                generateRecruiterBrief();
-              }
-            }}
-            disabled={briefLoading}
-            style={{
-              width: "100%",
-              padding: "14px",
-              fontFamily: FONT,
-              fontSize: "13px",
-              fontWeight: 600,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              background: briefLoading ? "#f8f8f8" : ORANGE,
-              color: briefLoading ? GRY : "#fff",
-              border: "none",
-              cursor: briefLoading ? "wait" : "pointer",
-              borderRadius: 0,
-              marginBottom: "12px",
-            }}
-          >
-            {briefLoading ? "Generating Brief..." : recruiterBrief ? "View Recruiter Brief" : "Generate Recruiter Brief"}
-          </button>
-          {briefError && (
-            <div style={{
-              fontSize: "11px",
-              color: RED,
-              marginBottom: "12px",
-              padding: "8px",
-              background: "#fff5f5",
-              border: `1px solid ${RED}`,
-            }}>
-              {briefError}
-            </div>
-          )}
+        {/* What happens next block */}
+        <div style={{ borderTop: `1px solid ${RULE}`, paddingTop: "20px", marginBottom: "28px" }}>
+          <div style={{
+            fontSize: "10px",
+            color: RED,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            fontWeight: 600,
+            marginBottom: "10px",
+          }}>
+            What Happens Next
+          </div>
+          <p style={{
+            fontFamily: FONT,
+            fontSize: "14px",
+            color: BLK,
+            lineHeight: 1.7,
+            margin: 0,
+          }}>
+            Your Lens document has been shared with your recruiter. They'll review it before your next conversation. No further action needed from you.
+          </p>
+        </div>
+
+        {/* Copy score data link - subtle recruiter utility */}
+        <div style={{ textAlign: "center" }}>
           <button
             onClick={() => {
-              navigator.clipboard.writeText(lens)
+              const scoreData = lensMetadata || {};
+              navigator.clipboard.writeText(JSON.stringify(scoreData, null, 2))
                 .then(() => {
-                  setCopyFeedback("Copied!");
-                  setTimeout(() => setCopyFeedback(null), 2000);
+                  setCopyScoreFeedback("Copied ✓");
+                  setTimeout(() => setCopyScoreFeedback(null), 2000);
                 })
                 .catch((err) => {
                   console.error("Clipboard write failed:", err);
-                  setCopyFeedback("Copy failed");
-                  setTimeout(() => setCopyFeedback(null), 2000);
                 });
             }}
             style={{
-              width: "100%",
-              padding: "14px",
               fontFamily: FONT,
-              fontSize: "13px",
-              fontWeight: 600,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              background: copyFeedback === "Copied!" ? "#f8fff8" : "#fff",
-              color: copyFeedback === "Copied!" ? "#2D6A2D" : copyFeedback ? RED : BLK,
-              border: `1.5px solid ${copyFeedback === "Copied!" ? "#2D6A2D" : copyFeedback ? RED : BLK}`,
+              fontSize: "12px",
+              color: GRY,
+              background: "none",
+              border: "none",
               cursor: "pointer",
-              borderRadius: 0,
-              marginBottom: "12px",
-              transition: "all 0.2s ease",
-            }}
-          >
-            {copyFeedback || "Copy Lens Markdown"}
-          </button>
-          <a
-            href="/recruiter"
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "14px",
-              fontFamily: FONT,
-              fontSize: "13px",
-              fontWeight: 600,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              textAlign: "center",
-              background: "#fff",
-              color: BLK,
+              padding: "8px 0",
               textDecoration: "none",
-              border: `1.5px solid ${BLK}`,
-              borderRadius: 0,
-              boxSizing: "border-box",
             }}
           >
-            Start New Session
-          </a>
+            {copyScoreFeedback || "Copy score data →"}
+          </button>
         </div>
       </div>
       {buildFooter}
