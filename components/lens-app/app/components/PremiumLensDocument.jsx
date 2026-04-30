@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════
 // PremiumLensDocument — 8-page premium lens deliverable
@@ -1143,6 +1143,32 @@ export default function PremiumLensDocument({
 
   // Extract person's name - priority: override → frontmatter → narrative extraction
   const personName = personNameOverride || frontmatter.name || extractNameFromNarrative(sections) || null;
+
+  // Set up beforeprint/afterprint listeners for Cmd+P / File → Print
+  const originalTitleRef = useRef(null);
+  useEffect(() => {
+    const userName = personName?.toLowerCase().replace(/\s+/g, "_") || "candidate";
+    const pdfFilename = `${userName}_lens_full_${buildId}`;
+
+    const handleBeforePrint = () => {
+      originalTitleRef.current = document.title;
+      document.title = pdfFilename;
+    };
+
+    const handleAfterPrint = () => {
+      if (originalTitleRef.current) {
+        document.title = originalTitleRef.current;
+      }
+    };
+
+    window.addEventListener("beforeprint", handleBeforePrint);
+    window.addEventListener("afterprint", handleAfterPrint);
+
+    return () => {
+      window.removeEventListener("beforeprint", handleBeforePrint);
+      window.removeEventListener("afterprint", handleAfterPrint);
+    };
+  }, [personName, buildId]);
 
   // Handle print to PDF
   const handlePrint = useCallback(() => {

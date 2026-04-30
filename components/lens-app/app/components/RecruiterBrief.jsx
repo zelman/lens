@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS (Swiss Style)
@@ -34,6 +34,34 @@ const MONO = "'JetBrains Mono', 'SF Mono', Consolas, monospace";
  */
 export default function RecruiterBrief({ brief, onClose, inline = false, buildId = "draft" }) {
   const printRef = useRef(null);
+  const originalTitleRef = useRef(null);
+
+  const { header } = brief || {};
+
+  // Set up beforeprint/afterprint listeners for Cmd+P / File → Print
+  useEffect(() => {
+    const userName = header?.name?.toLowerCase().replace(/\s+/g, "_") || "candidate";
+    const pdfFilename = `${userName}_lens_brief_${buildId}`;
+
+    const handleBeforePrint = () => {
+      originalTitleRef.current = document.title;
+      document.title = pdfFilename;
+    };
+
+    const handleAfterPrint = () => {
+      if (originalTitleRef.current) {
+        document.title = originalTitleRef.current;
+      }
+    };
+
+    window.addEventListener("beforeprint", handleBeforePrint);
+    window.addEventListener("afterprint", handleAfterPrint);
+
+    return () => {
+      window.removeEventListener("beforeprint", handleBeforePrint);
+      window.removeEventListener("afterprint", handleAfterPrint);
+    };
+  }, [header?.name, buildId]);
 
   if (!brief) {
     return (
@@ -43,7 +71,7 @@ export default function RecruiterBrief({ brief, onClose, inline = false, buildId
     );
   }
 
-  const { header, atAGlance, signal, roleFit } = brief;
+  const { atAGlance, signal, roleFit } = brief;
 
   // ─────────────────────────────────────────────────────────────────────────
   // HEADER
