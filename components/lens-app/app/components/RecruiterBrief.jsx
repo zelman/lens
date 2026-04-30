@@ -38,30 +38,25 @@ export default function RecruiterBrief({ brief, onClose, inline = false, buildId
 
   const { header } = brief || {};
 
-  // Set up beforeprint/afterprint listeners for Cmd+P / File → Print
+  // Set document title while modal is open (works for both button click and Cmd+P)
   useEffect(() => {
+    // Only set title when in modal mode (not inline preview)
+    if (inline) return;
+
     const userName = header?.name?.toLowerCase().replace(/\s+/g, "_") || "candidate";
     const pdfFilename = `${userName}_lens_brief_${buildId}`;
 
-    const handleBeforePrint = () => {
-      originalTitleRef.current = document.title;
-      document.title = pdfFilename;
-    };
+    // Store original and set PDF filename
+    originalTitleRef.current = document.title;
+    document.title = pdfFilename;
 
-    const handleAfterPrint = () => {
+    // Restore on unmount
+    return () => {
       if (originalTitleRef.current) {
         document.title = originalTitleRef.current;
       }
     };
-
-    window.addEventListener("beforeprint", handleBeforePrint);
-    window.addEventListener("afterprint", handleAfterPrint);
-
-    return () => {
-      window.removeEventListener("beforeprint", handleBeforePrint);
-      window.removeEventListener("afterprint", handleAfterPrint);
-    };
-  }, [header?.name, buildId]);
+  }, [header?.name, buildId, inline]);
 
   if (!brief) {
     return (
