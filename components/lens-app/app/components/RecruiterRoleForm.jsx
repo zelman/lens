@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.30-n";
+const BUILD_ID = "2026.04.30-o";
 
 // ── Candidate roster storage ──
 const ROSTER_STORAGE_KEY = "recruiter-candidate-roster";
