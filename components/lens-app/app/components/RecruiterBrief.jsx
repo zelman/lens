@@ -321,12 +321,15 @@ export default function RecruiterBrief({ brief, onClose, inline = false, buildId
     const userName = header?.name?.toLowerCase().replace(/\s+/g, "_") || "candidate";
     document.title = `${userName}_lens_brief_${buildId}`;
 
-    window.print();
-
-    // Restore title after print dialog closes
+    // Small delay to ensure title is set before print dialog opens
     setTimeout(() => {
-      document.title = originalTitle;
-    }, 1000);
+      window.print();
+
+      // Restore title after print dialog closes
+      setTimeout(() => {
+        document.title = originalTitle;
+      }, 1000);
+    }, 100);
   };
 
   // ─────────────────────────────────────────────────────────────────────────

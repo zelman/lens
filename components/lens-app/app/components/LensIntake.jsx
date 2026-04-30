@@ -11,7 +11,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.30-g";
+const BUILD_ID = "2026.04.30-h";
 
 // ── Design tokens ──
 const RED = "#D93025";
