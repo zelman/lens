@@ -40,7 +40,6 @@ function findLastValidJson(text) {
 }
 
 // Helper: Call Claude API and return streaming response as text
-// Uses prefill to guarantee JSON starts with opening brace
 async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
   const res = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
@@ -55,8 +54,7 @@ async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
       stream: true,
       system: systemPrompt,
       messages: [
-        { role: "user", content: userContent },
-        { role: "assistant", content: "{" }  // Prefill forces JSON start
+        { role: "user", content: userContent + "\n\nRespond with ONLY valid JSON. Start with { and end with }. No markdown, no backticks, no explanation." }
       ],
     }),
   });
@@ -413,8 +411,8 @@ export async function POST(request) {
           continue;
         }
 
-        // Try to parse the response (prefill used - prepend { if needed)
-        sessionConfig = parseJsonWithRepairs(fullText, true);
+        // Try to parse the response
+        sessionConfig = parseJsonWithRepairs(fullText, false);
 
         if (sessionConfig) {
           console.log(`[generate-session] Success on attempt ${attempt}`);
