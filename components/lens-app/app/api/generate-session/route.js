@@ -2,6 +2,9 @@
 // Server-side only - system prompt never exposed to client
 // Uses streaming to avoid Vercel timeout limits
 
+// Vercel function config - extend timeout for complex session generation
+export const maxDuration = 120; // 2 minutes (Pro plan supports up to 300s)
+
 import {
   GENERATE_SESSION_SYSTEM_PROMPT,
   buildSessionGenerationContent,
