@@ -43,8 +43,12 @@ export default function RecruiterBrief({ brief, onClose, inline = false, buildId
     // Only set title when in modal mode (not inline preview)
     if (inline) return;
 
-    const userName = header?.name?.toLowerCase().replace(/\s+/g, "_") || "candidate";
-    const pdfFilename = `${userName}_lens_brief_${buildId}`;
+    // Title case: "Maria Gutierrez" → "Maria_Gutierrez"
+    const userName = header?.name
+      ?.split(/\s+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join("_") || "Candidate";
+    const pdfFilename = `${userName}_Lens_Brief_${buildId}`;
 
     // Store original and set PDF filename
     originalTitleRef.current = document.title;

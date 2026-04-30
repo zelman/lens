@@ -1150,8 +1150,12 @@ export default function PremiumLensDocument({
     // Only set title when in modal mode (not inline preview)
     if (inline) return;
 
-    const userName = personName?.toLowerCase().replace(/\s+/g, "_") || "candidate";
-    const pdfFilename = `${userName}_lens_full_${buildId}`;
+    // Title case: "Maria Gutierrez" → "Maria_Gutierrez"
+    const userName = personName
+      ?.split(/\s+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join("_") || "Candidate";
+    const pdfFilename = `${userName}_Lens_Full_${buildId}`;
 
     // Store original and set PDF filename
     originalTitleRef.current = document.title;
