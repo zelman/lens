@@ -370,15 +370,18 @@ export default function RecruiterBrief({ brief, onClose, inline = false, buildId
   // Modal mode - full screen with controls
   return (
     <>
-      <div style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.85)",
-        zIndex: 9999,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "auto",
-      }}>
+      <div
+        data-recruiter-brief-modal
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.85)",
+          zIndex: 9999,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "auto",
+        }}
+      >
         {/* Toolbar */}
         <div style={{
           position: "sticky",
@@ -498,12 +501,6 @@ function PrintStyles() {
   return (
     <style>{`
       @media print {
-        /* Hide modal overlay and controls */
-        .no-print,
-        [style*="position: fixed"]:not(.recruiter-brief-page) {
-          display: none !important;
-        }
-
         /* Reset body and html for clean printing */
         html, body {
           margin: 0 !important;
@@ -511,6 +508,25 @@ function PrintStyles() {
           background: white !important;
           overflow: visible !important;
           height: auto !important;
+        }
+
+        /* Hide toolbar and other non-print elements */
+        .no-print {
+          display: none !important;
+        }
+
+        /* Reset modal container for printing */
+        [data-recruiter-brief-modal] {
+          position: static !important;
+          background: white !important;
+          padding: 0 !important;
+          overflow: visible !important;
+          display: block !important;
+        }
+
+        /* Hide modal's inner wrapper divs, show only the document */
+        [data-recruiter-brief-modal] > div:not(.no-print) {
+          display: contents !important;
         }
 
         /* Brief page styling */
