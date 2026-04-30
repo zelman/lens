@@ -23,6 +23,35 @@ const WEBHOOK_URL = null; // e.g. "https://zelman.app.n8n.cloud/webhook/lens-fee
 const BUILD_VERSION = "0.3.0-dev";
 const FEEDBACK_EMAIL = "zelman@gmail.com";
 
+// MARKDOWN-LEAK-FIX 2026.04.30
+// Strip markdown formatting from synthesis output for clean chat display
+function stripMarkdownForDisplay(text) {
+  if (!text) return "";
+  let cleaned = text;
+  // Remove YAML frontmatter
+  cleaned = cleaned.replace(/^---\n[\s\S]*?\n---\n?/g, "");
+  // Remove premium metadata separator and everything after
+  cleaned = cleaned.replace(/---\s*PREMIUM_METADATA\s*---[\s\S]*/gi, "");
+  // Remove markdown headers (## Header)
+  cleaned = cleaned.replace(/^#{1,6}\s+(.+)$/gm, "$1");
+  // Remove bold markers (**text** or __text__)
+  cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, "$1");
+  cleaned = cleaned.replace(/__(.+?)__/g, "$1");
+  // Remove italic markers (*text* or _text_)
+  cleaned = cleaned.replace(/\*([^*]+)\*/g, "$1");
+  cleaned = cleaned.replace(/_([^_]+)_/g, "$1");
+  // Remove code blocks
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, "");
+  cleaned = cleaned.replace(/`([^`]+)`/g, "$1");
+  // Clean up bullet points to plain text
+  cleaned = cleaned.replace(/^[-*+]\s+/gm, "• ");
+  // Clean up numbered lists
+  cleaned = cleaned.replace(/^\d+\.\s+/gm, "");
+  // Collapse multiple blank lines
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+  return cleaned.trim();
+}
+
 // ── Global framing prompt ──
 const GLOBAL_PROMPT = `You are building a professional identity lens document — a structured file that will score every job opportunity this person encounters. You are not a therapist, career counselor, or chatbot. You are an expert interviewer on assignment: extract specific, behavioral signals and move on.
 
@@ -1032,11 +1061,11 @@ CRITICAL: This is v1 of a living document. Frame the ending to reinforce it evol
             </div>
           </FadeIn>
 
-          {/* Lens content */}
+          {/* Lens content - MARKDOWN-LEAK-FIX 2026.04.30 */}
           <FadeIn delay={600} duration={800}>
             <div style={{ background: T.grey05, padding: "28px 24px", marginBottom: 20, border: `1px solid ${T.grey15}` }}>
               <div style={{ fontFamily: T.sans, fontSize: 15, color: T.grey90, lineHeight: 1.85, whiteSpace: "pre-wrap" }}>
-                {synthesisText}
+                {stripMarkdownForDisplay(synthesisText)}
               </div>
             </div>
           </FadeIn>
