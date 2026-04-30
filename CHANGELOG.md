@@ -2,6 +2,27 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-30] PDF Filename & Demo Mode Fixes
+
+### lens-app 2026.04.30-f
+
+**PDF filenames now use build ID instead of date:**
+
+Previously PDFs were saved with date-based filenames like `sarah_chen_lens_full_2026.04.30.pdf`. Now they use the build ID for better traceability: `sarah_chen_lens_full_2026.04.30-f.pdf`.
+
+**Changes:**
+- PremiumLensDocument: Added `buildId` prop, updated `handlePrint` to use buildId
+- RecruiterBrief: Already had buildId support from earlier fix
+- LensIntake: Passes BUILD_ID to both PremiumLensDocument components
+- RecruiterCandidateIntake: Passes BUILD_ID to PremiumLensDocument
+
+**Also in this session (builds 2026.04.30-a through -e):**
+- Demo mode enabled via hardcode in `config/demo-candidates.js` (workaround for Vercel env var root directory issue)
+- Fixed blank PDF issue: Print CSS was using `body * { visibility: hidden }` pattern that didn't work with `position: absolute` — changed to `position: static` and removed visibility pattern
+- RecruiterBrief filename convention implemented: `{user_name}_lens_brief_{buildId}.pdf`
+
+---
+
 ## [2026-04-28] Premium Lens Document Feature
 
 ### lens-app 2026.04.28-f
