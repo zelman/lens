@@ -56,6 +56,9 @@ export function getDemoCandidate(candidateId = "sarah-chen") {
 }
 
 // Check if demo mode is enabled
+// TODO: Fix Vercel env var inlining issue, then revert to env check
 export function isDemoModeEnabled() {
-  return process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+  // Hardcoded until Vercel root directory config is fixed
+  return true;
+  // return process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 }
