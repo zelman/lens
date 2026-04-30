@@ -8,7 +8,7 @@ import {
 } from "../_prompts/extract-dimensions";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-opus-4-7";
+const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 4000;
 // Note: temperature param removed — deprecated in Claude 4.5+ models
 
