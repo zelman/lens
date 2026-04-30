@@ -2,6 +2,37 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-30] Recruiter Comparison Component
+
+### lens-app 2026.04.30-recruiter-compare
+
+**Added `/recruiter-compare` route for side-by-side candidate fit comparison:**
+
+Three-column layout allowing recruiters to compare up to 3 scored candidates simultaneously. Supports loading JSON score data via paste or file upload.
+
+**Features:**
+- International Style design matching role-lens-scorer
+- Empty state with clear loading instructions
+- JSON validation with specific error messages
+- Clear/reset functionality per column
+- Responsive score card display with:
+  - Total score with classification badge
+  - Dimension scores with confidence indicators
+  - Top signals (positive/negative)
+  - Disqualification handling
+
+**Accessibility (v1.1 fixes):**
+- ARIA labels on all interactive elements
+- Semantic HTML with proper form labels
+- Text truncation for long content (names, briefings, reasons)
+- Stable React keys
+
+**Files:**
+- `components/lens-app/app/recruiter-compare/page.jsx` — Route component
+- `components/recruiter-comparison-v1.0.jsx` — Standalone archive copy
+
+---
+
 ## [2026-04-30] Score API Dimensions Block
 
 ### lens-app 2026.04.30-score-dimensions
