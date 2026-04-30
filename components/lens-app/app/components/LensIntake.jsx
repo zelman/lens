@@ -11,7 +11,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.30-l";
+const BUILD_ID = "2026.04.30-m";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -1127,7 +1127,12 @@ function DiscoveryPhase({
   useEffect(() => {
     if (subPhase === "done" && lensDoc && userName) {
       const originalTitle = document.title;
-      document.title = `Lens Profile — ${userName}`;
+      // Title case: "John Smith" → "John_Smith"
+      const formattedName = userName
+        ?.split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join("_") || "Candidate";
+      document.title = `${formattedName}_Lens_Full_${BUILD_ID}`;
       return () => {
         document.title = originalTitle;
       };
