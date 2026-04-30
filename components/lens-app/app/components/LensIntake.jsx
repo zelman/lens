@@ -1596,10 +1596,10 @@ SIGNALS:
 - Variety in work
 - Quick feedback loops`,
 
-        "Disqualifiers": `NARRATIVE: PE-backed companies are out — the extraction timeline corrupts CS before you can build anything. Companies over 150 people or $75M raised are too established unless there's a rebuild situation. Sub-$125K base signals CS is a cost center. No pure IC roles without team-building path.
+        "Disqualifiers": `NARRATIVE: Companies over 150 people are out — at that scale, CS becomes a reporting function rather than a building function. Companies over $75M raised are too established unless there's a rebuild situation. Sub-$125K base signals CS is a cost center. No pure IC roles without team-building path.
 
 SIGNALS:
-- No PE-backed companies
+- No companies over 150 people
 - No companies >150 employees (unless rebuild)
 - No companies >$75M raised (unless new product)
 - Base salary minimum: $125K
@@ -1788,7 +1788,7 @@ SIGNALS:
       }
     } catch (err) {
       console.error("generateLens error:", err);
-      setApiError(err.message || "Failed to generate lens. Please try again.");
+      setApiError(err.message || "Failed to generate Lens. Please try again.");
       setSubPhase("conversation"); // Go back so user can retry
       // Telemetry: mark synthesis end (failure) - don't log here, user may retry
     } finally {
@@ -2030,7 +2030,7 @@ SIGNALS:
         <div style={{ textAlign: "center", padding: "80px 20px" }}>
           <div style={{ width: "48px", height: "2px", background: RED, margin: "0 auto 24px" }} />
           <h2 style={{ fontFamily: FONT, fontSize: "20px", fontWeight: 600, color: BLK, margin: "0 0 12px" }}>
-            Synthesizing your lens
+            Synthesizing your Lens
           </h2>
           <p style={{ fontSize: "13px", color: GRY, lineHeight: 1.7 }}>
             Building your Lens document from everything you shared across all 8 sections...

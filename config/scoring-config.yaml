@@ -39,7 +39,7 @@ modes:
 # ============================================================
 
 gates:
-  investor_type: [PE, "Growth Equity"]
+  investor_type: ["Late-stage Growth", "Growth Equity"]
   company_status: [Acquired, "Shut Down", Merged, Defunct]
   company_type: ["Fortune 500", "Fortune 500 Subsidiary", Public]
   funding_stage: ["Series D", "Series E", Growth]
@@ -103,7 +103,7 @@ signals:
     product_weight: slight
 
   vc_backed:
-    condition: "VC investors (not PE)"
+    condition: "VC investors (patient capital)"
     pipeline_bonus: 10
     product_dimensions: ["company_stage"]
     product_weight: slight

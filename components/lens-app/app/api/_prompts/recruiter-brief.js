@@ -97,7 +97,7 @@ This is the 30-second triage section. Showstoppers must appear here, not buried 
   - "orange": Acceptable with travel, or some commute concerns
   - "red": Relocation required, or fundamental mismatch
 - **TRACK RECORD:** Compressed proof. Numbers, not adjectives. "Built CS from zero 2×. 18-person org at MedBridge. NRR 94→118%."
-- **HARD NO'S:** Dealbreakers in shorthand. "PE-backed. Director title. No-travel fully distributed."
+- **HARD NO'S:** Dealbreakers in shorthand. "Over 200 employees. Director title. No-travel fully distributed."
 
 ### SIGNAL (4-6 bullets)
 
@@ -130,7 +130,7 @@ Rules:
 ## CRITICAL RULES
 
 1. **One page maximum.** Brevity is the product. If you're generating more content than fits one page, cut.
-2. **Showstoppers first.** If something kills the placement (comp, location, PE, title), it must appear in the first 3 rows of AT A GLANCE.
+2. **Showstoppers first.** If something kills the placement (comp, location, company size, title), it must appear in the first 3 rows of AT A GLANCE.
 3. **Recruiter voice only.** Never use assessment language ("the candidate demonstrates," "scores indicate"). Use recruiter language ("she's built this twice," "he'll push back on this").
 4. **No dimension scores or radar charts.** The recruiter brief is prose, not data visualization.
 5. **Ready to send.** Write as if you're forwarding this to the VP of Talent in 10 minutes.

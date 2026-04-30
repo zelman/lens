@@ -364,7 +364,7 @@ export async function POST(request) {
       stack: err.stack?.split('\n').slice(0, 3).join(' | ')
     });
     return Response.json(
-      { error: "Failed to generate lens document" },
+      { error: "Failed to generate Lens document" },
       { status: 500 }
     );
   }

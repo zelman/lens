@@ -338,7 +338,7 @@ export async function POST(request) {
       stack: err.stack?.split('\n').slice(0, 3).join(' | ')
     });
     return Response.json(
-      { error: "Failed to generate premium lens document" },
+      { error: "Failed to generate premium Lens document" },
       { status: 500 }
     );
   }

@@ -259,7 +259,7 @@ export async function POST(request) {
     if (sectionHeadingCount < 5) {
       console.error(`[RC-Synthesize] Lens has only ${sectionHeadingCount} sections`);
       return Response.json(
-        { error: "Generated lens is incomplete. Please try again." },
+        { error: "Generated Lens is incomplete. Please try again." },
         { status: 500 }
       );
     }
@@ -384,7 +384,7 @@ export async function POST(request) {
       stack: err.stack?.split('\n').slice(0, 3).join(' | ')
     });
     return Response.json(
-      { error: "Failed to generate lens document" },
+      { error: "Failed to generate Lens document" },
       { status: 500 }
     );
   }

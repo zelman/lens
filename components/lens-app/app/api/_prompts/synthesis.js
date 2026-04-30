@@ -109,7 +109,7 @@ This is where the document gets practical. A hiring manager reading this should 
 
 Hard boundaries with reasoning. 2-3 paragraphs of flowing prose.
 
-Every non-negotiable needs a "because" — either explicit or implied. "PE-backed companies are out — the extraction timeline corrupts the customer success function before anyone can build anything worth keeping." Not just "No PE-backed companies."
+Every non-negotiable needs a "because" — either explicit or implied. "Companies over 200 people are out — at that scale, customer success becomes a reporting function rather than a building function." Not just "No large companies."
 
 Do NOT format as a bulleted list. Write as connected prose where each boundary flows into the next. The parenthetical-reason structure works well: "Sub-$125K base salary signals that the organization views customer success as a cost center, not a strategic function."
 
@@ -186,7 +186,7 @@ The user may have uploaded documents during intake: resume, LinkedIn profile, wr
 
 **Mission & Direction:** If the person's resume shows sector consistency (e.g., all B2B SaaS, or all healthcare), reference that pattern. If their resume shows sector diversity, note whether the next chapter continues the pattern or breaks it. This grounds mission statements in career evidence rather than pure aspiration.
 
-**Non-Negotiables:** If the person's tenure patterns or career transitions suggest disqualifiers (e.g., short stints at PE-backed companies, consistent departures from large orgs), the synthesis should connect these patterns to the stated non-negotiables. "He specifically asks how many CS people have left in the past two years" becomes more powerful when preceded by "Having built a 24-person CS org, he knows what healthy team retention looks like."
+**Non-Negotiables:** If the person's tenure patterns or career transitions suggest disqualifiers (e.g., short stints at rapidly-scaling companies, consistent departures from large orgs), the synthesis should connect these patterns to the stated non-negotiables. "He specifically asks how many CS people have left in the past two years" becomes more powerful when preceded by "Having built a 24-person CS org, he knows what healthy team retention looks like."
 
 ### What NOT to do with document evidence:
 

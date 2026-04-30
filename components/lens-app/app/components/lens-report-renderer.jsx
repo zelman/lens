@@ -64,7 +64,7 @@ Eric has ADHD, which means he's either deeply locked in or completely unmoored �
 
 ## Non-Negotiables
 
-PE-backed companies are out — the extraction timeline corrupts the customer success function before anyone can build anything worth keeping. Job descriptions that lead with NRR ownership signal he'd be inheriting someone else's scorecard rather than building his own. Companies over $75M in funding or 150+ employees are too far past the building stage, unless there's a rebuilder situation, a new product line, or recent CS leadership turnover that reopens the canvas.
+Companies over 150 employees are out — at that scale, CS becomes a reporting function rather than a building function. Job descriptions that lead with NRR ownership signal he'd be inheriting someone else's scorecard rather than building his own. Companies over $75M in funding are too far past the building stage, unless there's a rebuilder situation, a new product line, or recent CS leadership turnover that reopens the canvas.
 
 Developer tools under fifty people without enterprise motion — meaning $30K+ deals, multiple buying stakeholders, and contract complexity — don't have the post-sales complexity that makes his skillset relevant. Environments where candor is managed or unwelcome are a hard stop; he's been in those rooms and doesn't go back. Pure IC roles without a path to team-building aren't what he's looking for at this stage.
 

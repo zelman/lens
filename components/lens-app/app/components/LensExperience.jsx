@@ -62,7 +62,7 @@ YOUR BEHAVIORAL RULES:
 1. Ask ONE question at a time. Never two in one turn.
 2. Keep responses to 2-3 sentences max, then your ONE question.
 3. When the user gives you a signal, NAME it back: "So a carry-forward skill for you is [X]." Confirms extraction, builds trust.
-4. If the user goes personal/emotional, acknowledge in one sentence, then redirect: "That context is useful. For your lens, what I'm pulling from that is [signal]. Does that capture it?"
+4. If the user goes personal/emotional, acknowledge in one sentence, then redirect: "That context is useful. For your Lens, what I'm pulling from that is [signal]. Does that capture it?"
 5. Do NOT psychoanalyze. Do NOT probe childhood, family, or emotional wounds. Extract the professional signal, move on.
 6. Never say "that's interesting" or "tell me more" without specifying what you need and why.
 7. Warm but efficient. Magazine interview, not therapy session.
@@ -93,9 +93,9 @@ STRATEGY:
 - Turn 3-4: Name it. "Across both, you're actually doing [X]. Does that land?"
 - Turn 4-5: Refine language, confirm.
 
-SYNTHESIS: "Here's your essence for the lens: '[sentence].' Capture it, or missing something?"
+SYNTHESIS: "Here's your essence for the Lens: '[sentence].' Capture it, or missing something?"
 
-IF PERSONAL: "That's formative context. For your lens, what I'm extracting is [pattern]. Does that work?"`,
+IF PERSONAL: "That's formative context. For your Lens, what I'm extracting is [pattern]. Does that work?"`,
     openingPrompt: "Let's find your throughline. Think about two different jobs or roles — ideally different contexts. What's the thing you were actually doing in both that felt like *you*, not just the job description?",
   },
   {
@@ -218,7 +218,7 @@ GRANULARITY PUSH: "'Meetings drain you' — but you said 1:1 coaching fills you.
 MISSION: Extract hard no's — things that auto-reject regardless of other fit. Each must be binary-testable against a job listing.
 TARGET: 4-8 disqualifiers
 
-GOOD: "PE-backed company", "Role requires >25% travel", "No remote option"
+GOOD: "Over 200 employees", "Role requires >25% travel", "No remote option"
 BAD: "Bad culture" (unmeasurable), "Micromanagement" (requires insider info)
 
 STRATEGY:
@@ -314,9 +314,9 @@ function buildSystemPrompt(section, turnCount, fullHistory) {
 
   let turnNote = "";
   if (turnCount >= section.hardCap) {
-    turnNote = `\n\nFINAL EXCHANGE. Synthesize all extracted signals as a confirmed list. "Here's what your lens has for this section: [signals]. Moving on — you can refine later." Do NOT ask another question.`;
+    turnNote = `\n\nFINAL EXCHANGE. Synthesize all extracted signals as a confirmed list. "Here's what your Lens has for this section: [signals]. Moving on — you can refine later." Do NOT ask another question.`;
   } else if (turnCount >= section.softCap) {
-    turnNote = `\n\nSYNTHESIS TIME (${turnCount}/${section.softCap}). Present signals extracted so far: "For your lens, I have: [signals]. Does that capture it, or one more thing?" If confirmed, close section.`;
+    turnNote = `\n\nSYNTHESIS TIME (${turnCount}/${section.softCap}). Present signals extracted so far: "For your Lens, I have: [signals]. Does that capture it, or one more thing?" If confirmed, close section.`;
   } else if (turnCount >= section.softCap - 1) {
     turnNote = `\n\nApproaching synthesis point (${turnCount}/${section.softCap}). Start steering toward confirmation.`;
   }
@@ -975,7 +975,7 @@ CRITICAL: This is v1 of a living document. Frame the ending to reinforce it evol
             maxWidth: 520,
           }}>
             <div style={{ fontSize: 10, color: T.grey70, lineHeight: 1.7 }}>
-              <span style={{ fontWeight: 700 }}>Development preview.</span> Your lens document is yours to keep. At the end of the session, you'll be asked to email a copy of the conversation transcript and session data to <span style={{ fontFamily: T.mono }}>{FEEDBACK_EMAIL}</span> for product improvement. Participation is optional. No data is sold or shared with third parties.
+              <span style={{ fontWeight: 700 }}>Development preview.</span> Your Lens document is yours to keep. At the end of the session, you'll be asked to email a copy of the conversation transcript and session data to <span style={{ fontFamily: T.mono }}>{FEEDBACK_EMAIL}</span> for product improvement. Participation is optional. No data is sold or shared with third parties.
             </div>
           </div>
         </FadeIn>

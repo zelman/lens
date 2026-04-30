@@ -118,9 +118,9 @@ sections:
     require: "each disqualifier must be specific enough to be a yes/no filter"
     examples:
       too_vague: "Toxic culture"
-      filterable: ["PE-backed companies", "orgs over 300 people"]
+      filterable: ["short-horizon investor-backed companies", "orgs over 300 people"]
     extract:
-      - "company types to exclude (PE-backed, public, etc.)"
+      - "company types to exclude (short-horizon investor-backed, public, etc.)"
       - "industries to exclude"
       - "cultural patterns"
       - "structural realities"

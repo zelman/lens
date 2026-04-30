@@ -367,7 +367,7 @@ Communication style: direct, fast, allergic to corporate speak. She writes short
 
 Base compensation below $280K signals that the company doesn't value the CS function at the executive level. She's seen what happens when CS leaders are paid like senior managers — they get treated like senior managers, excluded from strategic decisions, and set up to fail.
 
-PE-backed companies are out. The extraction timeline corrupts the customer success function before anyone can build anything worth keeping. She's lived this twice and won't do it again.
+Companies over 200 employees are out. At that scale, CS becomes a reporting function rather than a building function. She's lived this twice and won't do it again.
 
 She needs to meet the CEO before accepting any role. The relationship between CEO and CS leader determines whether the function has air cover when hard decisions need to be made. If the CEO views CS as a retention cost center rather than a growth engine, she's not interested.
 
@@ -837,7 +837,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
       const data = await res.json();
 
       if (!data.lens) {
-        throw new Error(data.error || "Failed to generate lens document");
+        throw new Error(data.error || "Failed to generate Lens document");
       }
 
       // Store lens and metadata
@@ -918,7 +918,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
 
   async function generateRecruiterBrief() {
     if (!lens) {
-      setBriefError("No lens document available");
+      setBriefError("No Lens document available");
       return;
     }
 
