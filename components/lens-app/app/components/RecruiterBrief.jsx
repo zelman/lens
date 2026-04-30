@@ -30,8 +30,9 @@ const MONO = "'JetBrains Mono', 'SF Mono', Consolas, monospace";
  * @param {Object} props.brief - Structured brief data from /api/recruiter-brief
  * @param {Function} props.onClose - Callback when closing modal
  * @param {boolean} props.inline - If true, renders without modal wrapper
+ * @param {string} props.buildId - Build version for PDF filename
  */
-export default function RecruiterBrief({ brief, onClose, inline = false }) {
+export default function RecruiterBrief({ brief, onClose, inline = false, buildId = "draft" }) {
   const printRef = useRef(null);
 
   if (!brief) {
@@ -315,13 +316,10 @@ export default function RecruiterBrief({ brief, onClose, inline = false }) {
   // PRINT HANDLER
   // ─────────────────────────────────────────────────────────────────────────
   const handlePrint = () => {
-    // Set document title for PDF filename: user_name_lens_brief_version
+    // Set document title for PDF filename: user_name_lens_brief_buildId
     const originalTitle = document.title;
     const userName = header?.name?.toLowerCase().replace(/\s+/g, "_") || "candidate";
-    const version = typeof window !== "undefined"
-      ? new Date().toISOString().slice(0, 10).replace(/-/g, ".")
-      : "draft";
-    document.title = `${userName}_lens_brief_${version}`;
+    document.title = `${userName}_lens_brief_${buildId}`;
 
     window.print();
 

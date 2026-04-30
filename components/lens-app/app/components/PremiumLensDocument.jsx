@@ -1126,6 +1126,7 @@ export default function PremiumLensDocument({
   hasResumeData = false, // Whether resume text was available during generation
   onClose,
   inline = false, // If true, renders without modal overlay for preview mode
+  buildId = "draft", // Build version for PDF filename
 }) {
   const documentRef = useRef(null);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -1146,11 +1147,10 @@ export default function PremiumLensDocument({
   const handlePrint = useCallback(() => {
     setIsPrinting(true);
 
-    // Set document title for PDF filename: user_name_lens_full_version
+    // Set document title for PDF filename: user_name_lens_full_buildId
     const originalTitle = document.title;
     const userName = personName?.toLowerCase().replace(/\s+/g, "_") || "candidate";
-    const version = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
-    document.title = `${userName}_lens_full_${version}`;
+    document.title = `${userName}_lens_full_${buildId}`;
 
     setTimeout(() => {
       window.print();
@@ -1160,7 +1160,7 @@ export default function PremiumLensDocument({
         document.title = originalTitle;
       }, 500);
     }, 100);
-  }, [personName]);
+  }, [personName, buildId]);
 
   // Build dimension data for pages 3-5
   const dimensionData = {

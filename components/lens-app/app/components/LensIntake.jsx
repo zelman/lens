@@ -11,7 +11,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.29-c";
+const BUILD_ID = "2026.04.30-f";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -2070,6 +2070,7 @@ SIGNALS:
               lensMarkdown={lensDoc}
               metadata={premiumMetadata}
               inline={true}
+              buildId={BUILD_ID}
             />
           ) : (
             <div style={{ padding: "24px", border: `1px solid ${RULE}`, marginBottom: "24px", background: "#fafafa" }}>
@@ -2173,6 +2174,7 @@ SIGNALS:
             resumeSuggestions={premiumResumeSuggestions}
             hasResumeData={hasResumeData}
             onClose={() => setShowPremiumDoc(false)}
+            buildId={BUILD_ID}
           />
         )}
       </>
