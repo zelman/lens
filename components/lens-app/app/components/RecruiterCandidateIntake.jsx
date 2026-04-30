@@ -5,7 +5,7 @@ import { getDemoCandidate, isDemoModeEnabled } from "../../config/demo-candidate
 import PremiumLensDocument from "./PremiumLensDocument";
 import RecruiterBrief from "./RecruiterBrief";
 
-const BUILD_ID = "2026.04.29-b";
+const BUILD_ID = "2026.04.30-a";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
