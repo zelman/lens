@@ -5,7 +5,7 @@ import { getDemoCandidate, isDemoModeEnabled } from "../../config/demo-candidate
 import PremiumLensDocument from "./PremiumLensDocument";
 import RecruiterBrief from "./RecruiterBrief";
 
-const BUILD_ID = "2026.04.30-h";
+const BUILD_ID = "2026.04.30-i";
 const RC_STORAGE_KEY = "RC_CANDIDATE_INTAKE_STATE";
 const STORAGE_VERSION = "1.0";
 
@@ -1587,6 +1587,7 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
             onClose={() => setShowPremiumDoc(false)}
             inline={false}
             buildId={BUILD_ID}
+            personNameOverride={candidateData?.name}
           />
           {buildFooter}
         </>

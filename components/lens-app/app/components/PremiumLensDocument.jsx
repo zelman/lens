@@ -1127,6 +1127,7 @@ export default function PremiumLensDocument({
   onClose,
   inline = false, // If true, renders without modal overlay for preview mode
   buildId = "draft", // Build version for PDF filename
+  personNameOverride = null, // Override for person's name (full name from caller)
 }) {
   const documentRef = useRef(null);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -1140,8 +1141,8 @@ export default function PremiumLensDocument({
   const softGates = metadata?.soft_gates || {};
   const essenceStatement = metadata?.essence_statement || extractPullQuote(sections['Essence']) || null;
 
-  // Extract person's name - priority: frontmatter → narrative extraction
-  const personName = frontmatter.name || extractNameFromNarrative(sections) || null;
+  // Extract person's name - priority: override → frontmatter → narrative extraction
+  const personName = personNameOverride || frontmatter.name || extractNameFromNarrative(sections) || null;
 
   // Handle print to PDF
   const handlePrint = useCallback(() => {
