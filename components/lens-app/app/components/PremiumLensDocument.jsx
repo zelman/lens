@@ -1134,15 +1134,6 @@ export default function PremiumLensDocument({
   const sections = parseLensMarkdown(lensMarkdown || '');
   const frontmatter = sections.frontmatter || {};
 
-  // Handle print to PDF
-  const handlePrint = useCallback(() => {
-    setIsPrinting(true);
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 100);
-  }, []);
-
   // Extract data from metadata
   const keyPhrases = metadata?.key_phrases || [];
   const softGates = metadata?.soft_gates || {};
@@ -1150,6 +1141,26 @@ export default function PremiumLensDocument({
 
   // Extract person's name - priority: frontmatter → narrative extraction
   const personName = frontmatter.name || extractNameFromNarrative(sections) || null;
+
+  // Handle print to PDF
+  const handlePrint = useCallback(() => {
+    setIsPrinting(true);
+
+    // Set document title for PDF filename: user_name_lens_full_version
+    const originalTitle = document.title;
+    const userName = personName?.toLowerCase().replace(/\s+/g, "_") || "candidate";
+    const version = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
+    document.title = `${userName}_lens_full_${version}`;
+
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+      // Restore title after print dialog closes
+      setTimeout(() => {
+        document.title = originalTitle;
+      }, 500);
+    }, 100);
+  }, [personName]);
 
   // Build dimension data for pages 3-5
   const dimensionData = {

@@ -315,7 +315,20 @@ export default function RecruiterBrief({ brief, onClose, inline = false }) {
   // PRINT HANDLER
   // ─────────────────────────────────────────────────────────────────────────
   const handlePrint = () => {
+    // Set document title for PDF filename: user_name_lens_brief_version
+    const originalTitle = document.title;
+    const userName = header?.name?.toLowerCase().replace(/\s+/g, "_") || "candidate";
+    const version = typeof window !== "undefined"
+      ? new Date().toISOString().slice(0, 10).replace(/-/g, ".")
+      : "draft";
+    document.title = `${userName}_lens_brief_${version}`;
+
     window.print();
+
+    // Restore title after print dialog closes
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -487,13 +500,10 @@ function PrintStyles() {
   return (
     <style>{`
       @media print {
-        /* Hide everything except the brief */
-        body * {
-          visibility: hidden;
-        }
-        .recruiter-brief-page,
-        .recruiter-brief-page * {
-          visibility: visible;
+        /* Hide modal overlay and controls */
+        .no-print,
+        [style*="position: fixed"]:not(.recruiter-brief-page) {
+          display: none !important;
         }
 
         /* Reset body and html for clean printing */
@@ -505,18 +515,9 @@ function PrintStyles() {
           height: auto !important;
         }
 
-        /* Hide modal overlay, toolbar, and fixed containers */
-        .no-print,
-        [style*="position: fixed"] {
-          display: none !important;
-          visibility: hidden !important;
-        }
-
-        /* Brief page styling - position at top-left of printed page */
+        /* Brief page styling */
         .recruiter-brief-page {
-          position: absolute !important;
-          left: 0 !important;
-          top: 0 !important;
+          position: static !important;
           display: block !important;
           width: 100% !important;
           max-width: none !important;
@@ -526,17 +527,11 @@ function PrintStyles() {
           margin: 0 !important;
           box-shadow: none !important;
           overflow: visible !important;
-          page-break-inside: auto !important;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
 
-        /* Allow content to flow to multiple pages if needed */
-        .recruiter-brief-page > div {
-          page-break-inside: auto !important;
-        }
-
-        /* Page setup - minimal margins since we handle padding in the document */
+        /* Page setup */
         @page {
           size: letter portrait;
           margin: 0.25in;
