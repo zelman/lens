@@ -2,6 +2,44 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-30] Thesis-Hero Investor Pitch Deck
+
+### docs/lens-investor-pitch-thesis-hero-v1.0.pptx
+
+**Added thesis-as-hero investor pitch deck (18 slides):**
+
+New deck artifact line for vision-stage capital. Uses Wallace ABS structure (4 AND / 5 BUT / 8 SO / 1 Ask) with thesis as hero rather than customer segment.
+
+**Structure:**
+- ACT I — AND (slides 1-4): Title, stake, future tense, why now (inevitability timeline)
+- ACT II — BUT (slides 5-9): Structural deficiency, cost, existing approaches, empirical gap, the primitive
+- ACT III — SO (slides 10-17): Architecture (PKI), what's built, early instances, moat, founder story, business model, horizon
+- ASK (slide 17): Raise amount, milestones, investor profile (placeholders)
+- Closing (slide 18): Bookend with slide 1
+
+**Visual design:**
+- Briefing Style: white ground, black/red palette, Calibri, hairline rules, zero border-radius
+- Mockup-accurate layouts for slides 4, 5, 9, 10, 16 (from `lens-slide-mockups-v1.1.html`)
+- Visual rhyme: slide 5 (fragmented identity, dashed center) ↔ slide 10 (PKI, solid center with red seal)
+- Section labels with red accent rules
+
+**Build tooling:**
+- `docs/build-thesis-hero-deck.js` — pptxgenjs build script (reusable for regeneration)
+- `docs/package.json` — pptxgenjs dependency
+
+**Open items (placeholders in deck):**
+- Slide 17: [AMOUNT], [12–18 months], [milestone], milestone Ns
+- Slide 6: First stat shows "~40%" — update when stronger publicly defensible figure available
+
+**Files Created:**
+- `docs/build-thesis-hero-deck.js`
+- `docs/lens-investor-pitch-thesis-hero-v1.0.pptx`
+- `docs/package.json`, `docs/package-lock.json`
+
+**Commit:** a99404a
+
+---
+
 ## [2026-04-30] Recruiter Comparison Component
 
 ### lens-app 2026.04.30-recruiter-compare
