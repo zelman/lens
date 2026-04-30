@@ -4,6 +4,43 @@ All notable changes to deployed apps and schemas are documented here.
 
 ## [2026-04-30] PDF Filename & Demo Mode Fixes
 
+### lens-app 2026.04.30-m
+
+**Title case PDF filenames:**
+
+Filenames now use professional title case formatting: `Maria_Gutierrez_Lens_Full_2026.04.30-m.pdf` instead of lowercase `maria_gutierrez_lens_full_...`.
+
+**Changes:**
+- PremiumLensDocument, RecruiterBrief, LensIntake: Name words capitalized and joined with underscores
+- `_Lens_Full_` and `_Lens_Brief_` now capitalized
+
+---
+
+### lens-app 2026.04.30-k
+
+**Cmd+P browser print now uses custom filename:**
+
+Previously only the React "Save as PDF" button set the filename. Now both methods work because document.title is set when the modal mounts (not on beforeprint event which had timing issues).
+
+---
+
+### lens-app 2026.04.30-h, -i, -j
+
+**PDF filename fixes:**
+- Added 100ms delay before window.print() to ensure title is set (-h)
+- Full name in filename instead of first name only via `personNameOverride` prop (-i)
+- Added beforeprint/afterprint listeners for Cmd+P support (-j, later replaced by mount approach in -k)
+
+---
+
+### lens-app 2026.04.30-g
+
+**Fixed blank RecruiterBrief PDF:**
+
+Print CSS was hiding modal container with `[style*="position: fixed"]`, which also hid nested content. Fixed by adding `data-recruiter-brief-modal` attribute and making modal `position: static` for print instead of hiding.
+
+---
+
 ### lens-app 2026.04.30-f
 
 **PDF filenames now use build ID instead of date:**
