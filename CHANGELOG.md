@@ -2,6 +2,61 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-04-30] Score API Dimensions Block
+
+### lens-app 2026.04.30-score-dimensions
+
+**Added `dimensions` block to /api/score response:**
+
+The score API now returns a standardized `dimensions` object alongside the existing `scores` for compatibility. This provides a consistent interface for downstream consumers.
+
+**Before:**
+```json
+{
+  "total_score": 72,
+  "scores": {
+    "builder_orientation": {"score": 18, "max": 25, "confidence": 0.8, "rationale": "..."},
+    "relational_fit": {...},
+    "domain_fluency": {...},
+    "values_alignment": {...},
+    "work_style_compatibility": {...},
+    "energy_match": {...}
+  }
+}
+```
+
+**After:**
+```json
+{
+  "total_score": 72,
+  "scores": {...},
+  "dimensions": {
+    "mission": {"score": 12, "confidence": 0.7, "evidence": "..."},
+    "role": {"score": 18, "confidence": 0.8, "evidence": "..."},
+    "culture": {"score": 17, "confidence": 0.85, "evidence": "..."},
+    "skill": {"score": 14, "confidence": 0.75, "evidence": "..."},
+    "work_style": {"score": 10, "confidence": 0.9, "evidence": "..."},
+    "energy": {"score": 6, "confidence": 0.8, "evidence": "..."}
+  }
+}
+```
+
+**Key mapping:**
+- `values_alignment` → `mission`
+- `builder_orientation` → `role`
+- `relational_fit` → `culture`
+- `domain_fluency` → `skill`
+- `work_style_compatibility` → `work_style`
+- `energy_match` → `energy`
+
+**Also fixed:**
+- Converted route from Pages Router to App Router syntax
+- Route now parses Claude's JSON response instead of returning raw API envelope
+- Added support for both scorer format (`systemPrompt`, `roleLens`, `candidateInput`) and legacy format (`system`, `userMessage`)
+- Changed model from `claude-opus-4-7` to `claude-sonnet-4-6` (per model selection guidelines)
+
+---
+
 ## [2026-04-30] PDF Filename & Demo Mode Fixes
 
 ### lens-app 2026.04.30-m
