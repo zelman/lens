@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const VERSION = "2.3.2";
+const VERSION = "2.3.3";
 
 // ============================================================================
 // DESIGN TOKENS — International Style
@@ -284,6 +284,18 @@ export default function RecruiterComparison() {
             SECTION 1: HEADER
             ================================================================ */}
         <header style={{ marginBottom: 24 }}>
+          <a
+            href="/recruiter"
+            style={{
+              display: "inline-block",
+              fontSize: 12,
+              color: COLORS.muted,
+              textDecoration: "none",
+              marginBottom: 16,
+            }}
+          >
+            ← Back to recruiter dashboard
+          </a>
           <div
             style={{
               fontSize: 9,
