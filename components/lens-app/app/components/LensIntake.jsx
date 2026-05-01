@@ -11,7 +11,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.30-m";
+const BUILD_ID = "2026.05.01-a";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -1117,6 +1117,11 @@ function DiscoveryPhase({
   const [currentSectionStart, setCurrentSectionStart] = useState(null);
   const [totalMessageCount, setTotalMessageCount] = useState(0);
 
+  // ── Session-level transcript (accumulates ALL messages across sections) ──
+  // Unlike `messages` which resets per section for prompt context, this persists the full conversation
+  const [fullTranscript, setFullTranscript] = useState(savedDiscoveryState?.fullTranscript || []);
+  const lastMessageCountRef = useRef(0); // Track message count to detect new messages
+
   // Ref for startSection to avoid stale closures in re-entry useEffect
   const startSectionRef = useRef(null);
 
@@ -1150,9 +1155,30 @@ function DiscoveryPhase({
         greetingDone,
         sectionComplete,
         lensDoc,
+        fullTranscript, // Session-level transcript (all messages across all sections)
       });
     }
-  }, [subPhase, currentSection, messages, sectionData, greetingDone, sectionComplete, lensDoc, onDiscoveryStateChange]);
+  }, [subPhase, currentSection, messages, sectionData, greetingDone, sectionComplete, lensDoc, fullTranscript, onDiscoveryStateChange]);
+
+  // ── Append new messages to session-level fullTranscript ──
+  // Detects when messages array grows and appends new entries with section metadata
+  // Note: ref updated BEFORE setState to prevent double-fire; turn computed from prev.length
+  useEffect(() => {
+    if (messages.length > lastMessageCountRef.current) {
+      const newMessages = messages.slice(lastMessageCountRef.current);
+      lastMessageCountRef.current = messages.length; // Update ref BEFORE setState to prevent duplicate appends
+      setFullTranscript(prev => {
+        const timestampedEntries = newMessages.map((msg, idx) => ({
+          role: msg.role,
+          content: msg.content,
+          turn: prev.length + idx, // Compute from prev.length to avoid stale closure
+          section: currentSection,
+          timestamp: new Date().toISOString(),
+        }));
+        return [...prev, ...timestampedEntries];
+      });
+    }
+  }, [messages, currentSection]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -2822,6 +2848,14 @@ function saveSession(data) {
         };
         trimmed = true;
       }
+      // Also trim fullTranscript if too large (keep last 50 turns for context)
+      if (trimmedData.discoveryState?.fullTranscript?.length > 50) {
+        trimmedData.discoveryState = {
+          ...trimmedData.discoveryState,
+          fullTranscript: trimmedData.discoveryState.fullTranscript.slice(-50),
+        };
+        trimmed = true;
+      }
       // If still too large, drop file context
       if (getStorageSize(trimmedData) > MAX_STORAGE_SIZE && trimmedData.fileContext) {
         trimmedData.fileContext = null;
@@ -3022,13 +3056,16 @@ export default function LensIntake() {
     const currentLensOutput = lensOutputRef.current;
     const currentUserName = userNameRef.current;
 
-    // Build transcript from discovery messages
-    const transcript = currentDiscoveryState?.messages?.map((msg, idx) => ({
-      role: msg.role,
-      content: msg.content,
-      turn: idx,
-      section: currentDiscoveryState?.currentSection ?? null,
-    })) || [];
+    // Use session-level fullTranscript (accumulates ALL messages across all sections)
+    // Falls back to current section messages for backwards compatibility
+    const transcript = currentDiscoveryState?.fullTranscript?.length > 0
+      ? currentDiscoveryState.fullTranscript
+      : (currentDiscoveryState?.messages?.map((msg, idx) => ({
+          role: msg.role,
+          content: msg.content,
+          turn: idx,
+          section: currentDiscoveryState?.currentSection ?? null,
+        })) || []);
 
     const payload = {
       sessionId: t.sessionId,

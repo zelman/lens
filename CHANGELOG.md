@@ -2,6 +2,30 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-05-01] Fix C→C Transcript Persistence
+
+### Build 2026.05.01-a
+
+**Fixed:** C→C transcript persistence now stores ALL messages from ALL sections, not just the current section.
+
+**Root cause:** The `messages` array resets on each section advance (correct for prompt context window management), but the persisted Transcript field was being snapshotted from this resetting array instead of from a session-level append-only log.
+
+**Fix:**
+- Added `fullTranscript` state to `DiscoveryPhase` component — accumulates ALL messages across ALL sections with section metadata
+- Each message entry now includes: `{role, content, turn, section, timestamp}`
+- `fullTranscript` persists across section transitions (unlike `messages` which resets per section)
+- Updated `logTelemetry` to use `fullTranscript` instead of `messages`
+- Added localStorage trim logic for `fullTranscript` (keeps last 50 turns if storage quota exceeded)
+- Falls back to current section messages for backwards compatibility
+- Fixed stale closure bug in useEffect (per Opus review): ref updated before setState, turn computed from prev.length
+
+**Impact:** Pattern-extraction pre-pass, synthesis-vs-transcript diffing, and tester feedback analysis will now have complete conversation data.
+
+**Files Changed:**
+- `app/components/LensIntake.jsx` — fullTranscript state, useEffect for message accumulation, updated logTelemetry
+
+---
+
 ## [2026-04-30] Thesis-Hero Investor Pitch Deck
 
 ### docs/lens-investor-pitch-thesis-hero-v1.0.pptx
