@@ -702,17 +702,8 @@ For Maria: How would she approach earning Sarah's trust on accounts where Sarah 
     const userMsg = input.trim();
 
     // ── Demo mode: /skip command ──
-    if (userMsg.toLowerCase() === "/skip") {
-      if (!isDemoModeEnabled()) {
-        setInput("");
-        setMessages((prev) => [
-          ...prev,
-          { role: "user", content: userMsg },
-          { role: "assistant", content: "Demo mode is not enabled. The /skip command only works when NEXT_PUBLIC_DEMO_MODE=true." },
-        ]);
-        return;
-      }
-
+    // Only intercept /skip when demo mode is enabled; otherwise treat as normal message
+    if (isDemoModeEnabled() && userMsg.toLowerCase() === "/skip") {
       const demoCandidate = getDemoCandidate("sarah-chen");
       if (!demoCandidate) {
         setInput("");

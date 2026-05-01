@@ -93,6 +93,17 @@ End with two short paragraphs:
 **Files Changed:**
 - `app/components/PremiumLensDocument.jsx` — return null instead of fallback message when hasResumeData but no suggestions
 
+### Build 2026.05.01-f
+
+**Fixed:** Hide `/skip` command response in production (R→C demo only).
+
+**Issue:** R→C sessions where user types `/skip` returned visible message: "Demo mode is not enabled. The /skip command only works when NEXT_PUBLIC_DEMO_MODE=true." This reveals dev affordance and breaks conversational tone.
+
+**Fix:** Only intercept `/skip` when `NEXT_PUBLIC_DEMO_MODE=true`. When demo mode is disabled, `/skip` flows through as a normal user message to the AI (no special handling, no error message).
+
+**Files Changed:**
+- `app/components/RecruiterCandidateIntake.jsx` — changed condition from `if (userMsg === "/skip") { if (!isDemoModeEnabled()) ... }` to `if (isDemoModeEnabled() && userMsg === "/skip")`
+
 ---
 
 ## [2026-04-30] Thesis-Hero Investor Pitch Deck
