@@ -295,72 +295,93 @@ export async function POST(request) {
       : null;
 
     if (validationContent) {
-      try {
-        // Use SDK for validation (non-streaming is fine for small responses)
-        const validationResult = await anthropic.messages.create({
-          model: MODEL,
-          max_tokens: VALIDATION_MAX_TOKENS,
-          system: VALIDATION_SYSTEM_PROMPT,
-          messages: [{ role: "user", content: validationContent }],
-        });
-        const validationResponse = validationResult.content?.[0]?.text || "";
+      // Calculate validation budget - cap at 30s or remaining budget - 5s (whichever is smaller)
+      const validationBudgetMs = Math.min(30000, remainingBudget - 5000);
 
-        // Parse gap report JSON
-        let gapReport;
+      // Skip validation entirely if insufficient budget (< 10s isn't enough for a meaningful check)
+      if (validationBudgetMs < 10000) {
+        console.log(`[RC-Synthesize] Skipping validation - insufficient budget (${Math.round(validationBudgetMs / 1000)}s)`);
+      } else {
         try {
-          gapReport = JSON.parse(validationResponse);
-        } catch (parseErr) {
-          console.warn("[RC-Synthesize] Failed to parse validation response as JSON:", parseErr.message);
-          gapReport = { gap_severity: "none" };
-        }
+          const validationController = new AbortController();
+          const validationTimeout = setTimeout(() => validationController.abort(), validationBudgetMs);
 
-        // Check if re-synthesis is needed
-        const hasSignificantGaps = gapReport.gap_severity === "high" || gapReport.gap_severity === "medium";
-        const hasHallucinations = gapReport.has_hallucinations && gapReport.hallucinations?.some(h => h.severity === "high" || h.severity === "medium");
-        const hasSensitivityViolations = gapReport.has_sensitivity_violations && gapReport.sensitivity_violations?.length > 0;
-
-        if (hasSignificantGaps || hasHallucinations || hasSensitivityViolations) {
-          const reasons = [];
-          if (hasSensitivityViolations) reasons.push("sensitivity violations");
-          if (hasHallucinations) reasons.push("hallucinations");
-          if (hasSignificantGaps) reasons.push("gaps");
-
-          // Check if we have enough time budget for re-synthesis (~15s minimum)
-          const resynthBudget = STREAM_TIMEOUT_MS - (Date.now() - requestStart);
-          if (resynthBudget < 15000) {
-            console.log(`[RC-Synthesize] Validation found issues (${reasons.join(", ")}) but only ${Math.round(resynthBudget / 1000)}s remaining - skipping re-synthesis`);
-          } else {
-            console.log(`[RC-Synthesize] Validation found issues: ${reasons.join(", ")}, triggering re-synthesis (${Math.round(resynthBudget / 1000)}s remaining)`);
-
-            // Build revision addendum and append to full system prompt (with premium metadata)
-            const revisionAddendum = buildRevisionAddendum(gapReport);
-            const revisedSystemPrompt = FULL_SYSTEM_PROMPT + revisionAddendum;
-
-            // Re-run synthesis with gap instructions (use streaming for large output)
-            try {
-              const revisedRawResponse = await callAnthropicStreaming(revisedSystemPrompt, userContent);
-              const revisedParsed = parsePremiumSynthesisResponse(revisedRawResponse);
-
-              // Validate revised output before accepting it
-              const revisedSectionCount = (revisedParsed.markdown.match(/^##\s+/gm) || []).length;
-              if (revisedSectionCount < 5) {
-                console.warn(`[RC-Synthesize] Re-synthesis produced only ${revisedSectionCount} sections, keeping original`);
-              } else {
-                lensDoc = revisedParsed.markdown;
-                metadata = revisedParsed.metadata || metadata; // Keep original metadata if re-synthesis didn't produce any
-                console.log("[RC-Synthesize] Re-synthesis accepted");
-              }
-            } catch (resynthErr) {
-              console.warn("[RC-Synthesize] Re-synthesis failed, keeping original:", resynthErr.message);
+          let validationResult;
+          try {
+            validationResult = await anthropic.messages.create({
+              model: MODEL,
+              max_tokens: VALIDATION_MAX_TOKENS,
+              system: VALIDATION_SYSTEM_PROMPT,
+              messages: [{ role: "user", content: validationContent }],
+            }, { signal: validationController.signal });
+            clearTimeout(validationTimeout);
+          } catch (abortErr) {
+            clearTimeout(validationTimeout);
+            if (abortErr.name === "AbortError") {
+              console.warn(`[RC-Synthesize] Validation timed out after ${validationBudgetMs / 1000}s, proceeding with un-validated output`);
+              throw abortErr; // Will be caught by outer try-catch and skip validation gracefully
             }
+            throw abortErr;
           }
-        } else {
-          console.log(`[RC-Synthesize] Validation passed with severity: ${gapReport.gap_severity || "none"}`);
+          const validationResponse = validationResult.content?.[0]?.text || "";
+
+          // Parse gap report JSON
+          let gapReport;
+          try {
+            gapReport = JSON.parse(validationResponse);
+          } catch (parseErr) {
+            console.warn("[RC-Synthesize] Failed to parse validation response as JSON:", parseErr.message);
+            gapReport = { gap_severity: "none" };
+          }
+
+          // Check if re-synthesis is needed
+          const hasSignificantGaps = gapReport.gap_severity === "high" || gapReport.gap_severity === "medium";
+          const hasHallucinations = gapReport.has_hallucinations && gapReport.hallucinations?.some(h => h.severity === "high" || h.severity === "medium");
+          const hasSensitivityViolations = gapReport.has_sensitivity_violations && gapReport.sensitivity_violations?.length > 0;
+
+          if (hasSignificantGaps || hasHallucinations || hasSensitivityViolations) {
+            const reasons = [];
+            if (hasSensitivityViolations) reasons.push("sensitivity violations");
+            if (hasHallucinations) reasons.push("hallucinations");
+            if (hasSignificantGaps) reasons.push("gaps");
+
+            // Check if we have enough time budget for re-synthesis (~15s minimum)
+            const resynthBudget = STREAM_TIMEOUT_MS - (Date.now() - requestStart);
+            if (resynthBudget < 15000) {
+              console.log(`[RC-Synthesize] Validation found issues (${reasons.join(", ")}) but only ${Math.round(resynthBudget / 1000)}s remaining - skipping re-synthesis`);
+            } else {
+              console.log(`[RC-Synthesize] Validation found issues: ${reasons.join(", ")}, triggering re-synthesis (${Math.round(resynthBudget / 1000)}s remaining)`);
+
+              // Build revision addendum and append to full system prompt (with premium metadata)
+              const revisionAddendum = buildRevisionAddendum(gapReport);
+              const revisedSystemPrompt = FULL_SYSTEM_PROMPT + revisionAddendum;
+
+              // Re-run synthesis with gap instructions (use streaming for large output)
+              try {
+                const revisedRawResponse = await callAnthropicStreaming(revisedSystemPrompt, userContent);
+                const revisedParsed = parsePremiumSynthesisResponse(revisedRawResponse);
+
+                // Validate revised output before accepting it
+                const revisedSectionCount = (revisedParsed.markdown.match(/^##\s+/gm) || []).length;
+                if (revisedSectionCount < 5) {
+                  console.warn(`[RC-Synthesize] Re-synthesis produced only ${revisedSectionCount} sections, keeping original`);
+                } else {
+                  lensDoc = revisedParsed.markdown;
+                  metadata = revisedParsed.metadata || metadata; // Keep original metadata if re-synthesis didn't produce any
+                  console.log("[RC-Synthesize] Re-synthesis accepted");
+                }
+              } catch (resynthErr) {
+                console.warn("[RC-Synthesize] Re-synthesis failed, keeping original:", resynthErr.message);
+              }
+            }
+          } else {
+            console.log(`[RC-Synthesize] Validation passed with severity: ${gapReport.gap_severity || "none"}`);
+          }
+        } catch (validationErr) {
+          // Validation is a quality gate, not a hard requirement
+          console.warn("[RC-Synthesize] Validation step failed, continuing with original synthesis:", validationErr.message);
         }
-      } catch (validationErr) {
-        // Validation is a quality gate, not a hard requirement
-        console.warn("[RC-Synthesize] Validation step failed, continuing with original synthesis:", validationErr.message);
-      }
+      } // end else (sufficient budget)
     }
 
     // ═══════════════════════════════════════════════════════════════════════

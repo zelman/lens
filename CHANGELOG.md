@@ -120,6 +120,25 @@ End with two short paragraphs:
 **Files Changed:**
 - `app/api/rc-synthesize/route.js` — `buildRCSourceMaterial()` now includes resume and supporting docs; call site updated to pass `candidateContext`
 
+### Build 2026.05.01-h
+
+**Fixed:** Validation API calls can hang indefinitely, blocking the entire synthesis pipeline.
+
+**Root cause (per Opus code review):** The validation call in `rc-synthesize/route.js` used `anthropic.messages.create()` with no AbortController or timeout. If the Anthropic API hung or returned a 429 rate-limit error that blocked for 60+ seconds, the request would exhaust the remaining time budget and Vercel would kill the entire request — losing the already-generated lens output.
+
+The `synthesize-premium/route.js` used streaming with a full 150s timeout, which is excessive for validation (small response) and doesn't match the expected 30s budget.
+
+**Fix:**
+1. **rc-synthesize/route.js:** Added AbortController with 30s timeout (or remaining budget - 5s, whichever is smaller). On abort, logs warning and skips validation gracefully — returns un-validated lens instead of failing entirely.
+
+2. **synthesize-premium/route.js:** Switched from streaming to non-streaming for validation (appropriate for small response). Added `VALIDATION_TIMEOUT_MS = 30000` constant and AbortController with 30s timeout. Same graceful fallback on timeout.
+
+**Impact:** Validation timeouts no longer block the pipeline. Users get their lens even if validation times out.
+
+**Files Changed:**
+- `app/api/rc-synthesize/route.js` — AbortController + 30s timeout for validation
+- `app/api/synthesize-premium/route.js` — VALIDATION_TIMEOUT_MS constant, non-streaming validation with AbortController
+
 ---
 
 ## [2026-04-30] Thesis-Hero Investor Pitch Deck

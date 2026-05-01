@@ -15,6 +15,7 @@ const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 8000; // Increased from 6000 to accommodate metadata block
 const VALIDATION_MAX_TOKENS = 1500;
 const STREAM_TIMEOUT_MS = 150000; // 2.5 min for premium (more output)
+const VALIDATION_TIMEOUT_MS = 30000; // 30s cap for validation calls
 const MIN_VALIDATION_BUDGET_MS = 30000;
 
 // Combined system prompt for premium synthesis
@@ -268,11 +269,29 @@ export async function POST(request) {
           lensMarkdown: lensDoc,
         });
 
-        const validationResponse = await callAnthropicStreaming(
-          VALIDATION_SYSTEM_PROMPT,
-          validationContent,
-          VALIDATION_MAX_TOKENS
-        );
+        // Use non-streaming for validation with explicit 30s timeout via AbortController
+        // Validation responses are small, so streaming overhead isn't worth it
+        const validationController = new AbortController();
+        const validationTimeoutId = setTimeout(() => validationController.abort(), VALIDATION_TIMEOUT_MS);
+
+        let validationResponse;
+        try {
+          const validationResult = await anthropic.messages.create({
+            model: MODEL,
+            max_tokens: VALIDATION_MAX_TOKENS,
+            system: VALIDATION_SYSTEM_PROMPT,
+            messages: [{ role: "user", content: validationContent }],
+          }, { signal: validationController.signal });
+          clearTimeout(validationTimeoutId);
+          validationResponse = validationResult.content?.[0]?.text || "";
+        } catch (abortErr) {
+          clearTimeout(validationTimeoutId);
+          if (abortErr.name === "AbortError") {
+            console.warn(`[SynthesizePremium] Validation timed out after ${VALIDATION_TIMEOUT_MS / 1000}s, proceeding with un-validated output`);
+            throw abortErr; // Caught by outer try-catch, skips validation gracefully
+          }
+          throw abortErr;
+        }
 
         let gapReport;
         try {
