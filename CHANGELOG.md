@@ -77,6 +77,22 @@ End with two short paragraphs:
 **Files Changed:**
 - `app/api/_prompts/synthesis.js` — added brace-counting helpers, replaced regex-based JSON handling
 
+### Build 2026.05.01-e
+
+**Fixed:** Resume Enhancements section: intermittent failure renders fallback message in PDF export.
+
+**Evidence:** Two runs of the same C→C session produced different outcomes — one with full resume enhancements, one with fallback copy "Resume analysis is processing... This sometimes happens with complex PDF formats."
+
+**Root cause:** Race condition / intermittent API failure. The flow:
+1. `setHasResumeData(true)` is called BEFORE the `/api/resume-suggestions` API call
+2. If the API times out, returns 502, or JSON parse fails, `premiumResumeSuggestions` remains null
+3. Component receives `hasResumeData=true` but `suggestions=null`, triggering the fallback message
+
+**Fix:** When resume was uploaded but suggestions failed to generate, suppress the Resume Enhancements section entirely rather than rendering fallback copy. The user can re-run the generation to retry; a processing message in the final PDF deliverable is unacceptable.
+
+**Files Changed:**
+- `app/components/PremiumLensDocument.jsx` — return null instead of fallback message when hasResumeData but no suggestions
+
 ---
 
 ## [2026-04-30] Thesis-Hero Investor Pitch Deck

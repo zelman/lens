@@ -664,43 +664,10 @@ function ResumeEnhancementsPage({ suggestions, alignment, hasResumeData }) {
     );
   }
 
-  // If resume was uploaded but no suggestions generated (API failed or empty response)
+  // If resume was uploaded but no suggestions generated (API failed, timeout, or empty response)
+  // Suppress section entirely rather than rendering fallback copy in the final PDF
   if (!suggestions || suggestions.length === 0) {
-    return (
-      <div className="print-page" style={{
-        padding: '60px',
-        minHeight: '100vh',
-        pageBreakAfter: 'always',
-        boxSizing: 'border-box',
-      }}>
-        <div style={{
-          fontSize: '9px',
-          fontWeight: '600',
-          color: C.red,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          marginBottom: '24px',
-        }}>
-          RESUME ENHANCEMENTS
-        </div>
-
-        <div style={{
-          padding: '32px',
-          backgroundColor: C.container,
-        }}>
-          <p style={{
-            fontFamily: FONT,
-            fontSize: '14px',
-            color: C.gray,
-            lineHeight: 1.6,
-            margin: 0,
-          }}>
-            Resume analysis is processing. If this page appears blank, the resume enhancement
-            suggestions could not be generated. This sometimes happens with complex PDF formats.
-          </p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
