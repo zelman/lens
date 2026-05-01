@@ -159,6 +159,28 @@ The `synthesize-premium/route.js` used streaming with a full 150s timeout, which
 - `app/api/rc-synthesize/route.js` — all three fixes
 - `app/api/synthesize-premium/route.js` — all three fixes
 
+### Build 2026.05.01-j
+
+**Added:** Synthesis output caching — stabilizes lens artifacts so re-runs don't produce different output.
+
+**Problem:** Each call to `generatePremiumDoc()` re-ran synthesis, producing slightly different artifacts even on identical input. This variance was problematic for testers expecting consistent output and for reproducing feedback reports.
+
+**Solution:**
+1. **Client-side caching:** Premium state (metadata, nextSteps, resumeSuggestions, cached flag) now persists to localStorage via `savedDiscoveryState`. On page reload or component remount, cached premium output is restored instead of re-synthesized.
+
+2. **Early return on cache hit:** `generatePremiumDoc()` checks `premiumCached` flag — if true and `forceRegenerate` not set, shows cached version immediately without API call.
+
+3. **Server-side persistence:** After successful synthesis, premium output is written to Airtable session record (`finalSynthesisMD`, `finalSynthesisYAML` fields) for audit trail and cross-device recovery.
+
+4. **Explicit regeneration:** "Regenerate Lens" button appears only when cached version exists. Requires user confirmation: "Regenerating will produce a different artifact. Your current Lens will be replaced."
+
+**Impact:** Testers now see consistent output across page reloads; variance only on explicit regeneration.
+
+**Also fixed (per Opus review):** `lastMessageCountRef` not reset on section change — when `startSection` cleared messages to `[]`, the ref wasn't reset. Early messages in subsequent sections could be missed from `fullTranscript` because the append effect compared against the stale ref value.
+
+**Files Changed:**
+- `app/components/LensIntake.jsx` — premium state persistence, cache check in generatePremiumDoc, handleRegenerateLens function, Regenerate button, lastMessageCountRef reset
+
 ---
 
 ## [2026-04-30] Thesis-Hero Investor Pitch Deck

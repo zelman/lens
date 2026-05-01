@@ -11,7 +11,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.05.01-i";
+const BUILD_ID = "2026.05.01-j";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -1102,13 +1102,15 @@ function DiscoveryPhase({
   const [sectionComplete, setSectionComplete] = useState(savedDiscoveryState?.sectionComplete || false);
 
   // ── Premium lens document state ──
+  // Premium state is persisted to localStorage to prevent re-synthesis on page reload
   const [showPremiumDoc, setShowPremiumDoc] = useState(false);
-  const [premiumMetadata, setPremiumMetadata] = useState(null);
-  const [premiumNextSteps, setPremiumNextSteps] = useState(null);
-  const [premiumResumeSuggestions, setPremiumResumeSuggestions] = useState(null);
-  const [hasResumeData, setHasResumeData] = useState(false); // Track if resume was available
+  const [premiumMetadata, setPremiumMetadata] = useState(savedDiscoveryState?.premiumMetadata || null);
+  const [premiumNextSteps, setPremiumNextSteps] = useState(savedDiscoveryState?.premiumNextSteps || null);
+  const [premiumResumeSuggestions, setPremiumResumeSuggestions] = useState(savedDiscoveryState?.premiumResumeSuggestions || null);
+  const [hasResumeData, setHasResumeData] = useState(savedDiscoveryState?.hasResumeData || false);
   const [isPremiumLoading, setIsPremiumLoading] = useState(false);
   const [premiumError, setPremiumError] = useState(null);
+  const [premiumCached, setPremiumCached] = useState(savedDiscoveryState?.premiumCached || false);
 
   // ── Timing instrumentation state ──
   const [sessionRecordId, setSessionRecordId] = useState(null);
@@ -1144,7 +1146,7 @@ function DiscoveryPhase({
     }
   }, [subPhase, lensDoc, userName]);
 
-  // Persist discovery state on changes
+  // Persist discovery state on changes (includes premium state for cache persistence)
   useEffect(() => {
     if (onDiscoveryStateChange && subPhase !== "preview") {
       onDiscoveryStateChange({
@@ -1156,9 +1158,15 @@ function DiscoveryPhase({
         sectionComplete,
         lensDoc,
         fullTranscript, // Session-level transcript (all messages across all sections)
+        // Premium state - persisted to prevent re-synthesis on page reload
+        premiumMetadata,
+        premiumNextSteps,
+        premiumResumeSuggestions,
+        hasResumeData,
+        premiumCached,
       });
     }
-  }, [subPhase, currentSection, messages, sectionData, greetingDone, sectionComplete, lensDoc, fullTranscript, onDiscoveryStateChange]);
+  }, [subPhase, currentSection, messages, sectionData, greetingDone, sectionComplete, lensDoc, fullTranscript, premiumMetadata, premiumNextSteps, premiumResumeSuggestions, hasResumeData, premiumCached, onDiscoveryStateChange]);
 
   // ── Append new messages to session-level fullTranscript ──
   // Detects when messages array grows and appends new entries with section metadata
@@ -1515,6 +1523,7 @@ function DiscoveryPhase({
     setCurrentSection(idx);
     setSubPhase("conversation");
     setMessages([]);
+    lastMessageCountRef.current = 0; // Reset ref when clearing messages
     setGreetingDone(false);
     setSectionComplete(false);
     setApiError(null);
@@ -1839,8 +1848,25 @@ SIGNALS:
   }
 
   // ── Premium Lens Document generation ──
-  async function generatePremiumDoc() {
+  // forceRegenerate: if true, ignore cache and re-run synthesis
+  async function generatePremiumDoc(forceRegenerate = false) {
     if (isPremiumLoading || !lensDoc) return;
+
+    // Check cache: if premium already generated for this session, show cached version
+    if (premiumCached && !forceRegenerate) {
+      console.log("[Premium] Using cached premium synthesis (set forceRegenerate=true to re-generate)");
+      setShowPremiumDoc(true);
+      return;
+    }
+
+    // If force regenerating, clear previous state
+    if (forceRegenerate) {
+      console.log("[Premium] Force regenerating - clearing previous cache");
+      setPremiumMetadata(null);
+      setPremiumNextSteps(null);
+      setPremiumResumeSuggestions(null);
+      setPremiumCached(false);
+    }
 
     setIsPremiumLoading(true);
     setPremiumError(null);
@@ -1931,6 +1957,18 @@ SIGNALS:
         console.log("[Premium] Resume debug: Skipping resume suggestions - no fileContext or too short");
       }
 
+      // Mark as cached so subsequent loads don't re-synthesize
+      setPremiumCached(true);
+      console.log("[Premium] Synthesis complete and cached");
+
+      // Write premium synthesis output to Airtable for server-side persistence
+      if (sessionRecordId) {
+        updateSession({
+          finalSynthesisMD: premiumLens,
+          finalSynthesisYAML: metadata ? JSON.stringify(metadata) : null,
+        });
+      }
+
       // Show the premium document
       console.log("[Premium] About to show premium doc, resumeSuggestions will be:", premiumResumeSuggestions ? "set" : "null");
       setShowPremiumDoc(true);
@@ -1940,6 +1978,13 @@ SIGNALS:
       setPremiumError(err.message || "Failed to generate premium document");
     } finally {
       setIsPremiumLoading(false);
+    }
+  }
+
+  // ── Force regenerate premium lens (clears cache) ──
+  function handleRegenerateLens() {
+    if (window.confirm("Regenerating will produce a different artifact. Your current Lens will be replaced.\n\nContinue?")) {
+      generatePremiumDoc(true);
     }
   }
 
@@ -2131,6 +2176,20 @@ SIGNALS:
               <p style={{ fontSize: "12px", color: "#c00", marginTop: "8px" }}>
                 {premiumError}
               </p>
+            )}
+            {/* Regenerate button - only shown when cached version exists */}
+            {premiumCached && !isPremiumLoading && (
+              <button
+                onClick={handleRegenerateLens}
+                style={{
+                  width: "100%", padding: "10px", fontFamily: FONT, fontSize: "11px",
+                  letterSpacing: "0.06em", textTransform: "uppercase",
+                  background: "transparent", color: GRY,
+                  border: "none", cursor: "pointer", marginTop: "8px",
+                }}
+              >
+                Regenerate Lens
+              </button>
             )}
           </div>
 
