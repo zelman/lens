@@ -28,14 +28,16 @@ const MIN_VALIDATION_BUDGET_MS = 30000; // More time for validation since we're 
 
 // Note: "ADD" removed - too many false positives with common word "add".
 // Coverage maintained via "ADHD" and "attention deficit".
+// Note: Standalone DISC dimension words removed (Dominance, Steadiness, Compliance, Influencing)
+// because they're common English words. "DISC" itself catches assessment references.
 const SENSITIVE_TERMS = [
   // Clinical/neurodivergence labels
   "ADHD", "attention deficit", "ASD", "autism", "dyslexia",
   "anxiety", "depression", "bipolar", "OCD",
-  // Assessment frameworks
+  // Assessment frameworks (framework names catch most assessment leakage)
   "DISC", "Myers-Briggs", "MBTI", "Enneagram", "StrengthsFinder", "CliftonStrengths",
-  // DISC terminology (as personality descriptors)
-  "Peacemaker", "SC profile", "Dominance", "Influencing", "Steadiness", "Compliance",
+  // DISC-specific patterns (only ones unlikely to appear in normal business context)
+  "SC profile", "Di style", "CS style", "High D", "High I", "High S", "High C",
   // Bracketed placeholders (in case model generates them despite instructions)
   "[work style", "[process orientation", "[behavioral", "[personality",
   "[environment preference", "[wellbeing", "[energy pattern", "[detail orientation",
@@ -48,7 +50,8 @@ function buildSentencePattern(term) {
   // Bracketed terms like "[work style" don't work with \b word boundary
   const boundary = /^\[/.test(term) ? '' : '\\b';
   // Match sentence containing the term, including end-of-string for unpunctuated final sentences
-  return new RegExp(`[^.!?]*${boundary}${escaped}${boundary}[^.!?]*(?:[.!?]|$)`, 'gim');
+  // Bounded to 500 chars to prevent catastrophic backtracking; includes \n to prevent cross-line matching
+  return new RegExp(`[^.!?\\n]{0,500}${boundary}${escaped}${boundary}[^.!?\\n]{0,500}(?:[.!?]|$)`, 'gim');
 }
 
 function sanitizeLensOutput(text) {
@@ -217,10 +220,14 @@ export async function POST(request) {
           throw new Error("Empty response from AI");
         }
 
-        // Check final message for stop reason
-        const finalMessage = await stream.finalMessage();
-        if (finalMessage.stop_reason === "max_tokens") {
-          console.warn("[RC-Synthesize] Response was truncated due to max_tokens limit");
+        // Check final message for stop reason (non-critical, wrap in try-catch)
+        try {
+          const finalMessage = await stream.finalMessage();
+          if (finalMessage.stop_reason === "max_tokens") {
+            console.warn("[RC-Synthesize] Response was truncated due to max_tokens limit");
+          }
+        } catch (finalErr) {
+          console.warn("[RC-Synthesize] Could not retrieve final message metadata:", finalErr.message);
         }
 
         return fullResponse;

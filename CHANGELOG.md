@@ -139,6 +139,26 @@ The `synthesize-premium/route.js` used streaming with a full 150s timeout, which
 - `app/api/rc-synthesize/route.js` — AbortController + 30s timeout for validation
 - `app/api/synthesize-premium/route.js` — VALIDATION_TIMEOUT_MS constant, non-streaming validation with AbortController
 
+### Build 2026.05.01-i
+
+**Fixed:** Three pre-existing issues flagged by Opus code review.
+
+**1. Regex backtracking in `buildSentencePattern`:**
+- Changed `[^.!?]*` to `[^.!?\n]{0,500}` — bounded quantifier prevents catastrophic backtracking on long inputs, newline inclusion prevents cross-line sentence matching
+
+**2. SENSITIVE_TERMS false positives:**
+- Removed standalone DISC dimension words: "Dominance", "Steadiness", "Compliance", "Influencing", "Peacemaker"
+- These are common English words that caused false positives (e.g., "regulatory compliance", "market dominance", "natural peacemaker")
+- The term "DISC" itself catches assessment references; added specific DISC patterns: "SC profile", "Di style", "CS style", "High D/I/S/C"
+
+**3. `stream.finalMessage()` lacks try-catch:**
+- Wrapped in try-catch so failure to retrieve metadata doesn't crash the synthesis
+- The truncation warning is useful but not critical to the output
+
+**Files Changed:**
+- `app/api/rc-synthesize/route.js` — all three fixes
+- `app/api/synthesize-premium/route.js` — all three fixes
+
 ---
 
 ## [2026-04-30] Thesis-Hero Investor Pitch Deck

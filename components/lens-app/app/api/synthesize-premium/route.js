@@ -25,11 +25,13 @@ const PREMIUM_SYSTEM_PROMPT = SYNTHESIS_SYSTEM_PROMPT + PREMIUM_METADATA_INSTRUC
 // SENSITIVITY FILTER - same as standard synthesize route
 // ═══════════════════════════════════════════════════════════════════════
 
+// Note: Standalone DISC dimension words removed (Dominance, Steadiness, Compliance, Influencing)
+// because they're common English words. "DISC" itself catches assessment references.
 const SENSITIVE_TERMS = [
   "ADHD", "attention deficit", "ASD", "autism", "dyslexia",
   "anxiety", "depression", "bipolar", "OCD",
   "DISC", "Myers-Briggs", "MBTI", "Enneagram", "StrengthsFinder", "CliftonStrengths",
-  "Peacemaker", "SC profile", "Dominance", "Influencing", "Steadiness", "Compliance",
+  "SC profile", "Di style", "CS style", "High D", "High I", "High S", "High C",
   "[work style", "[process orientation", "[behavioral", "[personality",
   "[environment preference", "[wellbeing", "[energy pattern", "[detail orientation",
   "[collaborative style", "[leadership style", "[communication style", "[work pace",
@@ -38,7 +40,8 @@ const SENSITIVE_TERMS = [
 function buildSentencePattern(term) {
   const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const boundary = /^\[/.test(term) ? '' : '\\b';
-  return new RegExp(`[^.!?]*${boundary}${escaped}${boundary}[^.!?]*(?:[.!?]|$)`, 'gim');
+  // Bounded to 500 chars to prevent catastrophic backtracking; includes \n to prevent cross-line matching
+  return new RegExp(`[^.!?\\n]{0,500}${boundary}${escaped}${boundary}[^.!?\\n]{0,500}(?:[.!?]|$)`, 'gim');
 }
 
 function sanitizeLensOutput(text) {
@@ -183,9 +186,14 @@ export async function POST(request) {
           throw new Error("Empty response from AI");
         }
 
-        const finalMessage = await stream.finalMessage();
-        if (finalMessage.stop_reason === "max_tokens") {
-          console.warn("[SynthesizePremium] Response was truncated due to max_tokens limit");
+        // Check final message for stop reason (non-critical, wrap in try-catch)
+        try {
+          const finalMessage = await stream.finalMessage();
+          if (finalMessage.stop_reason === "max_tokens") {
+            console.warn("[SynthesizePremium] Response was truncated due to max_tokens limit");
+          }
+        } catch (finalErr) {
+          console.warn("[SynthesizePremium] Could not retrieve final message metadata:", finalErr.message);
         }
 
         return fullResponse;
