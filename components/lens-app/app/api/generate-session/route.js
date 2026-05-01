@@ -1,21 +1,20 @@
 // /api/generate-session - Generate session config from reviewed dimensions
 // Server-side only - system prompt never exposed to client
-// Uses SDK streaming to avoid Vercel timeout limits (matches rc-synthesize pattern)
+// Uses raw fetch streaming (matches extract-dimensions pattern which works)
 
 // Vercel function config - extend timeout for complex session generation
 export const maxDuration = 120; // 2 minutes (Pro plan supports up to 300s)
 
-import Anthropic from "@anthropic-ai/sdk";
 import {
   GENERATE_SESSION_SYSTEM_PROMPT,
   buildSessionGenerationContent,
 } from "../_prompts/generate-session";
 
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";  // Sonnet for reliable complex JSON
 const MAX_TOKENS = 16000; // Session configs can be large with many dimensions
 // Note: temperature param removed — deprecated in Claude 4.5+ models
 const MAX_RETRIES = 2;
-const STREAM_TIMEOUT_MS = 120000; // 2 min total budget
 
 // Helper: Try to find a valid JSON substring by progressively truncating
 function findLastValidJson(text) {
@@ -43,62 +42,72 @@ function findLastValidJson(text) {
   return null;
 }
 
-// Helper: Call Claude API using SDK streaming (matches rc-synthesize pattern)
-async function callClaudeStreaming(anthropic, systemPrompt, userContent) {
-  const streamStart = Date.now();
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+// Helper: Call Claude API with raw fetch streaming (matches extract-dimensions)
+async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
+  console.log("[generate-session] Starting API call...");
 
-  let fullText = "";
-  let chunkCount = 0;
-  let stopReason = null;
-
-  try {
-    const stream = await anthropic.messages.stream({
+  const res = await fetch(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
       model: MODEL,
       max_tokens: MAX_TOKENS,
+      stream: true,
       system: systemPrompt,
       messages: [
         { role: "user", content: userContent + "\n\nRespond with ONLY valid JSON. Start with { and end with }. No markdown, no backticks, no explanation." }
       ],
-    }, {
-      signal: controller.signal,
-    });
+    }),
+  });
 
-    for await (const event of stream) {
-      if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
-        fullText += event.delta.text;
-        chunkCount++;
+  console.log("[generate-session] API response status:", res.status);
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "Unknown error");
+    console.error("[generate-session] API error:", res.status, errorText);
+    throw new Error(`Anthropic API error: ${res.status} ${errorText}`);
+  }
+
+  // Process streaming response
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+  let stopReason = null;
+  let chunkCount = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split("\n");
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+            fullText += parsed.delta.text;
+            chunkCount++;
+          } else if (parsed.type === "message_delta" && parsed.delta?.stop_reason) {
+            stopReason = parsed.delta.stop_reason;
+          }
+        } catch (e) {
+          // Skip non-JSON lines
+        }
       }
     }
-
-    clearTimeout(timeoutId);
-
-    const streamDuration = Date.now() - streamStart;
-    console.log(`[generate-session] Stream complete: ${chunkCount} chunks, ${fullText.length} chars, ${Math.round(streamDuration / 1000)}s`);
-
-    // Check final message for stop reason
-    const finalMessage = await stream.finalMessage();
-    stopReason = finalMessage.stop_reason;
-
-    if (stopReason === "max_tokens") {
-      console.warn("[generate-session] Response was truncated due to max_tokens limit");
-    }
-
-    return { fullText, stopReason };
-
-  } catch (error) {
-    clearTimeout(timeoutId);
-    const elapsed = Math.round((Date.now() - streamStart) / 1000);
-
-    if (error.name === "AbortError") {
-      console.error(`[generate-session] Stream timed out after ${elapsed}s`);
-      throw new Error(`Generation timed out after ${STREAM_TIMEOUT_MS / 1000}s`);
-    }
-
-    console.error(`[generate-session] Stream failed after ${elapsed}s, ${chunkCount} chunks: ${error.message}`);
-    throw error;
   }
+
+  console.log(`[generate-session] Stream complete: ${chunkCount} chunks, ${fullText.length} chars`);
+  return { fullText, stopReason };
 }
 
 // Helper: Extract error position from JSON parse error
@@ -334,9 +343,6 @@ export async function POST(request) {
     );
   }
 
-  // Initialize SDK client
-  const anthropic = new Anthropic({ apiKey });
-
   try {
     const body = await request.json();
     console.log("[generate-session] Parsed body, dimensions count:", body.dimensions?.dimensions?.length);
@@ -396,7 +402,7 @@ export async function POST(request) {
 
       try {
         const { fullText, stopReason } = await callClaudeStreaming(
-          anthropic,
+          apiKey,
           GENERATE_SESSION_SYSTEM_PROMPT,
           userContent
         );
