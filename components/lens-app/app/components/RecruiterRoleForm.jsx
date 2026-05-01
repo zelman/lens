@@ -7,7 +7,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.04.30-y";
+const BUILD_ID = "2026.04.30-z";
 
 // ── Candidate roster storage ──
 const ROSTER_STORAGE_KEY = "recruiter-candidate-roster";
@@ -2134,16 +2134,8 @@ function ConfirmationPhase({ roleContext, sessionConfig, candidateRoster, files,
 }
 
 // ── Next Steps Handoff Block ──
+// Note: Generic candidate intake link removed - R→C flow uses personalized candidate links above
 function NextStepsBlock({ roleTitle }) {
-  const [copied, setCopied] = useState(false);
-  const intakeUrl = "https://lens-app-five.vercel.app/intake";
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(intakeUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const handleReviewCandidates = () => {
     const encodedRole = encodeURIComponent(roleTitle || "");
     window.location.href = `/recruiter-compare${encodedRole ? `?role=${encodedRole}` : ""}`;
@@ -2156,111 +2148,36 @@ function NextStepsBlock({ roleTitle }) {
         letterSpacing: "0.15em",
         textTransform: "uppercase",
         color: RED,
-        marginBottom: "20px",
+        marginBottom: "16px",
       }}>
-        NEXT STEPS
+        WHEN CANDIDATES ARE DONE
       </div>
-
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "32px",
+      <p style={{
+        fontSize: "12px",
+        color: "#555",
+        lineHeight: 1.7,
+        marginTop: 0,
+        marginBottom: "14px",
       }}>
-        {/* LEFT — SEND TO CANDIDATES */}
-        <div>
-          <div style={{
-            fontSize: "9px",
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: RED,
-            marginBottom: "10px",
-          }}>
-            CANDIDATE INTAKE LINK
-          </div>
-          <input
-            type="text"
-            value={intakeUrl}
-            readOnly
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              fontSize: "12px",
-              fontFamily: "monospace",
-              color: GRY,
-              background: "#FAFAFA",
-              border: `1px solid ${RULE}`,
-              borderRadius: 0,
-            }}
-            onClick={(e) => e.target.select()}
-          />
-          <button
-            onClick={handleCopyLink}
-            style={{
-              marginTop: "10px",
-              padding: "10px 16px",
-              fontSize: "11px",
-              fontFamily: FONT,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              background: "none",
-              border: `1px solid ${BLK}`,
-              color: BLK,
-              cursor: "pointer",
-              borderRadius: 0,
-            }}
-          >
-            {copied ? "Copied ✓" : "Copy link"}
-          </button>
-          <p style={{
-            fontSize: "11px",
-            color: GRY,
-            lineHeight: 1.6,
-            marginTop: "10px",
-            marginBottom: 0,
-          }}>
-            Ask candidates to complete their Lens in 3–5 business days.
-          </p>
-        </div>
-
-        {/* RIGHT — REVIEW RESULTS */}
-        <div>
-          <div style={{
-            fontSize: "9px",
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: RED,
-            marginBottom: "10px",
-          }}>
-            WHEN CANDIDATES ARE DONE
-          </div>
-          <p style={{
-            fontSize: "12px",
-            color: "#555",
-            lineHeight: 1.7,
-            marginTop: 0,
-            marginBottom: "14px",
-          }}>
-            Once candidates complete their sessions, review and compare fit results in the Candidate Comparison view.
-          </p>
-          <button
-            onClick={handleReviewCandidates}
-            style={{
-              padding: "10px 20px",
-              fontSize: "11px",
-              fontFamily: FONT,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              background: RED,
-              color: "#fff",
-              border: "none",
-              cursor: "pointer",
-              borderRadius: 0,
-            }}
-          >
-            Review Candidates →
-          </button>
-        </div>
-      </div>
+        Once candidates complete their sessions, review and compare fit results in the Candidate Comparison view.
+      </p>
+      <button
+        onClick={handleReviewCandidates}
+        style={{
+          padding: "10px 20px",
+          fontSize: "11px",
+          fontFamily: FONT,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          background: RED,
+          color: "#fff",
+          border: "none",
+          cursor: "pointer",
+          borderRadius: 0,
+        }}
+      >
+        Review Candidates →
+      </button>
     </div>
   );
 }
