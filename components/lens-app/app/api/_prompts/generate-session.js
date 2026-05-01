@@ -144,6 +144,9 @@ Respond with ONLY valid JSON, no markdown, no backticks, no preamble. Follow thi
   }
 }`;
 
+// Max chars for candidate materials to prevent prompt overload
+const MAX_CANDIDATE_MATERIALS_CHARS = 8000; // ~2K tokens, leaves room for dimensions + system prompt
+
 /**
  * Build the user content for session generation
  * @param {Object} dimensions - The reviewed dimensions object
@@ -200,35 +203,44 @@ export function buildSessionGenerationContent(dimensions, foundationDuration = 1
     }
   }
 
-  // Candidate materials (if available)
+  // Candidate materials (if available) - TRUNCATE to prevent timeout
   if (candidateMaterials) {
-    sections.push("\n=== CANDIDATE PRE-LOADED MATERIALS ===");
+    let materialsText = "";
 
     if (candidateMaterials.resume) {
-      sections.push("\n--- RESUME ---");
-      if (typeof candidateMaterials.resume === "string") {
-        sections.push(candidateMaterials.resume);
-      } else if (candidateMaterials.resume.extractedText) {
-        sections.push(candidateMaterials.resume.extractedText);
+      const resumeText = typeof candidateMaterials.resume === "string"
+        ? candidateMaterials.resume
+        : candidateMaterials.resume.extractedText || "";
+      if (resumeText) {
+        materialsText += "\n--- RESUME ---\n" + resumeText;
       }
     }
 
     if (candidateMaterials.linkedin) {
-      sections.push("\n--- LINKEDIN ---");
-      if (typeof candidateMaterials.linkedin === "string") {
-        sections.push(candidateMaterials.linkedin);
-      } else if (candidateMaterials.linkedin.extractedText) {
-        sections.push(candidateMaterials.linkedin.extractedText);
+      const linkedinText = typeof candidateMaterials.linkedin === "string"
+        ? candidateMaterials.linkedin
+        : candidateMaterials.linkedin.extractedText || "";
+      if (linkedinText) {
+        materialsText += "\n--- LINKEDIN ---\n" + linkedinText;
       }
     }
 
     if (candidateMaterials.other && candidateMaterials.other.length > 0) {
       candidateMaterials.other.forEach(doc => {
         if (doc.extractedText) {
-          sections.push(`\n--- ${doc.name || "OTHER DOCUMENT"} ---`);
-          sections.push(doc.extractedText);
+          materialsText += `\n--- ${doc.name || "OTHER DOCUMENT"} ---\n` + doc.extractedText;
         }
       });
+    }
+
+    // Truncate if too large
+    if (materialsText.length > MAX_CANDIDATE_MATERIALS_CHARS) {
+      console.log(`[generate-session] Truncating materials from ${materialsText.length} to ${MAX_CANDIDATE_MATERIALS_CHARS} chars`);
+      materialsText = materialsText.slice(0, MAX_CANDIDATE_MATERIALS_CHARS) + "\n\n[materials truncated for session generation]";
+    }
+
+    if (materialsText) {
+      sections.push("\n=== CANDIDATE PRE-LOADED MATERIALS ===" + materialsText);
     }
   } else {
     sections.push("\n=== CANDIDATE MATERIALS ===");
