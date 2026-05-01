@@ -12,6 +12,156 @@ const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 4000;
 // Note: temperature param removed — deprecated in Claude 4.5+ models
 
+// ═══════════════════════════════════════════════════════════════════════════
+// JSON REPAIR HELPERS (ported from generate-session)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Helper: Try to find a valid JSON substring by progressively truncating
+function findLastValidJson(text) {
+  const closingPositions = [];
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') {
+      depth--;
+      if (depth === 0) closingPositions.push(i + 1);
+    }
+  }
+
+  for (let i = closingPositions.length - 1; i >= 0; i--) {
+    const candidate = text.slice(0, closingPositions[i]);
+    try {
+      JSON.parse(candidate);
+      return candidate;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+// Helper: Escape unescaped newlines/tabs inside JSON strings
+function escapeNewlinesInStrings(text) {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
+    if (escaped) {
+      result += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escaped = true;
+      result += char;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      result += char;
+      continue;
+    }
+
+    if (inString) {
+      if (char === '\n') { result += '\\n'; continue; }
+      if (char === '\r') { result += '\\r'; continue; }
+      if (char === '\t') { result += '\\t'; continue; }
+    }
+
+    result += char;
+  }
+
+  return result;
+}
+
+// Helper: Parse JSON with multiple repair attempts
+function parseJsonWithRepairs(fullText) {
+  let cleanText = fullText
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .trim();
+
+  // Extract just the JSON object if there's text before/after
+  const jsonStart = cleanText.indexOf('{');
+  const jsonEnd = cleanText.lastIndexOf('}');
+  if (jsonStart > 0 || (jsonEnd > 0 && jsonEnd < cleanText.length - 1)) {
+    cleanText = cleanText.slice(jsonStart, jsonEnd + 1);
+  }
+
+  // Attempt 1: Direct parse
+  try {
+    return { result: JSON.parse(cleanText), error: null };
+  } catch (err1) {
+    console.log("[extract-dimensions] Direct parse failed:", err1.message);
+  }
+
+  // Attempt 2: Fix broken strings where model forgot closing quote
+  let brokenStringFixed = cleanText.replace(
+    /([^\\])\n(\s*)"([a-zA-Z_][a-zA-Z0-9_]*)"\s*:/g,
+    (match, lastChar, whitespace, fieldName) => {
+      if (/[a-zA-Z0-9.,;:!?\-'")}\]]/.test(lastChar)) {
+        return `${lastChar}",\n${whitespace}"${fieldName}":`;
+      }
+      return match;
+    }
+  );
+
+  if (brokenStringFixed !== cleanText) {
+    try {
+      return { result: JSON.parse(brokenStringFixed), error: null };
+    } catch (err2) {
+      console.log("[extract-dimensions] Broken string fix failed");
+    }
+  }
+
+  // Attempt 3: Escape unescaped newlines in strings
+  const escapedText = escapeNewlinesInStrings(brokenStringFixed);
+  if (escapedText !== brokenStringFixed) {
+    try {
+      return { result: JSON.parse(escapedText), error: null };
+    } catch (err3) {
+      console.log("[extract-dimensions] Newline escape failed");
+    }
+  }
+
+  // Attempt 4: Basic repairs (control chars, trailing commas)
+  let repairedText = escapedText
+    .replace(/[\x00-\x1F\x7F]/g, (char) => {
+      if (char === '\n' || char === '\r' || char === '\t') return ' ';
+      return '';
+    })
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']');
+
+  try {
+    return { result: JSON.parse(repairedText), error: null };
+  } catch (err4) {
+    console.log("[extract-dimensions] Basic repair failed");
+  }
+
+  // Attempt 5: Find longest valid JSON prefix
+  const truncated = findLastValidJson(repairedText);
+  if (truncated) {
+    try {
+      return { result: JSON.parse(truncated), error: null };
+    } catch (err5) {
+      console.log("[extract-dimensions] Truncation repair failed");
+    }
+  }
+
+  // All repairs failed
+  console.error("[extract-dimensions] All JSON repair attempts failed");
+  console.error("[extract-dimensions] Raw response (first 500):", fullText.slice(0, 500));
+  console.error("[extract-dimensions] Raw response (last 200):", fullText.slice(-200));
+
+  return { result: null, error: "JSON parse failed after all repair attempts" };
+}
+
 export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -70,7 +220,7 @@ export async function POST(request) {
         max_tokens: MAX_TOKENS,
         stream: true, // Enable streaming
         system: EXTRACT_DIMENSIONS_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userContent }],
+        messages: [{ role: "user", content: userContent + "\n\nRespond with ONLY valid JSON. Start with { and end with }. No markdown, no backticks, no explanation." }],
       }),
     });
 
@@ -136,43 +286,13 @@ export async function POST(request) {
       );
     }
 
-    // Parse JSON response with repair attempts
-    let dimensionResult;
-    let cleanText = fullText
-      .replace(/```json\n?/g, "")
-      .replace(/```\n?/g, "")
-      .trim();
+    // Parse JSON response with robust repair attempts
+    const { result: dimensionResult, error: parseError } = parseJsonWithRepairs(fullText);
 
-    // First attempt: direct parse
-    try {
-      dimensionResult = JSON.parse(cleanText);
-    } catch (parseErr1) {
-      console.log("[extract-dimensions] First parse failed, attempting repairs...");
-
-      // Repair attempt: Fix control characters and trailing commas
-      let repairedText = cleanText
-        .replace(/[\x00-\x1F\x7F]/g, (char) => {
-          if (char === '\n' || char === '\r' || char === '\t') return char;
-          return '';
-        })
-        .replace(/,\s*}/g, '}')
-        .replace(/,\s*]/g, ']');
-
-      try {
-        dimensionResult = JSON.parse(repairedText);
-        console.log("[extract-dimensions] Repair successful");
-      } catch (parseErr2) {
-        // Extract error position for debugging
-        const posMatch = parseErr1.message.match(/position (\d+)/);
-        const errorPos = posMatch ? parseInt(posMatch[1]) : null;
-        const contextAround = errorPos ? cleanText.slice(Math.max(0, errorPos - 100), errorPos + 100) : null;
-
-        console.error("[extract-dimensions] Failed to parse response as JSON:", parseErr1.message);
-        console.error("[extract-dimensions] Context around error:", contextAround);
-        console.error("[extract-dimensions] Raw response (first 500):", fullText.slice(0, 500));
-
-        // Return fallback dimensions for thin context
-        return Response.json({
+    if (!dimensionResult) {
+      // Return fallback dimensions when parsing fails
+      console.error("[extract-dimensions] Returning fallback dimensions due to:", parseError);
+      return Response.json({
         roleContext: {
           summary: `${roleContext.roleTitle} at ${roleContext.company}`,
           roleTitle: roleContext.roleTitle,
@@ -231,7 +351,6 @@ export async function POST(request) {
         contextQuality: "thin",
         contextWarning: "Unable to parse AI response. Using fallback dimensions. Add more context (documents, detailed objectives) for better results.",
       });
-      }
     }
 
     // Validate dimension count
