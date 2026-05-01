@@ -12,9 +12,10 @@ import {
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";  // Sonnet for reliable complex JSON
-const MAX_TOKENS = 16000; // Session configs can be large with many dimensions
+const MAX_TOKENS = 8000; // Reduced from 16000 to avoid timeout
 // Note: temperature param removed — deprecated in Claude 4.5+ models
-const MAX_RETRIES = 2;
+const MAX_RETRIES = 1; // Single attempt, fail fast
+const API_TIMEOUT_MS = 60000; // 60s timeout per API call
 
 // Helper: Try to find a valid JSON substring by progressively truncating
 function findLastValidJson(text) {
@@ -42,72 +43,90 @@ function findLastValidJson(text) {
   return null;
 }
 
-// Helper: Call Claude API with raw fetch streaming (matches extract-dimensions)
+// Helper: Call Claude API with raw fetch streaming + AbortController timeout
 async function callClaudeStreaming(apiKey, systemPrompt, userContent) {
   console.log("[generate-session] Starting API call...");
 
-  const res = await fetch(ANTHROPIC_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      stream: true,
-      system: systemPrompt,
-      messages: [
-        { role: "user", content: userContent + "\n\nRespond with ONLY valid JSON. Start with { and end with }. No markdown, no backticks, no explanation." }
-      ],
-    }),
-  });
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.log("[generate-session] Aborting due to timeout");
+    controller.abort();
+  }, API_TIMEOUT_MS);
 
-  console.log("[generate-session] API response status:", res.status);
+  try {
+    const res = await fetch(ANTHROPIC_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: MAX_TOKENS,
+        stream: true,
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: userContent + "\n\nRespond with ONLY valid JSON. Start with { and end with }. No markdown, no backticks, no explanation." }
+        ],
+      }),
+      signal: controller.signal, // Add abort signal
+    });
 
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    console.error("[generate-session] API error:", res.status, errorText);
-    throw new Error(`Anthropic API error: ${res.status} ${errorText}`);
-  }
+    console.log("[generate-session] API response status:", res.status);
 
-  // Process streaming response
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let fullText = "";
-  let stopReason = null;
-  let chunkCount = 0;
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => "Unknown error");
+      console.error("[generate-session] API error:", res.status, errorText);
+      throw new Error(`Anthropic API error: ${res.status} ${errorText}`);
+    }
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+    // Process streaming response
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+    let stopReason = null;
+    let chunkCount = 0;
 
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split("\n");
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6);
-        if (data === "[DONE]") continue;
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
 
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.type === "content_block_delta" && parsed.delta?.text) {
-            fullText += parsed.delta.text;
-            chunkCount++;
-          } else if (parsed.type === "message_delta" && parsed.delta?.stop_reason) {
-            stopReason = parsed.delta.stop_reason;
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+              fullText += parsed.delta.text;
+              chunkCount++;
+            } else if (parsed.type === "message_delta" && parsed.delta?.stop_reason) {
+              stopReason = parsed.delta.stop_reason;
+            }
+          } catch (e) {
+            // Skip non-JSON lines
           }
-        } catch (e) {
-          // Skip non-JSON lines
         }
       }
     }
-  }
 
-  console.log(`[generate-session] Stream complete: ${chunkCount} chunks, ${fullText.length} chars`);
-  return { fullText, stopReason };
+    clearTimeout(timeoutId);
+    console.log(`[generate-session] Stream complete: ${chunkCount} chunks, ${fullText.length} chars`);
+    return { fullText, stopReason };
+
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`API call timed out after ${API_TIMEOUT_MS / 1000}s`);
+    }
+    throw error;
+  }
 }
 
 // Helper: Extract error position from JSON parse error
