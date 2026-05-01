@@ -104,6 +104,22 @@ End with two short paragraphs:
 **Files Changed:**
 - `app/components/RecruiterCandidateIntake.jsx` — changed condition from `if (userMsg === "/skip") { if (!isDemoModeEnabled()) ... }` to `if (isDemoModeEnabled() && userMsg === "/skip")`
 
+### Build 2026.05.01-g
+
+**Fixed:** R→C validation was comparing Lens output against conversation summaries, not the actual resume.
+
+**Root cause:** `buildRCSourceMaterial()` only used `sectionData` (discovery summaries) and `sessionConfig.metadata` (role title/company). It ignored `candidateContext.resumeText` and `candidateContext.supportingDocsText` — the actual source documents that validation needs to detect hallucinations like "9 years vs 13 years" tenure errors.
+
+**Evidence:** The 4/23 R→C parity session claimed "full validation parity" but validation couldn't catch factual errors because it had no ground truth to compare against.
+
+**Fix:** Updated `buildRCSourceMaterial()` to accept `candidateContext` and include:
+1. `[RESUME]` section with actual resume text (primary source)
+2. `[SUPPORTING DOCUMENTS]` section with LinkedIn/portfolio/notes (secondary)
+3. Section summaries as conversation context (tertiary)
+
+**Files Changed:**
+- `app/api/rc-synthesize/route.js` — `buildRCSourceMaterial()` now includes resume and supporting docs; call site updated to pass `candidateContext`
+
 ---
 
 ## [2026-04-30] Thesis-Hero Investor Pitch Deck

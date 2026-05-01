@@ -74,9 +74,9 @@ function sanitizeLensOutput(text) {
   return { sanitized, violations };
 }
 
-// Build source material for validation from R→C conversation data
-// (R→C doesn't have rawDocumentText; we use sectionData summaries instead)
-function buildRCSourceMaterial(sectionData, sessionConfig) {
+// Build source material for validation from R→C data
+// Priority: candidateContext.resumeText (actual resume) > sectionData (conversation summaries)
+function buildRCSourceMaterial(sectionData, sessionConfig, candidateContext) {
   const parts = [];
 
   // Include role context
@@ -85,7 +85,17 @@ function buildRCSourceMaterial(sectionData, sessionConfig) {
     parts.push(`Role Context: ${meta.roleTitle || "Unknown"} at ${meta.company || "Unknown"}`);
   }
 
-  // Include all section summaries as source material
+  // PRIMARY: Include actual resume text if available (this is what validation needs!)
+  if (candidateContext?.resumeText && candidateContext.resumeText.trim().length > 100) {
+    parts.push(`[RESUME]\n${candidateContext.resumeText}`);
+  }
+
+  // Include supporting docs if available
+  if (candidateContext?.supportingDocsText && candidateContext.supportingDocsText.trim().length > 50) {
+    parts.push(`[SUPPORTING DOCUMENTS]\n${candidateContext.supportingDocsText}`);
+  }
+
+  // SECONDARY: Include section summaries as conversation context
   for (const [sectionId, data] of Object.entries(sectionData || {})) {
     const content = typeof data === "string" ? data : (data?.summary || "");
     if (content.trim()) {
@@ -275,8 +285,8 @@ export async function POST(request) {
       console.log(`[RC-Synthesize] Skipping validation - only ${Math.round(remainingBudget / 1000)}s remaining (need ${MIN_VALIDATION_BUDGET_MS / 1000}s)`);
     }
 
-    // Build source material from sectionData for validation
-    const rcSourceMaterial = buildRCSourceMaterial(sectionData, sessionConfig);
+    // Build source material for validation (includes resume + supporting docs if available)
+    const rcSourceMaterial = buildRCSourceMaterial(sectionData, sessionConfig, candidateContext);
     const validationContent = hasTimeBudget && rcSourceMaterial.length > 100
       ? buildValidationUserContent({
           rawDocumentText: rcSourceMaterial,
