@@ -11,11 +11,11 @@ import {
   buildSessionGenerationContent,
 } from "../_prompts/generate-session";
 
-const MODEL = "claude-sonnet-4-6";  // Sonnet for reliable complex JSON
-const MAX_TOKENS = 8000; // Reduced from 16000 to avoid timeout
+const MODEL = "claude-haiku-4-5-20251001";  // Haiku for fast structured JSON generation
+const MAX_TOKENS = 16000; // Haiku is fast enough for larger output
 // Note: temperature param removed — deprecated in Claude 4.5+ models
 const MAX_RETRIES = 1; // Single attempt, fail fast
-const API_TIMEOUT_MS = 100000; // 100s timeout (leaving buffer for maxDuration=120s)
+const STREAM_TIMEOUT_MS = 120000; // 2 min total (matches rc-synthesize)
 
 // Helper: Try to find a valid JSON substring by progressively truncating
 function findLastValidJson(text) {
@@ -43,18 +43,14 @@ function findLastValidJson(text) {
   return null;
 }
 
-// Helper: Call Claude API using SDK streaming (matches rc-synthesize pattern)
+// Helper: Call Claude API using SDK streaming (matches rc-synthesize pattern exactly)
 async function callClaudeStreaming(anthropic, systemPrompt, userContent) {
   const streamStart = Date.now();
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    console.log("[generate-session] Aborting due to timeout");
-    controller.abort();
-  }, API_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
 
   let fullText = "";
   let chunkCount = 0;
-  let stopReason = null;
 
   // Log input size for debugging
   const totalInputChars = systemPrompt.length + userContent.length;
@@ -84,8 +80,18 @@ async function callClaudeStreaming(anthropic, systemPrompt, userContent) {
     const streamDuration = Date.now() - streamStart;
     console.log(`[generate-session] Stream complete: ${chunkCount} chunks, ${fullText.length} chars, ${Math.round(streamDuration / 1000)}s`);
 
-    // Note: Don't call stream.finalMessage() - it can cause issues after stream is consumed
-    return { fullText, stopReason: "end_turn" };
+    if (!fullText) {
+      throw new Error("Empty response from AI");
+    }
+
+    // Check final message for stop reason (matches rc-synthesize pattern)
+    const finalMessage = await stream.finalMessage();
+    const stopReason = finalMessage.stop_reason;
+    if (stopReason === "max_tokens") {
+      console.warn("[generate-session] Response was truncated due to max_tokens limit");
+    }
+
+    return { fullText, stopReason };
 
   } catch (error) {
     clearTimeout(timeoutId);
@@ -93,10 +99,10 @@ async function callClaudeStreaming(anthropic, systemPrompt, userContent) {
 
     if (error.name === "AbortError") {
       console.error(`[generate-session] Stream timed out after ${elapsed}s`);
-      throw new Error(`API call timed out after ${API_TIMEOUT_MS / 1000}s`);
+      throw new Error(`API call timed out after ${STREAM_TIMEOUT_MS / 1000}s`);
     }
 
-    console.error(`[generate-session] Stream failed after ${elapsed}s: ${error.message}`);
+    console.error(`[generate-session] Stream failed after ${elapsed}s, ${chunkCount} chunks: ${error.message}`);
     throw error;
   }
 }
