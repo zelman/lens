@@ -44,6 +44,24 @@ All notable changes to deployed apps and schemas are documented here.
 - `app/components/LensIntake.jsx` — reads `tester` URL param, passes to telemetry
 - `app/api/log-session/route.js` — `matchTesterByName()` helper with injection protection, fallback logic
 
+### Build 2026.05.01-c
+
+**Fixed:** Synthesis prompt template-leak — "carries forward / done with" scaffolding.
+
+**Evidence:** Cross-tester pattern audit found verbatim "What [X] carries forward:" / "What [X] is done with:" phrasing in 4/4 lens documents across 3 testers and 2 build versions. Two runs on identical session data produced the same scaffold with different content, confirming the model generates this structure from the prompt, not from user input.
+
+**Root cause:** Lines 74-80 of synthesis.js explicitly instructed:
+```
+End with two short paragraphs:
+- "What [they] carry forward:" — ...
+- "What [they're] done with:" — ...
+```
+
+**Fix:** Removed prescribed phrase structure. Now instructs model to "distinguish transferable capabilities from what they've outgrown" using "the person's own language if they articulated this distinction; otherwise, synthesize from the evidence without imposing a fixed phrase structure."
+
+**Files Changed:**
+- `app/api/_prompts/synthesis.js` — removed 3 instances of template scaffolding language
+
 ---
 
 ## [2026-04-30] Thesis-Hero Investor Pitch Deck

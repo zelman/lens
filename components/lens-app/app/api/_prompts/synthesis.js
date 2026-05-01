@@ -71,13 +71,11 @@ Third paragraph (optional) covers operating style — how they think, how they d
 
 ## Skills & Experience
 
-The career arc as a story, not a resume. 2-3 paragraphs plus a carry-forward / done-with closing.
+The career arc as a story, not a resume. 2-3 paragraphs.
 
 Tell the career as a narrative with a throughline: where they started, what shaped them, where the pattern crystallized. Name specific companies, roles, and numbers — but embed them in sentences, not bullet points. "Over thirteen years, he built the customer support organization from a team of one to twenty-five" not "• Built team from 1 to 25 over 13 years."
 
-End with two short paragraphs:
-- "What [they] carry forward:" — a flowing sentence listing 3-5 capabilities, not a bulleted list.
-- "What [they're] done with:" — what they've outgrown. Be specific and honest. This is the section that makes the document feel real, not aspirational.
+Close this section by distinguishing transferable capabilities from what they've outgrown. Be specific about both — concrete skills they're bringing forward, and concrete patterns they're leaving behind. This is the section that makes the document feel real, not aspirational. Use the person's own language if they articulated this distinction; otherwise, synthesize from the evidence without imposing a fixed phrase structure.
 
 ## Values
 
@@ -119,7 +117,7 @@ Include compensation expectations, title expectations, and any strong interview-
 
 1. **Third person throughout.** "Eric builds..." not "I build..." The document reads as a professional portrait written by someone who knows the person well.
 
-2. **Narrative prose, never bullet points.** Every section is flowing paragraphs. If you catch yourself reaching for a dash or bullet, rewrite as a sentence. The only exception: if the person's values or skills are genuinely best expressed as a short structured list, embed it in a sentence: "What he carries forward: building organizations from scratch, compliance frameworks, and cross-functional leadership."
+2. **Narrative prose, never bullet points.** Every section is flowing paragraphs. If you catch yourself reaching for a dash or bullet, rewrite as a sentence. The only exception: if the person's values or skills are genuinely best expressed as a short structured list, embed it in a sentence: "He brings three capabilities to every new role: building organizations from scratch, compliance frameworks, and cross-functional leadership."
 
 3. **Specific over generic.** Use the person's actual language, actual numbers, actual company names. "93%+ CSAT across 15,000 cases" not "high customer satisfaction." "Healthcare operations and compliance-heavy environments" not "mission-driven companies."
 
@@ -182,7 +180,7 @@ The user may have uploaded documents during intake: resume, LinkedIn profile, wr
 
 **Essence:** The first sentence must establish professional identity with enough specificity that a recruiter knows what level and function this person operates at. If they manage $40M ARR and 24 CSMs, that's not a detail — it's the frame. The behavioral/operating style description follows and gives depth to the professional identity. Without the professional identity anchor, the essence reads as a personality description that could apply to anyone.
 
-**Skills & Experience:** This section has the highest document-dependency. The career arc narrative should reference specific companies and roles to establish credibility. Metrics (ARR, NRR, team size, client names) should be woven in where they demonstrate capability at scale. The carry-forward / leave-behind framing should reference actual skills from the resume, not generic categories. If the person has an unusual background combination (e.g., engineering + CS leadership), name it explicitly — it's a differentiator.
+**Skills & Experience:** This section has the highest document-dependency. The career arc narrative should reference specific companies and roles to establish credibility. Metrics (ARR, NRR, team size, client names) should be woven in where they demonstrate capability at scale. When distinguishing transferable capabilities from outgrown patterns, reference actual skills from the resume, not generic categories. If the person has an unusual background combination (e.g., engineering + CS leadership), name it explicitly — it's a differentiator.
 
 **Mission & Direction:** If the person's resume shows sector consistency (e.g., all B2B SaaS, or all healthcare), reference that pattern. If their resume shows sector diversity, note whether the next chapter continues the pattern or breaks it. This grounds mission statements in career evidence rather than pure aspiration.
 
