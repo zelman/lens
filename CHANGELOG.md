@@ -24,6 +24,26 @@ All notable changes to deployed apps and schemas are documented here.
 **Files Changed:**
 - `app/components/LensIntake.jsx` — fullTranscript state, useEffect for message accumulation, updated logTelemetry
 
+### Build 2026.05.01-b
+
+**Added:** Tester field auto-linking on Lens Sessions.
+
+**Implementation:**
+1. URL param (primary): `?tester=recXXX` in page URL captures tester record ID
+2. Name-match fallback: If no param, server queries Testers table by `LOWER({First Name})` + `LOWER({Last Name})`
+3. Links tester if exactly one match; leaves unlinked (with warning log) if zero or multiple matches
+4. Never auto-creates Tester records
+
+**Usage:** Generate per-tester invite links: `https://lens-app-five.vercel.app/?tester=recRI2CYx3jcCYwsX`
+
+**Security (per Opus review):**
+- Strict name validation regex to prevent Airtable formula injection
+- Tester record ID format validation (`rec` + 14 alphanumeric)
+
+**Files Changed:**
+- `app/components/LensIntake.jsx` — reads `tester` URL param, passes to telemetry
+- `app/api/log-session/route.js` — `matchTesterByName()` helper with injection protection, fallback logic
+
 ---
 
 ## [2026-04-30] Thesis-Hero Investor Pitch Deck

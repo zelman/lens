@@ -11,7 +11,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.05.01-a";
+const BUILD_ID = "2026.05.01-b";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -2973,9 +2973,24 @@ export default function LensIntake() {
     // Transcript persistence (added 2026-04-23)
     flow: "C→C", // Candidate-to-Candidate flow
     modelName: "claude-sonnet-4-6", // Model used for discover/synthesize
+    // Tester linking (added 2026-05-01)
+    tester: null, // Record ID from URL param (?tester=recXXX) or null for name-match fallback
     // Logged flag to prevent double-logging
     _logged: false,
   });
+
+  // ── Read tester URL param on mount (for tester linking) ──
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const testerParam = params.get("tester");
+      // Validate: must be Airtable record ID format (rec + 14 alphanumeric chars)
+      if (testerParam && /^rec[A-Za-z0-9]{14}$/.test(testerParam)) {
+        telemetryRef.current.tester = testerParam;
+        console.log("[telemetry] Tester param captured:", testerParam);
+      }
+    }
+  }, []);
 
   // Track phase transitions
   const prevPhaseRef = useRef(null);
@@ -3102,6 +3117,11 @@ export default function LensIntake() {
       finalSynthesisMD: currentLensOutput || null,
       flow: t.flow,
       modelName: t.modelName,
+      // Tester linking (added 2026-05-01)
+      // If tester param present, pass it; otherwise server will attempt name-match
+      tester: t.tester || null,
+      // Pass name for server-side name-match fallback
+      nameForTesterMatch: currentUserName || null,
     };
 
     // Use sendBeacon for reliability (works on page unload)

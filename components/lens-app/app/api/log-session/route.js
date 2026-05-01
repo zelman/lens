@@ -4,6 +4,7 @@
 const AIRTABLE_API_URL = "https://api.airtable.com/v0";
 const BASE_ID = "appFO5zLT7ZehXaBo";
 const TABLE_ID = "tblNJ7gBSIlAEhstI";
+const TESTERS_TABLE_ID = "tbl2PmUHEnwytU3Q8";
 
 // Airtable long text fields have 100K char limit
 const MAX_LONG_TEXT = 100000;
@@ -12,6 +13,69 @@ function truncateField(value, limit = MAX_LONG_TEXT) {
   if (typeof value !== "string") return value;
   if (value.length <= limit) return value;
   return value.slice(0, limit - 50) + "\n\n[TRUNCATED - exceeded " + limit + " chars]";
+}
+
+// Helper: Match tester by name (fallback when no tester URL param provided)
+// Returns tester record ID if exactly one match, null otherwise
+async function matchTesterByName(apiKey, fullName) {
+  if (!fullName || typeof fullName !== "string") return null;
+
+  // Split name on first whitespace
+  const trimmed = fullName.trim();
+  const spaceIdx = trimmed.indexOf(" ");
+  if (spaceIdx === -1) {
+    console.log("[log-session] Name has no space, cannot split for tester match:", trimmed);
+    return null;
+  }
+
+  const firstName = trimmed.slice(0, spaceIdx).trim();
+  const lastName = trimmed.slice(spaceIdx + 1).trim();
+
+  if (!firstName || !lastName) {
+    console.log("[log-session] Empty firstName or lastName after split");
+    return null;
+  }
+
+  // SECURITY: Strict validation to prevent Airtable formula injection
+  // Only allow letters (including accented), hyphens, apostrophes, and spaces
+  const namePattern = /^[a-zA-Z\u00C0-\u024F' -]+$/;
+  if (!namePattern.test(firstName) || !namePattern.test(lastName)) {
+    console.warn("[log-session] Name contains invalid characters, skipping tester match:", firstName, lastName);
+    return null;
+  }
+
+  // Query Testers table with case-insensitive match
+  // Airtable field IDs: First Name = fldyZYcRkWjhG5fFQ, Last Name = fldNubdq1YaOuVb7j
+  const formula = `AND(LOWER({First Name})=LOWER("${firstName}"),LOWER({Last Name})=LOWER("${lastName}"))`;
+  const url = `${AIRTABLE_API_URL}/${BASE_ID}/${TESTERS_TABLE_ID}?filterByFormula=${encodeURIComponent(formula)}&maxRecords=2`;
+
+  try {
+    const res = await fetch(url, {
+      headers: { "Authorization": `Bearer ${apiKey}` },
+    });
+
+    if (!res.ok) {
+      console.warn("[log-session] Tester lookup failed:", res.status);
+      return null;
+    }
+
+    const data = await res.json();
+    const records = data.records || [];
+
+    if (records.length === 1) {
+      console.log("[log-session] Tester matched by name:", records[0].id, firstName, lastName);
+      return records[0].id;
+    } else if (records.length === 0) {
+      console.log("[log-session] No tester match for:", firstName, lastName);
+    } else {
+      console.warn("[log-session] Multiple tester matches for:", firstName, lastName, "- leaving unlinked");
+    }
+
+    return null;
+  } catch (err) {
+    console.warn("[log-session] Tester lookup error:", err.message);
+    return null;
+  }
 }
 
 // Field ID mapping for Lens Sessions table
@@ -142,7 +206,28 @@ export async function POST(request) {
       ? body.sessionConfig
       : JSON.stringify(body.sessionConfig);
     // Tester: linked record ID(s) to Testers table
-    if (body.tester) fields[FIELDS.tester] = Array.isArray(body.tester) ? body.tester : [body.tester];
+    // Priority: 1) explicit tester param (validated), 2) name-match fallback
+    const AIRTABLE_RECORD_ID_REGEX = /^rec[a-zA-Z0-9]{14}$/;
+    let testerRecordId = body.tester;
+
+    // Validate tester record ID format if provided
+    if (testerRecordId) {
+      if (Array.isArray(testerRecordId)) {
+        testerRecordId = testerRecordId.filter(id => AIRTABLE_RECORD_ID_REGEX.test(id));
+        if (testerRecordId.length === 0) testerRecordId = null;
+      } else if (!AIRTABLE_RECORD_ID_REGEX.test(testerRecordId)) {
+        console.warn("[log-session] Invalid tester record ID format:", testerRecordId);
+        testerRecordId = null;
+      }
+    }
+
+    // Fallback to name-match if no valid tester param
+    if (!testerRecordId && body.nameForTesterMatch) {
+      testerRecordId = await matchTesterByName(apiKey, body.nameForTesterMatch);
+    }
+    if (testerRecordId) {
+      fields[FIELDS.tester] = Array.isArray(testerRecordId) ? testerRecordId : [testerRecordId];
+    }
     // Model Name: which Claude model was used
     if (body.modelName) fields[FIELDS.modelName] = body.modelName;
     // Audience Mode: discovery audience configuration
