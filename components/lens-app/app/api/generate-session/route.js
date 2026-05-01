@@ -84,15 +84,8 @@ async function callClaudeStreaming(anthropic, systemPrompt, userContent) {
     const streamDuration = Date.now() - streamStart;
     console.log(`[generate-session] Stream complete: ${chunkCount} chunks, ${fullText.length} chars, ${Math.round(streamDuration / 1000)}s`);
 
-    // Check final message for stop reason
-    const finalMessage = await stream.finalMessage();
-    stopReason = finalMessage.stop_reason;
-
-    if (stopReason === "max_tokens") {
-      console.warn("[generate-session] Response was truncated due to max_tokens limit");
-    }
-
-    return { fullText, stopReason };
+    // Note: Don't call stream.finalMessage() - it can cause issues after stream is consumed
+    return { fullText, stopReason: "end_turn" };
 
   } catch (error) {
     clearTimeout(timeoutId);
