@@ -15,7 +15,7 @@ const MODEL = "claude-sonnet-4-6";  // Sonnet for reliable complex JSON
 const MAX_TOKENS = 8000; // Reduced from 16000 to avoid timeout
 // Note: temperature param removed — deprecated in Claude 4.5+ models
 const MAX_RETRIES = 1; // Single attempt, fail fast
-const API_TIMEOUT_MS = 60000; // 60s timeout per API call
+const API_TIMEOUT_MS = 90000; // 90s timeout per API call (maxDuration is 120s)
 
 // Helper: Try to find a valid JSON substring by progressively truncating
 function findLastValidJson(text) {
