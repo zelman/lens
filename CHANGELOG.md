@@ -62,6 +62,21 @@ End with two short paragraphs:
 **Files Changed:**
 - `app/api/_prompts/synthesis.js` — removed 3 instances of template scaffolding language
 
+### Build 2026.05.01-d
+
+**Fixed:** Premium metadata parser regex can't handle nested JSON braces.
+
+**Root cause (per Opus code review):** The `parsePremiumSynthesisResponse` function used regex patterns like `/\{[\s\S]*?"soft_gates"[\s\S]*?\}/g` to strip JSON from markdown. These patterns match the FIRST closing brace after the marker, not the correct matching brace for nested objects. For objects with nested structures (like `soft_gates`), this left partial JSON fragments in the output.
+
+**Fix:**
+- Added `stripJsonObject()` helper with brace counting to correctly handle nested JSON when stripping from markdown
+- Added `extractJsonObject()` helper with brace counting to correctly extract JSON from metadata sections
+- Removed redundant inline brace-counting code that duplicated the new helpers
+- Both helpers traverse character-by-character, incrementing/decrementing brace count to find the matching closer
+
+**Files Changed:**
+- `app/api/_prompts/synthesis.js` — added brace-counting helpers, replaced regex-based JSON handling
+
 ---
 
 ## [2026-04-30] Thesis-Hero Investor Pitch Deck

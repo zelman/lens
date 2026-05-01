@@ -494,6 +494,56 @@ Now write the complete Lens document following the structure in your instruction
 - IMPORTANT: Integrate document evidence (metrics, companies, career arc) into the narrative per the DOCUMENT CONTEXT INTEGRATION rules${premiumInstruction}`;
 }
 
+// Helper: Strip a JSON object from text using brace counting (handles nested braces correctly)
+// Returns the text with the JSON object removed, or original text if no valid JSON found
+function stripJsonObject(text, marker) {
+  const markerIdx = text.indexOf(marker);
+  if (markerIdx === -1) return text;
+
+  // Find the opening brace before the marker
+  const searchBack = text.lastIndexOf('{', markerIdx);
+  if (searchBack === -1) return text;
+
+  // Count braces to find the matching closing brace
+  let braceCount = 0;
+  for (let i = searchBack; i < text.length; i++) {
+    if (text[i] === '{') braceCount++;
+    if (text[i] === '}') braceCount--;
+    if (braceCount === 0) {
+      // Also strip surrounding ```json...``` if present
+      let start = searchBack;
+      let end = i + 1;
+      const beforeStart = text.slice(Math.max(0, start - 10), start);
+      if (beforeStart.match(/```json\s*$/)) {
+        start = start - beforeStart.match(/```json\s*$/)[0].length;
+      }
+      const afterEnd = text.slice(end, Math.min(text.length, end + 5));
+      if (afterEnd.match(/^\s*```/)) {
+        end = end + afterEnd.match(/^\s*```/)[0].length;
+      }
+      return (text.slice(0, start) + text.slice(end)).trim();
+    }
+  }
+  return text;
+}
+
+// Helper: Extract JSON object from text using brace counting (handles nested braces correctly)
+// Returns the JSON string or null if not found
+function extractJsonObject(text) {
+  const jsonStart = text.indexOf('{');
+  if (jsonStart === -1) return null;
+
+  let braceCount = 0;
+  for (let i = jsonStart; i < text.length; i++) {
+    if (text[i] === '{') braceCount++;
+    if (text[i] === '}') braceCount--;
+    if (braceCount === 0) {
+      return text.slice(jsonStart, i + 1);
+    }
+  }
+  return null;
+}
+
 // Parse premium synthesis response into markdown and metadata
 // Returns { markdown: string, metadata: object | null, parseError: string | null }
 export function parsePremiumSynthesisResponse(response) {
@@ -504,10 +554,10 @@ export function parsePremiumSynthesisResponse(response) {
 
   if (separatorIndex === -1) {
     // No premium metadata - but still clean any stray metadata patterns
+    // Use brace counting to correctly handle nested JSON objects
     let cleanMarkdown = response.trim();
-    // Strip any JSON blocks that look like metadata
-    cleanMarkdown = cleanMarkdown.replace(/```json\s*\{[\s\S]*?"soft_gates"[\s\S]*?\}[\s\S]*?```/g, '');
-    cleanMarkdown = cleanMarkdown.replace(/\{[\s\S]*?"essence_statement"[\s\S]*?"soft_gates"[\s\S]*?\}/g, '');
+    cleanMarkdown = stripJsonObject(cleanMarkdown, '"soft_gates"');
+    cleanMarkdown = stripJsonObject(cleanMarkdown, '"essence_statement"');
     return {
       markdown: cleanMarkdown.trim(),
       metadata: null,
@@ -519,37 +569,17 @@ export function parsePremiumSynthesisResponse(response) {
   let markdown = response.slice(0, separatorIndex).trim();
   const metadataSection = response.slice(separatorIndex + SEPARATOR.length).trim();
 
-  // Also strip the separator line and anything after it from markdown (in case of partial match)
-  // Handle variations: with/without backticks, with/without newlines
-  markdown = markdown.replace(/---PREMIUM_METADATA---[\s\S]*/g, '');
-  markdown = markdown.replace(/```json\s*\{[\s\S]*?"soft_gates"[\s\S]*$/g, '');
+  // Strip any trailing JSON fragments from markdown (handles partial/malformed output)
+  markdown = stripJsonObject(markdown, '"soft_gates"');
 
   // Extract JSON from fenced code block - try multiple patterns
   let jsonMatch = metadataSection.match(/```json\s*([\s\S]*?)\s*```/);
 
-  // If no clean fence, try to extract JSON object directly
+  // If no clean fence, extract JSON object using brace counting
   if (!jsonMatch) {
-    jsonMatch = metadataSection.match(/(\{[\s\S]*"soft_gates"[\s\S]*\})/);
-  }
-
-  // Try to find JSON starting with { and containing expected fields
-  if (!jsonMatch) {
-    const jsonStart = metadataSection.indexOf('{');
-    if (jsonStart !== -1) {
-      // Find matching closing brace
-      let braceCount = 0;
-      let jsonEnd = -1;
-      for (let i = jsonStart; i < metadataSection.length; i++) {
-        if (metadataSection[i] === '{') braceCount++;
-        if (metadataSection[i] === '}') braceCount--;
-        if (braceCount === 0) {
-          jsonEnd = i + 1;
-          break;
-        }
-      }
-      if (jsonEnd > jsonStart) {
-        jsonMatch = [null, metadataSection.slice(jsonStart, jsonEnd)];
-      }
+    const extracted = extractJsonObject(metadataSection);
+    if (extracted && extracted.includes('"soft_gates"')) {
+      jsonMatch = [null, extracted];
     }
   }
 
