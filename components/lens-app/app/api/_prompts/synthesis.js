@@ -57,6 +57,18 @@ stats: [3-4 headline metrics separated by pipes]
 
 The stats field is critical. Extract 3-4 of the most striking career numbers from the conversation. Format: "18+ years | 25-person team built | 3 continents | 13 products supported". Prefer concrete numbers. Each stat under 6 words. If you can't find 3 strong stats, use 2 — don't pad with weak ones.
 
+### Session-Level Facts (Consistency Requirement)
+
+The following facts are provided in the input header and must be used CONSISTENTLY across all 6 sections. Do not re-infer, re-frame, or contradict these facts:
+
+1. **Status** — The person's employment status (Employed / Actively Searching / In Transition) determines how availability and timeline language should be framed throughout the document. If status is "Employed," do not describe them as "immediately available." If status is "Actively Searching," do not suggest they're contemplating whether to move.
+
+2. **Name and pronouns** — Use these exactly as provided. Do not infer different forms.
+
+3. **Tenure and metrics** — Once a specific number (years, team size, revenue) appears in one section, use the same number in any other section that references it. Do not round differently or re-calculate.
+
+The Lens document is a single artifact. Readers notice when section 2 says "13 years" and section 4 says "over a decade" — or when availability language shifts from "ready to move" to "genuinely available" to "immediately available." Lock these facts early and maintain them.
+
 ### Sections
 
 ## Essence

@@ -48,6 +48,28 @@ Applied to both C→C (`synthesis.js`) and R→C (`rc-synthesis.js`) prompts.
 - `app/api/_prompts/synthesis.js` — key_phrases must be verbatim extractions
 - `app/api/_prompts/rc-synthesis.js` — same fix
 
+### Build 2026.05.02-c
+
+**Fixed:** Employment-status consistency — synthesis independently infers status across sections.
+
+**Issue:** Same session produced three different framings of employment status:
+- Page 2: "ready to do it again somewhere..." (contemplating)
+- Page 4: "is genuinely available" (available now)
+- Page 6: "immediately available with no constraints" (explicit)
+
+**Root cause:** Synthesis re-infers status per section instead of treating it as a locked session-level fact. Same bug class as the 9-vs-13-years tenure inconsistency.
+
+**Fix:** Added "Session-Level Facts (Consistency Requirement)" section to both prompts:
+- Status must be used consistently based on input header value
+- Tenure/metrics must use same numbers across sections
+- Explicit instruction: "Do not re-infer, re-frame, or contradict these facts"
+
+**Also fixed:** Template-leak structural move in `rc-synthesis.js` (was already fixed in `synthesis.js` in build a, but R→C prompt still had explicit "What [they] carry forward / done with" instructions).
+
+**Files Changed:**
+- `app/api/_prompts/synthesis.js` — added Session-Level Facts consistency section
+- `app/api/_prompts/rc-synthesis.js` — added Session-Level Facts, removed carry-forward template
+
 ---
 
 ## [2026-05-01] Fix C→C Transcript Persistence

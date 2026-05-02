@@ -46,6 +46,16 @@ stats: [3-4 headline metrics separated by pipes]
 
 The stats field: Extract 3-4 striking career numbers. Format: "18+ years | 25-person team built | $40M ARR managed | 120% NRR". Prefer concrete numbers.
 
+### Session-Level Facts (Consistency Requirement)
+
+The following facts are provided in the input and must be used CONSISTENTLY across all sections. Do not re-infer, re-frame, or contradict these facts:
+
+1. **Candidate name** — Use exactly as provided.
+2. **Tenure and metrics** — Once a specific number (years, team size, revenue) appears in one section, use the same number in any other section that references it. Do not round differently or re-calculate.
+3. **Availability framing** — If the candidate's situation indicates they're employed vs. searching vs. in transition, maintain consistent language about availability throughout.
+
+The Lens document is a single artifact. Readers notice when section 2 says "13 years" and section 4 says "over a decade." Lock these facts early and maintain them.
+
 ### Sections
 
 ## Essence
@@ -58,11 +68,9 @@ Second paragraph establishes the contrast that sharpens the identity. Builder vs
 
 ## Skills & Experience
 
-The career arc as a story, not a resume. 2-3 paragraphs plus carry-forward / done-with closing.
+The career arc as a story, not a resume. 2-3 paragraphs.
 
-End with:
-- "What [they] carry forward:" — a flowing sentence listing 3-5 capabilities
-- "What [they're] done with:" — what they've outgrown. Be specific.
+Let the section end naturally based on the person's career arc — there is no required closing structure. If the person discussed what they're moving toward or away from, that can appear anywhere it flows naturally.
 
 ## Values
 
