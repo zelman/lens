@@ -75,7 +75,7 @@ The career arc as a story, not a resume. 2-3 paragraphs.
 
 Tell the career as a narrative with a throughline: where they started, what shaped them, where the pattern crystallized. Name specific companies, roles, and numbers — but embed them in sentences, not bullet points. "Over thirteen years, he built the customer support organization from a team of one to twenty-five" not "• Built team from 1 to 25 over 13 years."
 
-Close this section by distinguishing transferable capabilities from what they've outgrown. Be specific about both — concrete skills they're bringing forward, and concrete patterns they're leaving behind. This is the section that makes the document feel real, not aspirational. Use the person's own language if they articulated this distinction; otherwise, synthesize from the evidence without imposing a fixed phrase structure.
+Let the section end naturally based on the person's career arc — there is no required closing structure. If the person discussed what they're moving toward or away from, that can appear anywhere it flows naturally, not as a formulaic ending.
 
 ## Values
 
@@ -154,7 +154,7 @@ The user may have uploaded documents during intake: resume, LinkedIn profile, wr
    This section should name specific companies, specific scale, specific achievements. The narrative voice should weave these naturally, not list them:
 
    WEAK: "His strength lies in creating order from chaos — running daily escalation cadences when stakes are high."
-   STRONG: "His career arc moves from technical architecture (solutions engineering at InsideSales, CMS implementations at Percussion Software for clients like Cedars Sinai and the Red Cross) to customer success leadership at Bigtincan, where he oversaw a $40M ARR book achieving 120% NRR. What he carries from the technical side is rare: he can sit in a room with engineering, understand the architecture, and translate it into customer value — most CS leaders can't."
+   STRONG: "His career arc moves from technical architecture (solutions engineering at InsideSales, CMS implementations at Percussion Software for clients like Cedars Sinai and the Red Cross) to customer success leadership at Bigtincan, where he oversaw a $40M ARR book achieving 120% NRR. His engineering background gives him a rare capability: he can sit in a room with engineering, understand the architecture, and translate it into customer value — most CS leaders can't."
 
 3. **Metrics belong in the narrative, not in a separate data section.**
    Don't create a "Key Metrics" subsection. Weave numbers into the prose where they demonstrate scale, impact, or differentiation:
@@ -180,7 +180,7 @@ The user may have uploaded documents during intake: resume, LinkedIn profile, wr
 
 **Essence:** The first sentence must establish professional identity with enough specificity that a recruiter knows what level and function this person operates at. If they manage $40M ARR and 24 CSMs, that's not a detail — it's the frame. The behavioral/operating style description follows and gives depth to the professional identity. Without the professional identity anchor, the essence reads as a personality description that could apply to anyone.
 
-**Skills & Experience:** This section has the highest document-dependency. The career arc narrative should reference specific companies and roles to establish credibility. Metrics (ARR, NRR, team size, client names) should be woven in where they demonstrate capability at scale. When distinguishing transferable capabilities from outgrown patterns, reference actual skills from the resume, not generic categories. If the person has an unusual background combination (e.g., engineering + CS leadership), name it explicitly — it's a differentiator.
+**Skills & Experience:** This section has the highest document-dependency. The career arc narrative should reference specific companies and roles to establish credibility. Metrics (ARR, NRR, team size, client names) should be woven in where they demonstrate capability at scale. If the person has an unusual background combination (e.g., engineering + CS leadership), name it explicitly — it's a differentiator.
 
 **Mission & Direction:** If the person's resume shows sector consistency (e.g., all B2B SaaS, or all healthcare), reference that pattern. If their resume shows sector diversity, note whether the next chapter continues the pattern or breaks it. This grounds mission statements in career evidence rather than pure aspiration.
 

@@ -2,6 +2,31 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
+## [2026-05-02] Template-Leak Structural Fix
+
+### Build 2026.05.02-a
+
+**Fixed:** Template-leak follow-up — structural move persists after build c phrase fix.
+
+**Background:** Build c (2026.05.01-c) removed the verbatim "What [name] carries forward / done with" scaffolding. But the structural pattern survived: every Lens document still ended the Skills & Experience section with a paired retain-vs-discard summary. Five docs across 3 testers, 3 build versions — the pattern appeared every time.
+
+**Root cause:** Build c targeted the lexical scaffolding (the exact phrases) but left the structural instruction intact. Three sources in `synthesis.js`:
+1. Lines 77-78: "Close this section by distinguishing transferable capabilities from what they've outgrown..." — explicit instruction to END with the pattern
+2. Lines 155-158: Example using "What he carries from the technical side..." — trained the model toward the phrase
+3. Line 183: "When distinguishing transferable capabilities from outgrown patterns..." — reinforced the structure
+
+**Fix:**
+1. Removed "Close this section by" instruction — replaced with "Let the section end naturally based on the person's career arc — there is no required closing structure"
+2. Rewrote the example to use "His engineering background gives him..." instead of "What he carries from..."
+3. Removed line 183's reference to "distinguishing transferable capabilities from outgrown patterns"
+
+**Verification required:** Run 2-3 fresh C→C sessions on this build. Check each for paired retain-vs-discard language at end of Skills section. If absent across all runs, the fix is complete.
+
+**Files Changed:**
+- `app/api/_prompts/synthesis.js` — removed structural instruction, updated example, removed reinforcing reference
+
+---
+
 ## [2026-05-01] Fix C→C Transcript Persistence
 
 ### Build 2026.05.01-a
