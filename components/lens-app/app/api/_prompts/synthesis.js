@@ -389,11 +389,12 @@ Each score corresponds to one of the 6 Lens sections and reflects how clearly th
 
 ### Key Phrases Guidelines:
 
-Extract 2-3 phrases that:
-- Capture the person's professional essence in memorable language
-- Could be used as pull quotes in a document header
-- Use their own words when vivid, or synthesize when clearer
-- Examples: "builds the bridge between product and people", "translates chaos into structure", "the calm in the room when others are reactive"
+Extract 2-3 phrases VERBATIM from the Lens document you just wrote:
+- Each phrase must appear word-for-word in one of the 6 narrative sections above
+- Select phrases that capture the person's professional essence in memorable language
+- These will be displayed as pull quotes with quotation marks — fabricated phrases undermine credibility
+- Search your output for vivid phrases, don't generate new ones
+- Examples: if the Essence section says "Eric builds the bridge between product and people," extract "builds the bridge between product and people"
 
 ### Suggested Targeting Guidelines:
 

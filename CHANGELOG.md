@@ -25,6 +25,29 @@ All notable changes to deployed apps and schemas are documented here.
 **Files Changed:**
 - `app/api/_prompts/synthesis.js` — removed structural instruction, updated example, removed reinforcing reference
 
+### Build 2026.05.02-b
+
+**Fixed:** Pull quote provenance — synthesized phrases attributed to user as quotes.
+
+**Issue:** Pull quotes on the Identity Portrait page (page 2) are rendered with quotation marks, implying they're extracted from the user's words or synthesis body. But the prompt instruction said "Use their own words when vivid, or synthesize when clearer" — explicitly allowing fabrication.
+
+**Evidence (build j):**
+- "builds the systems that outlast him" — NEVER appears in body text (fabricated)
+- "authority is a tool he reaches for..." — verbatim in body ✓
+- "preventive infrastructure, not reactive response" — partial match only
+
+**Fix:** Changed Key Phrases Guidelines to require verbatim extraction:
+- Old: "Use their own words when vivid, or synthesize when clearer"
+- New: "Extract 2-3 phrases VERBATIM from the Lens document you just wrote... Each phrase must appear word-for-word in one of the 6 narrative sections"
+
+Applied to both C→C (`synthesis.js`) and R→C (`rc-synthesis.js`) prompts.
+
+**Verification:** Post-fix, grep every pull quote against the synthesis body. 100% match required.
+
+**Files Changed:**
+- `app/api/_prompts/synthesis.js` — key_phrases must be verbatim extractions
+- `app/api/_prompts/rc-synthesis.js` — same fix
+
 ---
 
 ## [2026-05-01] Fix C→C Transcript Persistence
