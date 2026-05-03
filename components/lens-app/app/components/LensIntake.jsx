@@ -11,7 +11,7 @@ const STORAGE_VERSION = "1.0";
 const MAX_STORAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
 // ── Build info ──
-const BUILD_ID = "2026.05.02-c";
+const BUILD_ID = "2026.05.02-d";
 
 // ── Design tokens ──
 const RED = "#D93025";
@@ -1585,15 +1585,15 @@ SIGNALS:
 - 18+ years experience
 - Customer Success / Support leadership`,
 
-        "Skills & Experience": `NARRATIVE: I built Bigtincan's support org from 1 to 25 people across three continents over 13 years. Before that, I cut my teeth at Apple managing enterprise education accounts at Harvard and Tufts. I've led ISO 27001 and SOC-2 implementations, managed $2M budgets, and maintained 93%+ CSAT across 15,000+ annual cases.
+        "Skills & Experience": `NARRATIVE: I built Meridian's support org from 1 to 20 people across two continents over 10 years. Before that, I cut my teeth at Vista Systems managing enterprise accounts. I've led ISO 27001 and SOC-2 implementations, managed $1.5M budgets, and maintained 92%+ CSAT across 12,000+ annual cases.
 
 SIGNALS:
-- Team building: 1 → 25 people
-- Budget management: $2M
+- Team building: 1 → 20 people
+- Budget management: $1.5M
 - Compliance: ISO 27001, SOC-2
-- CSAT: 93%+
-- Case volume: 15,000+/year
-- Industries: EdTech, B2B SaaS`,
+- CSAT: 92%+
+- Case volume: 12,000+/year
+- Industries: Enterprise Software, B2B SaaS`,
 
         "Values": `NARRATIVE: Ownership comes first — I need to shape the function, not execute someone else's playbook. Candor is non-negotiable; I've left roles where raising problems got you labeled as difficult. I believe in constructive friction over false harmony.
 
@@ -1613,14 +1613,14 @@ SIGNALS:
 - Sectors: Healthcare ops, compliance, workforce tools
 - Users: Non-technical business users`,
 
-        "Work Style": `NARRATIVE: I've worked remotely for 25 years — it's how I'm wired. Best deep work happens in coffee shops, best reactive work in small video calls under 5 people. I thrive on a 70/30 split between strategic work and firefighting. I have ADHD, which means I'm either locked in or unmoored — dynamic work with quick feedback loops keeps me engaged.
+        "Work Style": `NARRATIVE: I've worked remotely for 20 years — it's how I'm wired. Best deep work happens in coffee shops, best reactive work in small video calls under 5 people. I thrive on a 70/30 split between strategic work and firefighting. Dynamic work with quick feedback loops keeps me engaged — variety is what keeps me energized.
 
 SIGNALS:
 - Remote required
 - Async communication preferred
 - Small meeting preference (<5 people)
 - 70/30 strategy/reactive split
-- ADHD-friendly environment needed`,
+- Variety and quick feedback loops needed`,
 
         "What Fills You": `NARRATIVE: Building from scratch energizes me. The zero-to-one phase where there's no playbook, real pressure, and visible impact. I love coaching team members through escalations in the afternoon after building frameworks in the morning.
 

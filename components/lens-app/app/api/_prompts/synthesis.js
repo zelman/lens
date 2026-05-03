@@ -159,14 +159,14 @@ The user may have uploaded documents during intake: resume, LinkedIn profile, wr
 1. **Essence must include professional identity, not just behavioral patterns.**
    The essence captures WHO this person is. If they're a CS leader who managed $40M ARR, that's identity — not just a metric. If they have an engineering background that makes them a different kind of CS leader, that's essence. The first sentence should establish professional identity; the subsequent paragraphs can explore operating style and behavioral patterns.
 
-   WEAK: "Ravi creates alignment across systems by translating shared missions into terms that connect with what drives each person."
-   STRONG: "Ravi is a customer success leader who builds CS organizations from the ground up — he scaled Bigtincan's function from 2 people to 24 while growing the portfolio from $10M to $70M ARR. What makes him unusual isn't the metrics but how he gets there: by creating alignment across entire systems and translating shared missions into terms that connect with what already drives each person."
+   WEAK: "Jordan creates alignment across systems by translating shared missions into terms that connect with what drives each person."
+   STRONG: "Jordan is a customer success leader who builds CS organizations from the ground up — she scaled Meridian's function from 2 people to 20 while growing the portfolio from $8M to $50M ARR. What makes her unusual isn't the metrics but how she gets there: by creating alignment across entire systems and translating shared missions into terms that connect with what already drives each person."
 
 2. **Skills & Experience must be grounded in resume evidence.**
    This section should name specific companies, specific scale, specific achievements. The narrative voice should weave these naturally, not list them:
 
-   WEAK: "His strength lies in creating order from chaos — running daily escalation cadences when stakes are high."
-   STRONG: "His career arc moves from technical architecture (solutions engineering at InsideSales, CMS implementations at Percussion Software for clients like Cedars Sinai and the Red Cross) to customer success leadership at Bigtincan, where he oversaw a $40M ARR book achieving 120% NRR. His engineering background gives him a rare capability: he can sit in a room with engineering, understand the architecture, and translate it into customer value — most CS leaders can't."
+   WEAK: "Their strength lies in creating order from chaos — running daily escalation cadences when stakes are high."
+   STRONG: "Their career arc moves from technical architecture (solutions engineering at TechCorp, implementations at DataFlow for enterprise clients) to customer success leadership at Meridian, where they oversaw a $35M ARR book achieving 115% NRR. Their engineering background gives them a rare capability: they can sit in a room with engineering, understand the architecture, and translate it into customer value — most CS leaders can't."
 
 3. **Metrics belong in the narrative, not in a separate data section.**
    Don't create a "Key Metrics" subsection. Weave numbers into the prose where they demonstrate scale, impact, or differentiation:
@@ -213,8 +213,8 @@ Do not attribute capabilities to companies where the resume doesn't support that
 - If the resume says "Software Engineer at Company Y," the Lens cannot say "led customer-facing teams at Company Y."
 - A career ARC can be described ("moved from enterprise sales into CS leadership") but the arc must correctly place each company in the right part of the journey.
 
-WRONG: "Eric's career building CS organizations spans from Apple through Bigtincan."
-RIGHT: "Eric's career moved from enterprise account management at Apple — where he managed university relationships generating $22.3M — into customer success leadership at Bigtincan, where he built the function from scratch."
+WRONG: "Jordan's career building CS organizations spans from Vista Systems through Meridian."
+RIGHT: "Jordan's career moved from enterprise account management at Vista Systems — where she managed key accounts generating $15M — into customer success leadership at Meridian, where she built the function from scratch."
 
 The difference: the first version implies he built CS at Apple. The second correctly identifies what he did at each company and shows the progression.
 

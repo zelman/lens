@@ -2,7 +2,33 @@
 
 All notable changes to deployed apps and schemas are documented here.
 
-## [2026-05-02] Template-Leak Structural Fix
+## [2026-05-02] Template-Leak Structural Fix + PII Anonymization
+
+### Build 2026.05.02-d
+
+**Fixed:** PII-in-prompts — Eric's career data hardcoded as examples in system prompts.
+
+**Issue:** P0 security investigation (recoyD90EGeIdMoOw) revealed that the model mentioned "Bigtincan" in Eric's 5/02 session even though he never said it in that session. Investigation found this was NOT cross-session data leakage — Eric's actual career data (Apple, Bigtincan, Harvard, Tufts, specific metrics) was hardcoded as example text in multiple prompt files.
+
+**Root cause:** Prompt engineering examples used real PII instead of fictional examples. Any user session could inadvertently reference Eric's career data because it was embedded in the system prompts.
+
+**Affected files and changes:**
+- `discovery.js` — Changed Apple/Bigtincan career generalization example to Vista Systems/Meridian Software
+- `synthesis.js` — Changed Eric/Bigtincan/Apple document integration examples to Jordan/Meridian/Vista Systems
+- `validation.js` — Changed hallucination detection examples to use fictional companies
+- `resume-suggestions.js` — Changed Eric/Bigtincan example to Jordan/Meridian
+- `LensIntake.jsx` — Changed /skip test data to use Meridian, removed ADHD reference, adjusted metrics
+- `lens-report-renderer.jsx` — Changed SAMPLE_MD from Eric Zelman to Jordan Chen with fictional career data
+
+**Security impact:** Eliminates prompt-based PII leakage. No user's uploaded materials were leaking (data isolation is working correctly) — this was hardcoded example data in prompt files.
+
+**Files Changed:**
+- `app/api/_prompts/discovery.js` — anonymized career example
+- `app/api/_prompts/synthesis.js` — anonymized 3 examples
+- `app/api/_prompts/validation.js` — anonymized hallucination example
+- `app/api/_prompts/resume-suggestions.js` — anonymized example
+- `app/components/LensIntake.jsx` — anonymized test data
+- `app/components/lens-report-renderer.jsx` — anonymized sample Lens
 
 ### Build 2026.05.02-a
 

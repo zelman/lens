@@ -71,11 +71,11 @@ Return a JSON object with this exact structure:
     {
       "priority": 1,
       "lens_section": "Essence",
-      "lens_insight": "Eric is a builder who creates CS organizations from scratch, not a maintainer who optimizes existing ones",
+      "lens_insight": "Jordan is a builder who creates CS organizations from scratch, not a maintainer who optimizes existing ones",
       "current_gap": "The resume summary leads with 'experienced Customer Success leader' which is generic and doesn't distinguish builder from maintainer",
       "suggestion": "Rewrite the summary's first sentence to lead with the builder identity",
-      "example_before": "Experienced Customer Success leader with 18+ years driving customer outcomes in B2B SaaS",
-      "example_after": "Customer Success leader who builds organizations from the ground up — scaled Bigtincan CS from 2 to 24 while growing ARR from $10M to $70M"
+      "example_before": "Experienced Customer Success leader with 15+ years driving customer outcomes in B2B SaaS",
+      "example_after": "Customer Success leader who builds organizations from the ground up — scaled Meridian CS from 2 to 20 while growing ARR from $8M to $50M"
     },
     {
       "priority": 2,

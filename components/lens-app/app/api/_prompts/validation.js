@@ -54,7 +54,7 @@ For each factual claim in the Lens output, verify it against the source material
 - Career trajectory claims ("built X at Company Y")
 
 A hallucination is any claim where:
-- The Lens attributes a capability to a company where the resume shows a different role (e.g., "built CS at Apple" when resume says "Account Executive at Apple")
+- The Lens attributes a capability to a company where the resume shows a different role (e.g., "built CS at Vista Systems" when resume says "Account Executive at Vista Systems")
 - The Lens cites a metric not present in any source document
 - The Lens describes a career arc that contradicts the resume chronology
 - The Lens claims expertise in an area not supported by any uploaded material
@@ -101,19 +101,19 @@ Respond with ONLY a valid JSON object. No markdown, no backticks, no preamble.
     {
       "section": "essence",
       "gap_type": "identity",
-      "what_source_says": "Director of Customer Success at Showpad/Bigtincan, managing $40M ARR book of business with 120% NRR",
+      "what_source_says": "Director of Customer Success at Acme Corp/Meridian, managing $35M ARR book of business with 115% NRR",
       "what_lens_says": "Creates alignment across systems by translating shared missions — no mention of CS leadership, revenue scope, or retention metrics",
-      "suggested_integration": "First sentence of essence should establish: CS leader who builds organizations from scratch, with specific scale indicators ($40M ARR, 24-person org) as identity anchors"
+      "suggested_integration": "First sentence of essence should establish: CS leader who builds organizations from scratch, with specific scale indicators ($35M ARR, 20-person org) as identity anchors"
     }
   ],
   "has_hallucinations": false,
   "hallucinations": [
     {
       "section": "essence",
-      "claim": "built customer experience organizations from Apple to Bigtincan",
-      "source_reality": "Resume shows Account Executive & Systems Engineer at Apple (1998-2006), not CX org-building",
+      "claim": "built customer experience organizations from Vista Systems to Meridian",
+      "source_reality": "Resume shows Account Executive at Vista Systems (2001-2007), not CX org-building",
       "severity": "high",
-      "fix": "Reference Apple in the context of enterprise sales and account management, not CS/CX leadership"
+      "fix": "Reference Vista Systems in the context of enterprise sales and account management, not CS/CX leadership"
     }
   ],
   "has_sensitivity_violations": true,
